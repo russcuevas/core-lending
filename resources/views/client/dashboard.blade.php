@@ -212,6 +212,27 @@
                         @endforeach
                     </tbody>
                 </table>
+        </div>
+    @elseif($activeLoan && in_array($activeLoan->status, ['pending_host_approval', 'approved_for_release', 'ready_for_release', 'pending_releasing_review']))
+        <div class="card" style="border-left: 4px solid #f59e0b;">
+            <div class="card-header">
+                <h3 class="card-title">⏳ Loan Renewal Application Under Review</h3>
+                <span class="badge badge-amber">Pending Host Approval</span>
+            </div>
+            <div style="padding: 18px; font-size: 13px; color: var(--text-secondary);">
+                Your loan renewal of <strong style="color: #059669;">₱{{ number_format($activeLoan->principal_amount, 2) }}</strong> has been submitted and is waiting for Superadmin approval and disbursement.
+            </div>
+        </div>
+    @else
+        <div class="card" style="border-left: 4px solid #059669; background: #f0fdf4;">
+            <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: #065f46; margin: 0 0 4px 0;">🎉 You are eligible for a Loan Renewal (Re-Loan)!</h3>
+                    <p style="margin: 0; font-size: 12.5px; color: #047857;">You currently have no active loan. Apply for a new loan cycle anytime.</p>
+                </div>
+                <button type="button" class="btn btn-emerald" onclick="openModal('applyRenewalModal')" style="font-weight: 700;">
+                    🔄 Apply for Loan Renewal
+                </button>
             </div>
         </div>
     @endif
@@ -452,8 +473,94 @@
             </form>
         </div>
     </div>
+    <!-- Apply for Loan Renewal Modal -->
+    <div class="modal-overlay" id="applyRenewalModal">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title">🔄 Apply for Loan Renewal (Re-Loan)</h3>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Request a new loan cycle under verified terms.</div>
+                </div>
+                <button type="button" class="modal-close" onclick="closeModal('applyRenewalModal')">&times;</button>
+            </div>
+            <form action="{{ route('client.request_renewal') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div style="background: rgba(5, 150, 105, 0.08); border: 1px solid rgba(5, 150, 105, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 4px;">📌 Verified System Terms:</div>
+                        <div style="display: flex; gap: 16px; font-size: 12.5px; color: var(--text-primary);">
+                            <div><strong>Interest:</strong> {{ $loanInterestRate ?? 10 }}%</div>
+                            <div><strong>Term:</strong> {{ $loanTermDays ?? 60 }} Days (Daily)</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Requested Loan Amount (₱) <span style="color:red;">*</span></label>
+                        <input type="number" step="100" min="500" name="amount" id="client_renew_principal" class="form-control" placeholder="Enter amount, e.g. 10000" required oninput="calculateClientRenewLoan()">
+                        
+                        <!-- Quick Presets -->
+                        <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setClientRenewAmount(5000)">₱5,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setClientRenewAmount(10000)">₱10,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setClientRenewAmount(15000)">₱15,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setClientRenewAmount(20000)">₱20,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setClientRenewAmount(30000)">₱30,000</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Breakdown Preview -->
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">Estimated Computation</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Interest ({{ $loanInterestRate ?? 10 }}%)</span>
+                                <span style="font-size: 14px; font-weight: 700; color: #d97706;" id="client_renew_interest">₱0.00</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Payable</span>
+                                <span style="font-size: 14px; font-weight: 800; color: #059669;" id="client_renew_payable">₱0.00</span>
+                            </div>
+                            <div style="grid-column: span 2; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px;">
+                                <span style="font-size: 12px; color: var(--text-secondary);">Daily Installment: </span>
+                                <strong style="font-size: 16px; color: #0284c7;" id="client_renew_daily">₱0.00 / day</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Additional capital for sari-sari store expansion"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('applyRenewalModal')">Cancel</button>
+                    <button type="submit" class="btn btn-emerald" style="font-weight: 700;">Submit Renewal Request &rarr;</button>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
     <script src="{{ asset('js/client.js') }}"></script>
+    <script>
+        const clientLoanRate = {{ (float)($loanInterestRate ?? 10) }};
+        const clientLoanTerm = {{ (int)($loanTermDays ?? 60) }};
+
+        function setClientRenewAmount(val) {
+            document.getElementById('client_renew_principal').value = val;
+            calculateClientRenewLoan();
+        }
+
+        function calculateClientRenewLoan() {
+            const principal = parseFloat(document.getElementById('client_renew_principal').value) || 0;
+            const interest = principal * (clientLoanRate / 100);
+            const total = principal + interest;
+            const daily = clientLoanTerm > 0 ? (total / clientLoanTerm) : 0;
+
+            document.getElementById('client_renew_interest').innerText = '₱' + interest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('client_renew_payable').innerText = '₱' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('client_renew_daily').innerText = '₱' + daily.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / day';
+        }
+    </script>
 @endpush

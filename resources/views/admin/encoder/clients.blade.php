@@ -58,12 +58,32 @@
                                     ₱{{ number_format($client->currentLoan->remaining_balance ?? 0, 2) }}
                                 </td>
                                 <td>
-                                    <span class="badge {{ $client->status === 'active' ? 'badge-emerald' : 'badge-amber' }}">
-                                        {{ str_replace('_', ' ', $client->status) }}
-                                    </span>
+                                    @php
+                                        $cLoan = $client->currentLoan;
+                                        $isLoanActive = $cLoan && $cLoan->status === 'active';
+                                        $isLoanPending = $cLoan && in_array($cLoan->status, ['pending_host_approval', 'approved_for_release', 'ready_for_release', 'pending_releasing_review']);
+                                        $isLoanCompleted = $cLoan && $cLoan->status === 'completed';
+                                    @endphp
+                                    @if($isLoanActive)
+                                        <span class="badge badge-emerald">Active Loan</span>
+                                    @elseif($isLoanPending)
+                                        <span class="badge badge-amber" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;">⏳ Pending Host</span>
+                                    @elseif($isLoanCompleted)
+                                        <span class="badge badge-emerald" style="background:#d1fae5; color:#065f46; font-weight:600;">✓ Completed</span>
+                                    @else
+                                        <span class="badge badge-slate">{{ str_replace('_', ' ', $client->status) }}</span>
+                                    @endif
                                 </td>
                                 <td>
-                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                                        @if($isLoanCompleted || !$cLoan || in_array($cLoan->status, ['rejected', 'declined']))
+                                            <button type="button" class="btn btn-sm btn-emerald" style="font-weight: 700; box-shadow: 0 2px 4px rgba(5,150,105,0.2);" onclick="openRenewModal('{{ $client->id }}', '{{ addslashes($client->user->name) }}', '{{ $client->collector_id }}')" title="Renew Loan for this client">
+                                                🔄 Renew Loan
+                                            </button>
+                                        @elseif($isLoanPending)
+                                            <span class="badge badge-amber" style="font-size: 11px; padding: 4px 6px;">⏳ In Review</span>
+                                        @endif
+
                                         <a href="{{ route('admin.encoder.print_qr', $client->id) }}" class="btn btn-sm btn-outline" target="_blank" title="Print QR & Schedule">
                                             🖨 QR Card
                                         </a>
@@ -84,6 +104,83 @@
         </div>
         <div style="margin-top: 14px;">
             {{ $clients->links() }}
+        </div>
+    </div>
+
+    <!-- Renew Loan Modal (Submits New Loan Application to Host for Approval) -->
+    <div class="modal-overlay" id="renewLoanModal">
+        <div class="modal-box" style="max-width: 540px;">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title" id="renewModalTitle">🔄 Loan Renewal / Re-Loan</h3>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Client profile and ID are verified. Submit new loan cycle for Host Approval.</div>
+                </div>
+                <button type="button" class="modal-close" onclick="closeModal('renewLoanModal')">&times;</button>
+            </div>
+            <form id="renewLoanForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div style="background: rgba(5, 150, 105, 0.08); border: 1px solid rgba(5, 150, 105, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 4px;">📌 Host-Enforced Loan Terms:</div>
+                        <div style="display: flex; gap: 16px; font-size: 12.5px; color: var(--text-primary);">
+                            <div><strong>Interest:</strong> {{ $defaultInterestRate ?? 10 }}%</div>
+                            <div><strong>Term:</strong> {{ $defaultTermDays ?? 60 }} Days (Daily)</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">New Principal Loan Amount (₱) <span style="color:red;">*</span></label>
+                        <input type="number" step="100" name="loan_amount" id="renew_principal" class="form-control" placeholder="Enter amount, e.g. 10000" required oninput="calculateRenewLoan()">
+                        
+                        <!-- Quick Preset Buttons -->
+                        <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setRenewAmount(5000)">₱5,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setRenewAmount(10000)">₱10,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setRenewAmount(15000)">₱15,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setRenewAmount(20000)">₱20,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setRenewAmount(30000)">₱30,000</button>
+                            <button type="button" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" onclick="setRenewAmount(50000)">₱50,000</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Computation Preview Box -->
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">Calculation Breakdown</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Interest ({{ $defaultInterestRate ?? 10 }}%)</span>
+                                <span style="font-size: 14px; font-weight: 700; color: #d97706;" id="renew_interest_preview">₱0.00</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Payable</span>
+                                <span style="font-size: 14px; font-weight: 800; color: #059669;" id="renew_payable_preview">₱0.00</span>
+                            </div>
+                            <div style="grid-column: span 2; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px;">
+                                <span style="font-size: 12px; color: var(--text-secondary);">Daily Installment ({{ $defaultTermDays ?? 60 }} Days): </span>
+                                <strong style="font-size: 16px; color: #0284c7;" id="renew_daily_preview">₱0.00 / day</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Assigned Collector <span style="color:red;">*</span></label>
+                        <select name="collector_id" id="renew_collector" class="form-select" required>
+                            @foreach($collectors as $col)
+                                <option value="{{ $col->id }}">{{ $col->user->name }} ({{ $col->assigned_area }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes / Renewal Reason (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Good paying client re-loan request"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('renewLoanModal')">Cancel</button>
+                    <button type="submit" class="btn btn-emerald" style="font-weight: 700;">Submit to Host for Approval &rarr;</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -141,6 +238,34 @@
 
 @push('scripts')
     <script>
+        const hostInterestRate = {{ (float)($defaultInterestRate ?? 10) }};
+        const hostTermDays = {{ (int)($defaultTermDays ?? 60) }};
+
+        function openRenewModal(clientId, name, collectorId) {
+            document.getElementById('renewLoanForm').action = '/admin/encoder/clients/' + clientId + '/renew-loan';
+            document.getElementById('renewModalTitle').innerText = '🔄 Renew Loan for ' + name;
+            document.getElementById('renew_collector').value = collectorId;
+            document.getElementById('renew_principal').value = '';
+            calculateRenewLoan();
+            openModal('renewLoanModal');
+        }
+
+        function setRenewAmount(amount) {
+            document.getElementById('renew_principal').value = amount;
+            calculateRenewLoan();
+        }
+
+        function calculateRenewLoan() {
+            const principal = parseFloat(document.getElementById('renew_principal').value) || 0;
+            const interest = principal * (hostInterestRate / 100);
+            const totalPayable = principal + interest;
+            const daily = hostTermDays > 0 ? (totalPayable / hostTermDays) : 0;
+
+            document.getElementById('renew_interest_preview').innerText = '₱' + interest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('renew_payable_preview').innerText = '₱' + totalPayable.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('renew_daily_preview').innerText = '₱' + daily.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / day';
+        }
+
         function openUpdateModal(clientId, name, phone, address, collectorId) {
             document.getElementById('updateClientForm').action = '/admin/encoder/clients/' + clientId + '/update-request';
             document.getElementById('updateModalTitle').innerText = 'Request Update for ' + name;

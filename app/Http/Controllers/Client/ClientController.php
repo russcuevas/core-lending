@@ -50,6 +50,9 @@ class ClientController extends Controller
             ->where('status', '!=', 'paid')
             ->count() : 0;
 
+        $loanInterestRate = (float)SystemSetting::get('loan_interest_rate_percent', 10.00);
+        $loanTermDays = (int)SystemSetting::get('loan_term_days', 60);
+
         return view('client.dashboard', compact(
             'client',
             'activeLoan',
@@ -60,7 +63,9 @@ class ClientController extends Controller
             'walletTransactions',
             'missedPastDuesCount',
             'savingsInterestRate',
-            'savingsLockInDays'
+            'savingsLockInDays',
+            'loanInterestRate',
+            'loanTermDays'
         ));
     }
 
@@ -127,6 +132,69 @@ class ClientController extends Controller
         );
 
         return back()->with('success', 'Cash Out request submitted! Releasing officer will review and submit to Host for approval.');
+    }
+
+    public function requestRenewal(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:500',
+            'notes' => 'nullable|string',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $client = $user->client;
+
+        if ($client->currentLoan && in_array($client->currentLoan->status, ['active', 'pending_host_approval', 'approved_for_release'])) {
+            return back()->with('error', 'You currently have an ongoing or pending loan in progress.');
+        }
+
+        $termDays = (int)SystemSetting::get('loan_term_days', 60);
+        $interestPercent = (float)SystemSetting::get('loan_interest_rate_percent', 10.00);
+        $principal = (float)$request->amount;
+        $interestTotal = $principal * ($interestPercent / 100);
+        $totalPayable = $principal + $interestTotal;
+        $dailyInstallment = round($totalPayable / $termDays, 2);
+
+        $client->update(['status' => 'pending_host_approval']);
+
+        $loan = Loan::create([
+            'client_id' => $client->id,
+            'collector_id' => $client->collector_id,
+            'principal_amount' => $principal,
+            'interest_rate_percent' => $interestPercent,
+            'total_payable' => $totalPayable,
+            'daily_installment' => $dailyInstallment,
+            'term_days' => $termDays,
+            'remaining_balance' => $totalPayable,
+            'total_paid' => 0.00,
+            'status' => 'pending_host_approval',
+            'release_note' => $request->notes ?? "Self-service Client Loan Renewal Request",
+        ]);
+
+        $client->update(['current_loan_id' => $loan->id]);
+
+        for ($day = 1; $day <= $termDays; $day++) {
+            LoanSchedule::create([
+                'loan_id' => $loan->id,
+                'day_number' => $day,
+                'due_date' => null,
+                'expected_amount' => $dailyInstallment,
+                'amount_paid' => 0.00,
+                'status' => 'unpaid',
+            ]);
+        }
+
+        SystemNotification::sendNotification(
+            null,
+            'host',
+            'Client Loan Renewal Request',
+            "Client {$user->name} requested a Loan Renewal of ₱" . number_format($principal, 2) . " for Host Approval.",
+            'approval_needed',
+            '/host/approvals'
+        );
+
+        return back()->with('success', 'Your loan renewal request for ₱' . number_format($principal, 2) . ' has been submitted for Host Approval!');
     }
 
     public function createSavings(Request $request)

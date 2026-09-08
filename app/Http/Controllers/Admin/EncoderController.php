@@ -182,7 +182,79 @@ class EncoderController extends Controller
             $q->where('status', 'active');
         })->get();
 
-        return view('admin.encoder.clients', compact('clients', 'collectors'));
+        $defaultInterestRate = SystemSetting::get('loan_interest_rate_percent', 10.00);
+        $defaultTermDays = (int)SystemSetting::get('loan_term_days', 60);
+
+        return view('admin.encoder.clients', compact('clients', 'collectors', 'defaultInterestRate', 'defaultTermDays'));
+    }
+
+    public function renewLoan(Request $request, Client $client)
+    {
+        $request->validate([
+            'loan_amount' => 'required|numeric|min:500',
+            'collector_id' => 'required|exists:collectors,id',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Check if client currently has an active loan in progress
+        if ($client->currentLoan && in_array($client->currentLoan->status, ['active', 'pending_host_approval', 'approved_for_release'])) {
+            return back()->with('error', 'Client already has an active or pending loan application in progress.');
+        }
+
+        // Calculate Loan Details strictly based on Host Global Settings
+        $termDays = (int)SystemSetting::get('loan_term_days', 60);
+        $interestPercent = (float)SystemSetting::get('loan_interest_rate_percent', 10.00);
+        $principal = (float)$request->loan_amount;
+        $interestTotal = $principal * ($interestPercent / 100);
+        $totalPayable = $principal + $interestTotal;
+        $dailyInstallment = round($totalPayable / $termDays, 2);
+
+        // Update collector and client status
+        $client->update([
+            'collector_id' => $request->collector_id,
+            'status' => 'pending_host_approval',
+        ]);
+
+        $loan = Loan::create([
+            'client_id' => $client->id,
+            'collector_id' => $request->collector_id,
+            'principal_amount' => $principal,
+            'interest_rate_percent' => $interestPercent,
+            'total_payable' => $totalPayable,
+            'daily_installment' => $dailyInstallment,
+            'term_days' => $termDays,
+            'remaining_balance' => $totalPayable,
+            'total_paid' => 0.00,
+            'status' => 'pending_host_approval',
+            'encoder_id' => Auth::id(),
+            'release_note' => $request->notes ?? "Loan Renewal / Reloan application.",
+        ]);
+
+        $client->update(['current_loan_id' => $loan->id]);
+
+        // Generate Loan Payment Schedule
+        for ($day = 1; $day <= $termDays; $day++) {
+            LoanSchedule::create([
+                'loan_id' => $loan->id,
+                'day_number' => $day,
+                'due_date' => null,
+                'expected_amount' => $dailyInstallment,
+                'amount_paid' => 0.00,
+                'status' => 'unpaid',
+            ]);
+        }
+
+        // Notify Host Superadmin
+        SystemNotification::sendNotification(
+            null,
+            'host',
+            'Loan Renewal Application',
+            "Admin Encoder submitted Loan Renewal for {$client->user->name} (₱" . number_format($principal, 2) . ") for Host Approval.",
+            'approval_needed',
+            '/host/approvals'
+        );
+
+        return back()->with('success', "Loan renewal for {$client->user->name} (₱" . number_format($principal, 2) . ") submitted to Host for approval!");
     }
 
     public function requestClientUpdate(Request $request, Client $client)

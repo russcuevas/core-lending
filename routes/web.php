@@ -69,6 +69,7 @@ Route::middleware(['auth', 'role:admin_encoder,host'])->prefix('admin/encoder')-
     Route::get('/clients', [EncoderController::class, 'clientList'])->name('clients.index');
     Route::get('/clients/{client}/print-card', [EncoderController::class, 'printClientQr'])->name('print_qr');
     Route::post('/clients/{client}/update-request', [EncoderController::class, 'requestClientUpdate'])->name('clients.update_request');
+    Route::post('/clients/{client}/renew-loan', [EncoderController::class, 'renewLoan'])->name('clients.renew_loan');
 
     // Expenses
     Route::get('/expenses', [EncoderController::class, 'expensesIndex'])->name('expenses.index');
@@ -104,6 +105,7 @@ Route::middleware(['auth', 'role:client'])->prefix('client')->name('client.')->g
     Route::get('/dashboard', [ClientController::class, 'dashboard'])->name('dashboard');
     Route::post('/cash-in', [ClientController::class, 'requestCashIn'])->name('cash_in');
     Route::post('/cash-out', [ClientController::class, 'requestCashOut'])->name('cash_out');
+    Route::post('/request-renewal', [ClientController::class, 'requestRenewal'])->name('request_renewal');
     Route::post('/savings', [ClientController::class, 'createSavings'])->name('savings.store');
     Route::post('/change-pin', [ClientController::class, 'changePin'])->name('change_pin');
 });

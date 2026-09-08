@@ -103,7 +103,14 @@
                             @foreach($pendingLoans as $loan)
                                 <tr>
                                     <td>
-                                        <div style="font-weight: 700; color: var(--text-primary);">{{ $loan->client->user->name ?? 'Unknown' }}</div>
+                                        <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                                            {{ $loan->client->user->name ?? 'Unknown' }}
+                                            @if($loan->client && $loan->client->loans()->count() > 1)
+                                                <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 10px; padding: 2px 6px; font-weight: 700;">🔄 Reloan</span>
+                                            @else
+                                                <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 10px; padding: 2px 6px; font-weight: 700;">🆕 New</span>
+                                            @endif
+                                        </div>
                                         <div style="font-size: 11.5px; color: var(--text-secondary);">📞 {{ $loan->client->user->phone_number ?? 'N/A' }}</div>
                                     </td>
                                     <td>
