@@ -1,0 +1,104 @@
+/* Client Dashboard Styles */
+.client-hero-card {
+    background: linear-gradient(135deg, #091e3a 0%, #0077b6 60%, #00b4d8 100%);
+    color: #ffffff;
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 12px 28px -5px rgba(9, 30, 58, 0.4);
+}
+
+.client-qr-toggle-box {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.client-qr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.client-qr-info {
+    text-align: left;
+}
+
+.client-qr-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--brand-navy);
+    margin-bottom: 3px;
+}
+
+.client-qr-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.client-qr-image-display {
+    max-width: 260px;
+    margin: 20px auto 10px auto;
+    padding: 16px;
+    background: #ffffff;
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 20px rgba(0, 119, 182, 0.15);
+    text-align: center;
+    display: none;
+}
+
+.client-qr-image-display.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Loan 60-day Progress Bar */
+.loan-progress-container {
+    background: #f1f5f9;
+    border-radius: 999px;
+    height: 12px;
+    width: 100%;
+    overflow: hidden;
+    margin: 12px 0 8px 0;
+}
+
+.loan-progress-bar {
+    background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+.savings-plan-card {
+    border: 2px solid var(--emerald);
+    background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.savings-rate-tag {
+    background: var(--emerald);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-bottom: 12px;
+}

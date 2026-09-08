@@ -1,0 +1,134 @@
+/* Host / Superadmin Dashboard Styles */
+.host-approval-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+}
+
+.approval-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--emerald);
+}
+
+.approval-card.loan { border-left-color: var(--emerald); }
+.approval-card.cashin { border-left-color: var(--indigo); }
+.approval-card.cashout { border-left-color: var(--amber); }
+.approval-card.collector { border-left-color: var(--primary); }
+.approval-card.update { border-left-color: #8b5cf6; }
+
+.approval-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.approval-tag {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.approval-tag.loan { background: var(--emerald-light); color: var(--emerald); }
+.approval-tag.cashin { background: var(--indigo-light); color: var(--indigo); }
+.approval-tag.cashout { background: var(--amber-light); color: var(--amber); }
+.approval-tag.collector { background: #f1f5f9; color: var(--primary); }
+
+.approval-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px dashed #f1f5f9;
+}
+
+.approval-meta-label {
+    color: var(--text-secondary);
+}
+
+.approval-meta-val {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.approval-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+
+.vault-hero-card {
+    background: linear-gradient(135deg, #091e3a 0%, #0077b6 60%, #00b4d8 100%);
+    color: #ffffff;
+    border-radius: var(--radius-xl);
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 30px -5px rgba(9, 30, 58, 0.45);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.vault-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #ffffff;
+    opacity: 0.95;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.vault-amount {
+    font-size: 38px;
+    font-weight: 800;
+    font-family: var(--font-heading);
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    line-height: 1.15;
+}
+
+.vault-stats-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.vault-stat-item {
+    text-align: right;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.vault-stat-sublabel {
+    font-size: 12px;
+    color: #ffffff;
+    opacity: 0.9;
+    font-weight: 600;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.vault-stat-subval {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff !important;
+    font-family: var(--font-heading);
+}

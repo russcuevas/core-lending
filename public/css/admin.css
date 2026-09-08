@@ -1,0 +1,83 @@
+/* Admin Encoder & Releasing Styles */
+.releasing-request-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+    position: relative;
+    border-left: 5px solid var(--emerald);
+}
+
+.releasing-request-card.urgent {
+    border-left-color: var(--amber);
+    box-shadow: 0 0 0 1px var(--amber-light);
+}
+
+.request-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    background: #f8fafc;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    margin: 14px 0;
+}
+
+.request-item {
+    font-size: 13px;
+}
+
+.request-label {
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    display: block;
+}
+
+.request-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Loan 60-day schedule preview table */
+.schedule-grid-preview {
+    max-height: 420px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.print-card-container {
+    background: white;
+    padding: 30px;
+    border: 2px solid #0f172a;
+    border-radius: var(--radius-md);
+    max-width: 750px;
+    margin: 0 auto;
+}
+
+.print-header {
+    text-align: center;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.print-qr-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: var(--radius-sm);
+}
+
+.print-qr-img {
+    width: 140px;
+    height: 140px;
+    background: white;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+}

@@ -1,0 +1,319 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use App\Models\User;
+use App\Models\Client;
+use App\Models\Collector;
+use App\Models\Loan;
+use App\Models\LoanSchedule;
+use App\Models\LoanPayment;
+use App\Models\Expense;
+use App\Models\ClientUpdateRequest;
+use App\Models\SystemNotification;
+use Carbon\Carbon;
+
+class EncoderController extends Controller
+{
+    public function dashboard()
+    {
+        $totalClientsEncoded = Client::count();
+        $pendingHostApprovals = Loan::where('status', 'pending_host_approval')->count();
+        $recentClients = Client::with(['user', 'collector.user', 'currentLoan'])->latest()->take(10)->get();
+        $collectors = Collector::with('user')->get();
+        $expensesToday = Expense::whereDate('date', Carbon::today())->sum('amount');
+
+        return view('admin.encoder.dashboard', compact(
+            'totalClientsEncoded',
+            'pendingHostApprovals',
+            'recentClients',
+            'collectors',
+            'expensesToday'
+        ));
+    }
+
+    public function createClient()
+    {
+        $collectors = Collector::with('user')->whereHas('user', function($q) {
+            $q->where('status', 'active');
+        })->get();
+
+        return view('admin.encoder.create_client', compact('collectors'));
+    }
+
+    public function storeClient(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone_number' => 'required|string|unique:users,phone_number',
+            'email' => 'nullable|email|unique:users,email',
+            'address' => 'required|string',
+            'valid_id' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+            'loan_amount' => 'required|numeric|min:500',
+            'interest_rate_percent' => 'required|numeric|min:0',
+            'collector_id' => 'required|exists:collectors,id',
+            'pin_code' => 'nullable|digits:4',
+        ]);
+
+        // Upload valid ID directly to public/uploads/id_proofs
+        $validIdPath = null;
+        if ($request->hasFile('valid_id')) {
+            $file = $request->file('valid_id');
+            $filename = 'id_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/id_proofs'), $filename);
+            $validIdPath = 'uploads/id_proofs/' . $filename;
+        }
+
+        $pinCode = $request->pin_code ?? '1234';
+
+        // 1. Create User account for client
+        $user = User::create([
+            'name' => $request->name,
+            'phone_number' => $request->phone_number,
+            'email' => $request->email,
+            'password' => Hash::make($pinCode),
+            'pin_code' => $pinCode,
+            'role' => 'client',
+            'address' => $request->address,
+            'valid_id_path' => $validIdPath,
+            'status' => 'pending_host_approval',
+        ]);
+
+        // 2. Generate Unique QR Code Token
+        $qrToken = 'CLIENT-QR-' . strtoupper(Str::random(10));
+
+        $client = Client::create([
+            'user_id' => $user->id,
+            'collector_id' => $request->collector_id,
+            'qr_code_token' => $qrToken,
+            'wallet_balance' => 0.00,
+            'status' => 'pending_host_approval',
+        ]);
+
+        // 3. Calculate Loan Details (60 Days Term)
+        $principal = (float)$request->loan_amount;
+        $interestPercent = (float)$request->interest_rate_percent;
+        $interestTotal = $principal * ($interestPercent / 100);
+        $totalPayable = $principal + $interestTotal;
+        $dailyInstallment = round($totalPayable / 60, 2);
+
+        $loan = Loan::create([
+            'client_id' => $client->id,
+            'collector_id' => $request->collector_id,
+            'principal_amount' => $principal,
+            'interest_rate_percent' => $interestPercent,
+            'total_payable' => $totalPayable,
+            'daily_installment' => $dailyInstallment,
+            'term_days' => 60,
+            'remaining_balance' => $totalPayable,
+            'total_paid' => 0.00,
+            'status' => 'pending_host_approval',
+            'encoder_id' => Auth::id(),
+        ]);
+
+        $client->update(['current_loan_id' => $loan->id]);
+
+        // 4. Generate 60-Day Loan Payment Schedule
+        $today = Carbon::today();
+        for ($day = 1; $day <= 60; $day++) {
+            LoanSchedule::create([
+                'loan_id' => $loan->id,
+                'day_number' => $day,
+                'due_date' => $today->copy()->addDays($day)->format('Y-m-d'),
+                'expected_amount' => $dailyInstallment,
+                'paid_amount' => 0.00,
+                'status' => 'unpaid',
+            ]);
+        }
+
+        // 5. Notify Superadmin / Host for Approval
+        SystemNotification::sendNotification(
+            null,
+            'host',
+            'New Client Loan Application',
+            "Admin Encoder submitted client application for {$user->name} (₱" . number_format($principal, 2) . "). Waiting for Host approval.",
+            'approval_needed',
+            '/host/approvals'
+        );
+
+        return redirect()->route('admin.encoder.print_qr', $client->id)->with('success', "Client encoded successfully! 60-day payment schedule generated. Ready to print QR & Card.");
+    }
+
+    public function printClientQr(Client $client)
+    {
+        $client->load(['user', 'collector.user', 'currentLoan.schedules']);
+        return view('admin.encoder.print_client_card', compact('client'));
+    }
+
+    public function clientList(Request $request)
+    {
+        $query = Client::with(['user', 'collector.user', 'currentLoan'])->latest();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('phone_number', 'like', "%{$search}%");
+            });
+        }
+
+        $clients = $query->paginate(20);
+        $collectors = Collector::with('user')->get();
+
+        return view('admin.encoder.clients', compact('clients', 'collectors'));
+    }
+
+    public function requestClientUpdate(Request $request, Client $client)
+    {
+        $request->validate([
+            'name' => 'required|string',
+            'phone_number' => 'required|string',
+            'address' => 'required|string',
+            'collector_id' => 'required|exists:collectors,id',
+            'notes' => 'nullable|string',
+        ]);
+
+        $oldData = [
+            'name' => $client->user->name,
+            'phone_number' => $client->user->phone_number,
+            'address' => $client->user->address,
+            'collector_id' => $client->collector_id,
+        ];
+
+        $newData = [
+            'name' => $request->name,
+            'phone_number' => $request->phone_number,
+            'address' => $request->address,
+            'collector_id' => $request->collector_id,
+        ];
+
+        ClientUpdateRequest::create([
+            'client_id' => $client->id,
+            'requested_by' => Auth::id(),
+            'old_data' => $oldData,
+            'new_data' => $newData,
+            'status' => 'pending_host_approval',
+            'notes' => $request->notes,
+        ]);
+
+        SystemNotification::sendNotification(
+            null,
+            'host',
+            'Client Details Update Request',
+            "Admin Encoder requested profile update for client {$client->user->name}.",
+            'approval_needed',
+            '/host/approvals'
+        );
+
+        return back()->with('success', 'Update request submitted to Superadmin for approval.');
+    }
+
+    public function expensesIndex()
+    {
+        $expenses = Expense::with('user')->latest()->paginate(20);
+        return view('admin.encoder.expenses', compact('expenses'));
+    }
+
+    public function storeExpense(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'particulars' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:1',
+            'category' => 'required|string',
+            'receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+        ]);
+
+        $receiptPath = null;
+        if ($request->hasFile('receipt')) {
+            $file = $request->file('receipt');
+            $filename = 'exp_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/expenses'), $filename);
+            $receiptPath = 'uploads/expenses/' . $filename;
+        }
+
+        Expense::create([
+            'user_id' => Auth::id(),
+            'date' => $request->date,
+            'particulars' => $request->particulars,
+            'amount' => $request->amount,
+            'category' => $request->category,
+            'receipt_image_path' => $receiptPath,
+        ]);
+
+        return back()->with('success', 'Expense recorded successfully!');
+    }
+
+    public function createCollector()
+    {
+        return view('admin.encoder.create_collector');
+    }
+
+    public function storeCollector(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone_number' => 'required|string|unique:users,phone_number',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+            'address' => 'required|string',
+            'assigned_area' => 'required|string',
+            'valid_id' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+        ]);
+
+        $validIdPath = null;
+        if ($request->hasFile('valid_id')) {
+            $file = $request->file('valid_id');
+            $filename = 'col_id_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/id_proofs'), $filename);
+            $validIdPath = 'uploads/id_proofs/' . $filename;
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'phone_number' => $request->phone_number,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'pin_code' => '1234',
+            'role' => 'collector',
+            'address' => $request->address,
+            'valid_id_path' => $validIdPath,
+            'status' => 'pending', // Pending Host approval
+        ]);
+
+        Collector::create([
+            'user_id' => $user->id,
+            'assigned_area' => $request->assigned_area,
+            'commission_balance' => 0.00,
+            'total_earned_commission' => 0.00,
+        ]);
+
+        SystemNotification::sendNotification(
+            null,
+            'host',
+            'New Collector Account Submitted',
+            "Admin Encoder registered new collector {$user->name}. Waiting for Host approval.",
+            'approval_needed',
+            '/host/approvals'
+        );
+
+        return redirect()->route('admin.encoder.dashboard')->with('success', "Collector account for {$user->name} created and submitted to Host for approval!");
+    }
+
+    public function printDailyPayments(Request $request)
+    {
+        $date = $request->input('date', Carbon::today()->format('Y-m-d'));
+
+        $payments = LoanPayment::with(['client.user', 'collector.user', 'loan'])
+            ->whereDate('payment_date', $date)
+            ->latest()
+            ->get();
+
+        return view('admin.encoder.print_daily_payments', compact('payments', 'date'));
+    }
+}
