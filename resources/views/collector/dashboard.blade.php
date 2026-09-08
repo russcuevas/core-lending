@@ -20,8 +20,8 @@
         </div>
 
         <div>
-            <button type="button" class="btn btn-lg btn-primary" style="background: #ffffff; color: #065f46; font-weight: 700; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.15);" onclick="openModal('collectorCashoutModal')">
-                💰 Encash / Cash Out Commission
+            <button type="button" class="btn btn-primary" style="background: #ffffff; color: #065f46; font-weight: 700; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.15);" onclick="openModal('collectorCashoutModal')">
+                💰 Encash Commission
             </button>
         </div>
     </div>
@@ -29,23 +29,23 @@
     <!-- Delinquency Warning Alert (3 Consecutive Missed Days) -->
     @if($delinquentClients->isNotEmpty())
         <div class="delinquent-alert-banner">
-            <span style="font-size: 24px;">⚠</span>
+            <span style="font-size: 22px;">⚠</span>
             <div>
                 <strong>Delinquency Warning (3+ Consecutive Days Without Payment)</strong>
-                <p style="margin: 2px 0 0 0; font-size: 12.5px;">
+                <p style="margin: 2px 0 0 0; font-size: 12px;">
                     The following client accounts are flagged for non-payment:
                     @foreach($delinquentClients as $dc)
                         <span style="font-weight: 700; text-decoration: underline;">{{ $dc->user->name }} ({{ $dc->consecutive_missed_days }} days missed)</span>{{ !$loop->last ? ',' : '' }}
                     @endforeach
-                    . Per company rules, uncollected balances may be charged to collector liability if unresolved.
+                    . Uncollected balances may be charged to collector liability if unresolved.
                 </p>
             </div>
         </div>
     @endif
 
     <!-- Quick Actions -->
-    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-        <a href="{{ route('collector.scan_qr') }}" class="btn btn-emerald btn-lg">
+    <div style="margin-bottom: 16px;">
+        <a href="{{ route('collector.scan_qr') }}" class="btn btn-emerald" style="width: 100%; max-width: 360px; padding: 10px 16px;">
             📷 Scan Client QR Code / Collect Daily Payment
         </a>
     </div>
@@ -56,7 +56,7 @@
             <h3 class="card-title">👥 My Assigned Clients ({{ $assignedClients->count() }})</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Client Name</th>
@@ -70,50 +70,52 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($assignedClients as $c)
-                        @php $loan = $c->currentLoan; @endphp
+                    @if(!$assignedClients->isEmpty())
+                        @foreach($assignedClients as $c)
+                            @php $loan = $c->currentLoan; @endphp
+                            <tr>
+                                <td>
+                                    <strong>{{ $c->user->name }}</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $c->user->address }}</div>
+                                </td>
+                                <td>{{ $c->user->phone_number }}</td>
+                                <td>
+                                    @if($loan && $loan->status === 'active')
+                                        <span class="badge badge-emerald">₱{{ number_format($loan->principal_amount, 2) }}</span>
+                                    @else
+                                        <span class="badge badge-slate">No Active Loan</span>
+                                    @endif
+                                </td>
+                                <td style="font-weight: 700; color: #d97706;">
+                                    {{ $loan ? '₱' . number_format($loan->daily_installment, 2) : '-' }}
+                                </td>
+                                <td style="font-weight: 700; color: #059669;">
+                                    {{ $loan ? '₱' . number_format($loan->remaining_balance, 2) : '-' }}
+                                </td>
+                                <td>
+                                    @if($loan)
+                                        <span style="font-weight: 600;">{{ $loan->days_paid_count }} / 60</span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td>{{ $c->last_payment_date ?? 'No payments yet' }}</td>
+                                <td>
+                                    @if($loan && $loan->status === 'active')
+                                        <a href="{{ route('collector.payments.collect_form', ['client_id' => $c->id]) }}" class="btn btn-sm btn-emerald">
+                                            Collect Payment
+                                        </a>
+                                    @else
+                                        <span style="font-size: 12px; color: var(--text-muted);">Completed</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td>
-                                <strong>{{ $c->user->name }}</strong>
-                                <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $c->user->address }}</div>
-                            </td>
-                            <td>{{ $c->user->phone_number }}</td>
-                            <td>
-                                @if($loan && $loan->status === 'active')
-                                    <span class="badge badge-emerald">₱{{ number_format($loan->principal_amount, 2) }}</span>
-                                @else
-                                    <span class="badge badge-slate">No Active Loan</span>
-                                @endif
-                            </td>
-                            <td style="font-weight: 700; color: #d97706;">
-                                {{ $loan ? '₱' . number_format($loan->daily_installment, 2) : '-' }}
-                            </td>
-                            <td style="font-weight: 700; color: #059669;">
-                                {{ $loan ? '₱' . number_format($loan->remaining_balance, 2) : '-' }}
-                            </td>
-                            <td>
-                                @if($loan)
-                                    <span style="font-weight: 600;">{{ $loan->days_paid_count }} / 60</span>
-                                @else
-                                    -
-                                @endif
-                            </td>
-                            <td>{{ $c->last_payment_date ?? 'No payments yet' }}</td>
-                            <td>
-                                @if($loan && $loan->status === 'active')
-                                    <a href="{{ route('collector.payments.collect_form', ['client_id' => $c->id]) }}" class="btn btn-sm btn-emerald">
-                                        Collect Payment
-                                    </a>
-                                @else
-                                    <span style="font-size: 12px; color: var(--text-muted);">Completed</span>
-                                @endif
-                            </td>
+                            <td colspan="8" class="text-center" style="padding: 20px; color: var(--text-muted);">No assigned clients found.</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center" style="padding: 24px; color: var(--text-muted);">No assigned clients found.</td>
-                        </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -125,7 +127,7 @@
             <h3 class="card-title">📜 Recent Payments Collected</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Date & Time</th>
@@ -136,25 +138,29 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($recentPayments as $p)
+                    @if(!$recentPayments->isEmpty())
+                        @foreach($recentPayments as $p)
+                            <tr>
+                                <td>{{ $p->created_at->format('M d, Y h:i A') }}</td>
+                                <td><strong>{{ $p->client->user->name ?? 'N/A' }}</strong></td>
+                                <td style="font-weight: 700; color: #059669;">₱{{ number_format($p->amount_paid, 2) }}</td>
+                                <td style="font-weight: 600;">₱{{ number_format($p->client_remaining_balance_after, 2) }}</td>
+                                <td>
+                                    @if($p->proof_image_path)
+                                        <a href="{{ asset($p->proof_image_path) }}" target="_blank" class="btn btn-sm btn-outline">
+                                            View Proof
+                                        </a>
+                                    @else
+                                        <span style="color: var(--text-muted); font-size: 11.5px;">None</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td>{{ $p->created_at->format('M d, Y h:i A') }}</td>
-                            <td><strong>{{ $p->client->user->name ?? 'N/A' }}</strong></td>
-                            <td style="font-weight: 700; color: #059669;">₱{{ number_format($p->amount_paid, 2) }}</td>
-                            <td style="font-weight: 600;">₱{{ number_format($p->client_remaining_balance_after, 2) }}</td>
-                            <td>
-                                @if($p->proof_image_path)
-                                    <a href="{{ asset($p->proof_image_path) }}" target="_blank" class="btn btn-sm btn-outline">
-                                        View Proof
-                                    </a>
-                                @endif
-                            </td>
+                            <td colspan="5" class="text-center" style="padding: 20px; color: var(--text-muted);">No recent collection records.</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="text-center" style="padding: 24px; color: var(--text-muted);">No recent collection records.</td>
-                        </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -170,9 +176,9 @@
             <form action="{{ route('collector.cashout') }}" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 14px; border-radius: var(--radius-md); margin-bottom: 16px;">
-                        <div style="font-size: 12px; color: #065f46;">Available Commission Balance:</div>
-                        <div style="font-size: 24px; font-weight: 700; color: #059669;">₱{{ number_format($collector->commission_balance, 2) }}</div>
+                    <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px; border-radius: var(--radius-md); margin-bottom: 14px;">
+                        <div style="font-size: 11.5px; color: #065f46;">Available Commission Balance:</div>
+                        <div style="font-size: 22px; font-weight: 700; color: #059669;">₱{{ number_format($collector->commission_balance, 2) }}</div>
                     </div>
 
                     <div class="form-group">
@@ -182,7 +188,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('collectorCashoutModal')">Cancel</button>
-                    <button type="submit" class="btn btn-emerald">Submit Cashout Request to Releasing Officer</button>
+                    <button type="submit" class="btn btn-emerald">Submit Cashout Request</button>
                 </div>
             </form>
         </div>

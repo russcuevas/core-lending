@@ -4,8 +4,8 @@
 @section('page_title', 'Host Superadmin - System Credentials & User Accounts')
 
 @section('content')
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <p style="color: var(--text-secondary); margin: 0;">Create credentials for Admins, Releasing Officers, Collectors, and manage client accounts.</p>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <p style="color: var(--text-secondary); margin: 0; font-size: 13px;">Create credentials for Admins, Releasing Officers, Collectors, and manage client accounts.</p>
         <button type="button" class="btn btn-emerald" onclick="openModal('createStaffModal')">
             + Create New Staff Account
         </button>
@@ -17,7 +17,7 @@
             <h3 class="card-title">👨‍💼 System Administrators & Staff</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -73,7 +73,7 @@
             <h3 class="card-title">🛵 Field Collectors</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Collector Name</th>
@@ -116,7 +116,7 @@
             <h3 class="card-title">👤 Registered Clients</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Client Name</th>
@@ -149,7 +149,7 @@
                 </tbody>
             </table>
         </div>
-        <div style="margin-top: 16px;">
+        <div style="margin-top: 14px;">
             {{ $clients->links() }}
         </div>
     </div>

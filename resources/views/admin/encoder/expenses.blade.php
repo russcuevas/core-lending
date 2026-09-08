@@ -4,8 +4,8 @@
 @section('page_title', 'Admin Encoder - Operational Expenses Tracker')
 
 @section('content')
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <p style="color: var(--text-secondary); margin: 0;">Record and track daily operational expenditures with receipt proof.</p>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <p style="color: var(--text-secondary); margin: 0; font-size: 13px;">Record and track daily operational expenditures with receipt proof.</p>
         <button type="button" class="btn btn-emerald" onclick="openModal('addExpenseModal')">
             + Record New Expense
         </button>
@@ -17,7 +17,7 @@
             <h3 class="card-title">🧾 Expense Records</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -29,32 +29,34 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($expenses as $exp)
+                    @if(!$expenses->isEmpty())
+                        @foreach($expenses as $exp)
+                            <tr>
+                                <td>{{ $exp->date }}</td>
+                                <td><strong>{{ $exp->particulars }}</strong></td>
+                                <td><span class="badge badge-slate">{{ $exp->category }}</span></td>
+                                <td style="font-weight: 700; color: #e11d48;">₱{{ number_format($exp->amount, 2) }}</td>
+                                <td>{{ $exp->user->name ?? 'Admin' }}</td>
+                                <td>
+                                    @if($exp->receipt_image_path)
+                                        <a href="{{ asset($exp->receipt_image_path) }}" target="_blank" class="btn btn-sm btn-outline">
+                                            🔍 View Receipt
+                                        </a>
+                                    @else
+                                        <span style="color: var(--text-muted); font-size: 12px;">No Receipt</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td>{{ $exp->date }}</td>
-                            <td><strong>{{ $exp->particulars }}</strong></td>
-                            <td><span class="badge badge-slate">{{ $exp->category }}</span></td>
-                            <td style="font-weight: 700; color: #e11d48;">₱{{ number_format($exp->amount, 2) }}</td>
-                            <td>{{ $exp->user->name ?? 'Admin' }}</td>
-                            <td>
-                                @if($exp->receipt_image_path)
-                                    <a href="{{ asset($exp->receipt_image_path) }}" target="_blank" class="btn btn-sm btn-outline">
-                                        🔍 View Receipt
-                                    </a>
-                                @else
-                                    <span style="color: var(--text-muted); font-size:12px;">No Receipt</span>
-                                @endif
-                            </td>
+                            <td colspan="6" class="text-center" style="padding: 20px; color: var(--text-muted);">No expenses recorded yet.</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center" style="padding: 24px; color: var(--text-muted);">No expenses recorded yet.</td>
-                        </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
-        <div style="margin-top: 16px;">
+        <div style="margin-top: 14px;">
             {{ $expenses->links() }}
         </div>
     </div>

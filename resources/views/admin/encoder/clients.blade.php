@@ -8,8 +8,8 @@
 @endpush
 
 @section('content')
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <form method="GET" action="{{ route('admin.encoder.clients.index') }}" style="display: flex; gap: 10px; max-width: 400px; width: 100%;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <form method="GET" action="{{ route('admin.encoder.clients.index') }}" style="display: flex; gap: 8px; max-width: 400px; width: 100%; flex: 1;">
             <input type="text" name="search" class="form-control" placeholder="Search client name or phone..." value="{{ request('search') }}">
             <button type="submit" class="btn btn-emerald">Search</button>
         </form>
@@ -25,7 +25,7 @@
             <h3 class="card-title">👥 All Registered Clients</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Client Name</th>
@@ -39,48 +39,50 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($clients as $client)
+                    @if(!$clients->isEmpty())
+                        @foreach($clients as $client)
+                            <tr>
+                                <td>
+                                    <strong>{{ $client->user->name }}</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $client->user->address }}</div>
+                                </td>
+                                <td>{{ $client->user->phone_number }}</td>
+                                <td>{{ $client->collector->user->name ?? 'None' }}</td>
+                                <td style="font-weight: 700;">
+                                    ₱{{ number_format($client->currentLoan->principal_amount ?? 0, 2) }}
+                                </td>
+                                <td style="font-weight: 600; color: #d97706;">
+                                    ₱{{ number_format($client->currentLoan->daily_installment ?? 0, 2) }} / day
+                                </td>
+                                <td style="font-weight: 700; color: #059669;">
+                                    ₱{{ number_format($client->currentLoan->remaining_balance ?? 0, 2) }}
+                                </td>
+                                <td>
+                                    <span class="badge {{ $client->status === 'active' ? 'badge-emerald' : 'badge-amber' }}">
+                                        {{ str_replace('_', ' ', $client->status) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                        <a href="{{ route('admin.encoder.print_qr', $client->id) }}" class="btn btn-sm btn-outline" target="_blank" title="Print QR & Schedule">
+                                            🖨 QR Card
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline" onclick="openUpdateModal('{{ $client->id }}', '{{ addslashes($client->user->name) }}', '{{ $client->user->phone_number }}', '{{ addslashes($client->user->address) }}', '{{ $client->collector_id }}')">
+                                            ✏ Edit
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td>
-                                <strong>{{ $client->user->name }}</strong>
-                                <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $client->user->address }}</div>
-                            </td>
-                            <td>{{ $client->user->phone_number }}</td>
-                            <td>{{ $client->collector->user->name ?? 'None' }}</td>
-                            <td style="font-weight: 700;">
-                                ₱{{ number_format($client->currentLoan->principal_amount ?? 0, 2) }}
-                            </td>
-                            <td style="font-weight: 600; color: #d97706;">
-                                ₱{{ number_format($client->currentLoan->daily_installment ?? 0, 2) }} / day
-                            </td>
-                            <td style="font-weight: 700; color: #059669;">
-                                ₱{{ number_format($client->currentLoan->remaining_balance ?? 0, 2) }}
-                            </td>
-                            <td>
-                                <span class="badge {{ $client->status === 'active' ? 'badge-emerald' : 'badge-amber' }}">
-                                    {{ str_replace('_', ' ', $client->status) }}
-                                </span>
-                            </td>
-                            <td>
-                                <div style="display: flex; gap: 6px;">
-                                    <a href="{{ route('admin.encoder.print_qr', $client->id) }}" class="btn btn-sm btn-outline" target="_blank" title="Print QR & Schedule">
-                                        🖨 QR Card
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-outline" onclick="openUpdateModal('{{ $client->id }}', '{{ addslashes($client->user->name) }}', '{{ $client->user->phone_number }}', '{{ addslashes($client->user->address) }}', '{{ $client->collector_id }}')">
-                                        ✏ Edit (Request Host)
-                                    </button>
-                                </div>
-                            </td>
+                            <td colspan="8" class="text-center" style="padding: 20px; color: var(--text-muted);">No client records found.</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center" style="padding: 24px; color: var(--text-muted);">No client records found.</td>
-                        </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
-        <div style="margin-top: 16px;">
+        <div style="margin-top: 14px;">
             {{ $clients->links() }}
         </div>
     </div>
@@ -95,7 +97,7 @@
             <form id="updateClientForm" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <p style="font-size: 12.5px; color: var(--amber); background: var(--amber-light); padding: 8px 12px; border-radius: 6px; margin-bottom: 16px;">
+                    <p style="font-size: 12px; color: var(--amber); background: var(--amber-light); padding: 8px 12px; border-radius: 6px; margin-bottom: 14px;">
                         ⚠ Note: Any modification to client details must be reviewed and approved by Host Superadmin before taking effect.
                     </p>
 

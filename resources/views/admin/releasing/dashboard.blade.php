@@ -9,18 +9,18 @@
 
 @section('content')
     <!-- Messenger Notification Alert Box -->
-    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md);">
-        <div style="display: flex; align-items: center; gap: 16px;">
-            <div class="brand-icon" style="background: #059669;">⚡</div>
+    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md); flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <div class="brand-icon" style="background: #059669; width: 38px; height: 38px; font-size: 18px;">⚡</div>
             <div>
-                <h3 style="font-size: 16px; margin-bottom: 2px; color: white;">Real-Time Incoming Transaction Requests</h3>
-                <p style="font-size: 13px; color: #94a3b8; margin: 0;">
+                <h3 style="font-size: 15px; margin-bottom: 2px; color: white;">Real-Time Incoming Transaction Requests</h3>
+                <p style="font-size: 12.5px; color: #94a3b8; margin: 0;">
                     You have <strong>{{ $pendingReviews->count() }}</strong> new requests to review and <strong>{{ $approvedReadyToRelease->count() + $loansReadyToDisburse->count() }}</strong> approved items ready for physical disbursement.
                 </p>
             </div>
         </div>
         <div>
-            <span class="badge badge-emerald" style="font-size: 13px; padding: 6px 14px;">Live Center Active</span>
+            <span class="badge badge-emerald" style="font-size: 11.5px; padding: 4px 10px;">Live Center Active</span>
         </div>
     </div>
 
@@ -34,26 +34,26 @@
         </div>
 
         @if($approvedReadyToRelease->isEmpty() && $loansReadyToDisburse->isEmpty())
-            <div style="padding: 24px; text-align: center; color: var(--text-secondary);">
+            <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
                 ✓ No approved items awaiting physical execution at this moment.
             </div>
         @else
             <!-- Wallet Cash In / Out execution cards -->
             @foreach($approvedReadyToRelease as $tx)
                 <div class="releasing-request-card" style="border-left-color: #059669;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
                         <div>
-                            <span class="badge {{ $tx->type === 'cash_in' ? 'badge-emerald' : 'badge-amber' }}" style="margin-bottom: 6px;">
+                            <span class="badge {{ $tx->type === 'cash_in' ? 'badge-emerald' : 'badge-amber' }}" style="margin-bottom: 4px;">
                                 {{ strtoupper(str_replace('_', ' ', $tx->type)) }} APPROVED BY HOST
                             </span>
-                            <h4 style="font-size: 16px; margin: 4px 0;">{{ $tx->user->name }} ({{ $tx->user->role }})</h4>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Contact No: {{ $tx->user->phone_number }} | Address: {{ $tx->user->address }}</div>
+                            <h4 style="font-size: 15px; margin: 4px 0;">{{ $tx->user->name }} ({{ $tx->user->role }})</h4>
+                            <div style="font-size: 12.5px; color: var(--text-secondary);">Contact No: {{ $tx->user->phone_number }} | Address: {{ $tx->user->address }}</div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 20px; font-weight: 700; color: {{ $tx->type === 'cash_in' ? '#059669' : '#d97706' }};">
+                            <div style="font-size: 18px; font-weight: 700; color: {{ $tx->type === 'cash_in' ? '#059669' : '#d97706' }};">
                                 ₱{{ number_format($tx->amount, 2) }}
                             </div>
-                            <div style="font-size: 11.5px; color: var(--text-muted);">Host Approved</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Host Approved</div>
                         </div>
                     </div>
 
@@ -72,9 +72,9 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 14px;">
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
                         <button type="button" class="btn btn-emerald" onclick="openDisburseModal('{{ route('admin.releasing.requests.execute', $tx->id) }}', '{{ strtoupper(str_replace('_', ' ', $tx->type)) }}', '{{ $tx->user->name }}', '{{ number_format($tx->amount, 2) }}')">
-                            📷 Meet Client, Verify PIN & Capture Photo Proof
+                            📷 Verify PIN & Capture Photo Proof
                         </button>
                     </div>
                 </div>
@@ -83,19 +83,19 @@
             <!-- Loan Principal Releases -->
             @foreach($loansReadyToDisburse as $loan)
                 <div class="releasing-request-card" style="border-left-color: #4f46e5;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
                         <div>
-                            <span class="badge badge-indigo" style="margin-bottom: 6px;">
+                            <span class="badge badge-indigo" style="margin-bottom: 4px;">
                                 LOAN PRINCIPAL DISBURSEMENT APPROVED BY HOST
                             </span>
-                            <h4 style="font-size: 16px; margin: 4px 0;">{{ $loan->client->user->name }}</h4>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Contact No: {{ $loan->client->user->phone_number }} | Collector: {{ $loan->collector->user->name ?? 'None' }}</div>
+                            <h4 style="font-size: 15px; margin: 4px 0;">{{ $loan->client->user->name }}</h4>
+                            <div style="font-size: 12.5px; color: var(--text-secondary);">Contact No: {{ $loan->client->user->phone_number }} | Collector: {{ $loan->collector->user->name ?? 'None' }}</div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 20px; font-weight: 700; color: #4f46e5;">
+                            <div style="font-size: 18px; font-weight: 700; color: #4f46e5;">
                                 ₱{{ number_format($loan->principal_amount, 2) }}
                             </div>
-                            <div style="font-size: 11.5px; color: var(--text-muted);">Principal Cash to Disburse</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Principal Cash to Disburse</div>
                         </div>
                     </div>
 
@@ -114,9 +114,9 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 14px;">
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
                         <button type="button" class="btn btn-emerald" onclick="openDisburseModal('{{ route('admin.releasing.loans.disburse', $loan->id) }}', 'LOAN PRINCIPAL DISBURSEMENT', '{{ $loan->client->user->name }}', '{{ number_format($loan->principal_amount, 2) }}')">
-                            📷 Disburse Loan Funds, Verify PIN & Take Proof Photo
+                            📷 Disburse Loan Funds & Capture Photo Proof
                         </button>
                     </div>
                 </div>
@@ -134,35 +134,35 @@
         </div>
 
         @if($pendingReviews->isEmpty())
-            <div style="padding: 24px; text-align: center; color: var(--text-secondary);">
+            <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
                 ✓ No new incoming requests.
             </div>
         @else
             @foreach($pendingReviews as $req)
                 <div class="releasing-request-card urgent">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
                         <div>
                             <span class="badge {{ $req->type === 'cash_in' ? 'badge-emerald' : 'badge-amber' }}">
                                 {{ strtoupper(str_replace('_', ' ', $req->type)) }} REQUEST
                             </span>
-                            <h4 style="font-size: 16px; margin: 6px 0 2px 0;">{{ $req->user->name }}</h4>
-                            <div style="font-size: 13px; color: var(--text-secondary);">
+                            <h4 style="font-size: 15px; margin: 4px 0 2px 0;">{{ $req->user->name }}</h4>
+                            <div style="font-size: 12.5px; color: var(--text-secondary);">
                                 Role: {{ ucfirst($req->user->role) }} | Contact No: {{ $req->user->phone_number }}
                             </div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 20px; font-weight: 700; color: #0f172a;">
+                            <div style="font-size: 18px; font-weight: 700; color: #0f172a;">
                                 ₱{{ number_format($req->amount, 2) }}
                             </div>
-                            <div style="font-size: 11.5px; color: var(--text-muted);">{{ $req->created_at->diffForHumans() }}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">{{ $req->created_at->diffForHumans() }}</div>
                         </div>
                     </div>
 
-                    <div style="background: #f8fafc; padding: 12px; border-radius: var(--radius-sm); margin: 12px 0; font-size: 13px;">
+                    <div style="background: #f8fafc; padding: 10px 12px; border-radius: var(--radius-sm); margin: 10px 0; font-size: 12.5px;">
                         <strong>User Remarks:</strong> {{ $req->releasing_notes ?? 'None provided' }}
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+                    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
                         <button type="button" class="btn btn-emerald btn-sm" onclick="openReviewModal('{{ route('admin.releasing.requests.review', $req->id) }}', 'approve', '{{ $req->user->name }}', '{{ number_format($req->amount, 2) }}')">
                             ✓ Approve & Submit to Host
                         </button>
@@ -226,25 +226,25 @@
                 <input type="hidden" name="photo_proof" id="photoProofInput">
 
                 <div class="modal-body">
-                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md); margin-bottom: 20px;">
-                        <h4 style="font-size: 15px; margin-bottom: 4px;" id="disburseSummaryTitle">Transaction Details</h4>
-                        <div style="font-size: 13px; color: var(--text-secondary);">
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                        <h4 style="font-size: 14.5px; margin-bottom: 3px;" id="disburseSummaryTitle">Transaction Details</h4>
+                        <div style="font-size: 12.5px; color: var(--text-secondary);">
                             Step 1: Have the client enter their 4-digit PIN code. <br>
-                            Step 2: Capture a live camera photo of client and cash handover (automatic date/time stamp overlay).
+                            Step 2: Capture a live camera photo of client and cash handover (automatic timestamp watermark).
                         </div>
                     </div>
 
                     <!-- Client PIN Input -->
                     <div class="form-group">
-                        <label class="form-label" style="font-size: 14px; font-weight: 700;">Client 4-Digit PIN Code *</label>
+                        <label class="form-label" style="font-size: 13.5px; font-weight: 700;">Client 4-Digit PIN Code *</label>
                         <input type="password" name="client_pin" maxlength="4" class="form-control" placeholder="••••" required style="letter-spacing: 6px; font-size: 20px; text-align: center; max-width: 200px;">
                     </div>
 
                     <!-- Camera Section -->
                     <div class="form-group">
-                        <label class="form-label" style="font-weight: 700;">Camera Photo Proof with Date/Time Stamp *</label>
+                        <label class="form-label" style="font-weight: 700;">Camera Photo Proof with Timestamp Watermark *</label>
                         
-                        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
                             <button type="button" class="btn btn-sm btn-outline" onclick="startCamera('webcamVideo')">
                                 📹 Turn On Camera
                             </button>
@@ -253,21 +253,21 @@
                             </button>
                         </div>
 
-                        <div class="camera-container" style="max-height: 280px;">
+                        <div class="camera-container" style="max-height: 260px;">
                             <video id="webcamVideo" autoplay playsinline></video>
                             <canvas id="proofCanvas" style="display: none;"></canvas>
                         </div>
 
                         <!-- Captured Preview -->
-                        <div style="margin-top: 12px;">
-                            <img id="proofPreviewImg" src="" alt="Captured Proof Preview" style="display: none; width: 100%; max-height: 200px; object-fit: contain; border-radius: var(--radius-sm); border: 2px solid #059669;">
+                        <div style="margin-top: 10px;">
+                            <img id="proofPreviewImg" src="" alt="Captured Proof Preview" style="display: none; width: 100%; max-height: 180px; object-fit: contain; border-radius: var(--radius-sm); border: 2px solid #059669;">
                         </div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeDisburseModal()">Cancel</button>
-                    <button type="submit" class="btn btn-emerald btn-lg" id="submitDisbursementBtn">
+                    <button type="submit" class="btn btn-emerald" id="submitDisbursementBtn">
                         ✓ Post & Complete Transaction
                     </button>
                 </div>

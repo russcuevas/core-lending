@@ -9,7 +9,7 @@
             <div class="card-header">
                 <div>
                     <h3 class="card-title">Collector Registration Form</h3>
-                    <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0;">
+                    <p style="font-size: 12.5px; color: var(--text-secondary); margin: 3px 0 0 0;">
                         New collector accounts will be submitted to Host Superadmin for verification and approval.
                     </p>
                 </div>
@@ -23,7 +23,7 @@
                     <input type="text" name="name" class="form-control" placeholder="e.g. Pedro Penduko" required value="{{ old('name') }}">
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-row-2">
                     <div class="form-group">
                         <label class="form-label">Email Address (Login Username) *</label>
                         <input type="email" name="email" class="form-control" placeholder="collector@lending.com" required value="{{ old('email') }}">
@@ -55,7 +55,7 @@
                     <input type="file" name="valid_id" class="form-control" accept="image/*">
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; flex-wrap: wrap;">
                     <a href="{{ route('admin.encoder.dashboard') }}" class="btn btn-outline">Cancel</a>
                     <button type="submit" class="btn btn-emerald">
                         Submit Collector to Host for Approval

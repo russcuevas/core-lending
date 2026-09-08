@@ -48,18 +48,18 @@
     </div>
 
     <!-- Quick Action Bar -->
-    <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
         <a href="{{ route('admin.encoder.clients.create') }}" class="btn btn-emerald">
-            + Encode New Client & Generate 60-Day Loan QR
+            + Encode New Client
         </a>
         <a href="{{ route('admin.encoder.expenses.index') }}" class="btn btn-outline">
-            + Record Office Expense
+            + Record Expense
         </a>
         <a href="{{ route('admin.encoder.collectors.create') }}" class="btn btn-outline">
-            + Register New Collector Account
+            + Register Collector
         </a>
         <a href="{{ route('admin.encoder.daily_payments') }}" class="btn btn-outline">
-            🖨 Print Daily Client Payments Sheet
+            🖨 Print Daily Payments Sheet
         </a>
     </div>
 
@@ -70,12 +70,12 @@
             <a href="{{ route('admin.encoder.clients.index') }}" class="btn btn-sm btn-outline">View All Clients &rarr;</a>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Date Encoded</th>
                         <th>Client Name</th>
-                        <th>Contact No (Username)</th>
+                        <th>Contact No</th>
                         <th>Loan Amount</th>
                         <th>Assigned Collector</th>
                         <th>Status</th>
@@ -83,31 +83,33 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($recentClients as $c)
+                    @if(!$recentClients->isEmpty())
+                        @foreach($recentClients as $c)
+                            <tr>
+                                <td>{{ $c->created_at->format('M d, Y') }}</td>
+                                <td><strong>{{ $c->user->name ?? 'N/A' }}</strong></td>
+                                <td>{{ $c->user->phone_number ?? 'N/A' }}</td>
+                                <td style="font-weight: 700; color: #059669;">
+                                    ₱{{ number_format($c->currentLoan->principal_amount ?? 0, 2) }}
+                                </td>
+                                <td>{{ $c->collector->user->name ?? 'None' }}</td>
+                                <td>
+                                    <span class="badge {{ $c->status === 'active' ? 'badge-emerald' : 'badge-amber' }}">
+                                        {{ str_replace('_', ' ', $c->status) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ route('admin.encoder.print_qr', $c->id) }}" class="btn btn-sm btn-outline" target="_blank">
+                                        🖨 QR Card
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td>{{ $c->created_at->format('M d, Y') }}</td>
-                            <td><strong>{{ $c->user->name ?? 'N/A' }}</strong></td>
-                            <td>{{ $c->user->phone_number ?? 'N/A' }}</td>
-                            <td style="font-weight: 700; color: #059669;">
-                                ₱{{ number_format($c->currentLoan->principal_amount ?? 0, 2) }}
-                            </td>
-                            <td>{{ $c->collector->user->name ?? 'None' }}</td>
-                            <td>
-                                <span class="badge {{ $c->status === 'active' ? 'badge-emerald' : 'badge-amber' }}">
-                                    {{ str_replace('_', ' ', $c->status) }}
-                                </span>
-                            </td>
-                            <td>
-                                <a href="{{ route('admin.encoder.print_qr', $c->id) }}" class="btn btn-sm btn-outline" target="_blank">
-                                    🖨 Print QR Card
-                                </a>
-                            </td>
+                            <td colspan="7" class="text-center" style="padding: 20px; color: var(--text-muted);">No clients encoded yet.</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center" style="padding: 24px; color: var(--text-muted);">No clients encoded yet.</td>
-                        </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>

@@ -6,7 +6,7 @@
 @section('content')
     <!-- Date Filter -->
     <div class="card no-print">
-        <form method="GET" action="{{ route('host.reports.index') }}" style="display: flex; gap: 16px; align-items: flex-end;">
+        <form method="GET" action="{{ route('host.reports.index') }}" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
             <div class="form-group" style="margin: 0;">
                 <label class="form-label">Report Period From</label>
                 <input type="date" name="start_date" class="form-control" value="{{ $startDate }}">
@@ -74,7 +74,7 @@
             <h3 class="card-title">Daily Client Payment Ledger ({{ $startDate }} to {{ $endDate }})</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -87,33 +87,35 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($payments as $p)
+                    @if(!$payments->isEmpty())
+                        @foreach($payments as $p)
+                            <tr>
+                                <td>{{ $p->payment_date }}</td>
+                                <td><strong>{{ $p->client->user->name ?? 'N/A' }}</strong></td>
+                                <td>{{ $p->collector->user->name ?? 'None' }}</td>
+                                <td style="font-weight: 700; color: #059669;">₱{{ number_format($p->amount_paid, 2) }}</td>
+                                <td style="font-weight: 600;">₱{{ number_format($p->client_remaining_balance_after, 2) }}</td>
+                                <td><span class="badge badge-emerald">✓ Verified</span></td>
+                                <td>
+                                    @if($p->proof_image_path)
+                                        <a href="{{ asset($p->proof_image_path) }}" target="_blank" class="btn btn-sm btn-outline">
+                                            View Proof
+                                        </a>
+                                    @else
+                                        <span style="color: var(--text-muted); font-size:12px;">No Photo</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td>{{ $p->payment_date }}</td>
-                            <td><strong>{{ $p->client->user->name ?? 'N/A' }}</strong></td>
-                            <td>{{ $p->collector->user->name ?? 'None' }}</td>
-                            <td style="font-weight: 700; color: #059669;">₱{{ number_format($p->amount_paid, 2) }}</td>
-                            <td style="font-weight: 600;">₱{{ number_format($p->client_remaining_balance_after, 2) }}</td>
-                            <td><span class="badge badge-emerald">✓ Verified</span></td>
-                            <td>
-                                @if($p->proof_image_path)
-                                    <a href="{{ asset($p->proof_image_path) }}" target="_blank" class="btn btn-sm btn-outline">
-                                        View Proof
-                                    </a>
-                                @else
-                                    <span style="color: var(--text-muted); font-size:12px;">No Photo</span>
-                                @endif
-                            </td>
+                            <td colspan="7" class="text-center" style="padding: 20px; color: var(--text-muted);">No payments found in this period.</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center" style="padding: 24px; color: var(--text-muted);">No payments found in this period.</td>
-                        </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
-        <div style="margin-top: 16px;">
+        <div style="margin-top: 14px;">
             {{ $payments->links() }}
         </div>
     </div>

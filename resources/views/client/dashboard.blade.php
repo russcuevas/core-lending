@@ -11,22 +11,25 @@
     <!-- Client Hero Card -->
     <div class="client-hero-card">
         <div>
-            <div style="font-size: 13px; color: #ffffff; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600;">Available Wallet Balance</div>
-            <div style="font-size: 38px; font-weight: 800; font-family: var(--font-heading); color: #ffffff; margin: 4px 0; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);">
+            <div style="font-size: 12px; color: #ffffff; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600;">Available Wallet Balance</div>
+            <div style="font-size: 32px; font-weight: 800; font-family: var(--font-heading); color: #ffffff; margin: 3px 0; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); font-variant-numeric: tabular-nums;">
                 ₱{{ number_format($client->wallet_balance, 2) }}
             </div>
-            <div style="font-size: 13.5px; color: #ffffff; opacity: 0.95; font-weight: 500;">Welcome, {{ $client->user->name }} ({{ $client->user->phone_number }})</div>
+            <div style="font-size: 13px; color: #ffffff; opacity: 0.95; font-weight: 500;">Welcome, {{ $client->user->name }} ({{ $client->user->phone_number }})</div>
         </div>
 
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button type="button" class="btn btn-emerald" onclick="openModal('cashInModal')">
                 📥 Cash In
             </button>
             <button type="button" class="btn btn-amber" onclick="openModal('cashOutModal')">
                 📤 Cash Out
             </button>
-            <button type="button" class="btn btn-primary" style="background: #3b82f6; border: none;" onclick="openModal('addSavingsModal')">
-                🐖 Add Savings Fund (10%)
+            <button type="button" class="btn btn-primary" style="background: #0284c7; border: none;" onclick="openModal('addSavingsModal')">
+                🐖 Add Savings (10%)
+            </button>
+            <button type="button" class="btn" style="background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.35); backdrop-filter: blur(4px);" onclick="openModal('changePinModal')">
+                🔐 Change PIN
             </button>
         </div>
     </div>
@@ -44,14 +47,14 @@
                 </p>
             </div>
             <button type="button" class="btn btn-primary btn-sm" id="qr-toggle-btn" onclick="toggleClientQr()">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                 <span>Show QR Code</span>
             </button>
         </div>
 
         <div class="client-qr-image-display" id="client-qr-box">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($client->qr_code_token) }}" alt="My QR Code" style="width: 100%; max-width: 180px; height: auto; margin: 0 auto; display: block;">
-            <div style="font-size: 13px; font-family: monospace; font-weight: 700; margin-top: 10px; color: var(--brand-navy); background: #f1f5f9; padding: 4px 8px; border-radius: 4px; display: inline-block;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($client->qr_code_token) }}" alt="My QR Code" style="width: 100%; max-width: 160px; height: auto; margin: 0 auto; display: block;">
+            <div style="font-size: 12px; font-family: monospace; font-weight: 700; margin-top: 8px; color: var(--brand-navy); background: #f1f5f9; padding: 4px 8px; border-radius: 4px; display: inline-block;">
                 {{ $client->qr_code_token }}
             </div>
         </div>
@@ -59,29 +62,71 @@
 
     <!-- Active Loan Section -->
     @if($activeLoan)
+        @php
+            $totalTermDays = $loanSchedules->count() > 0 ? $loanSchedules->count() : 60;
+            $progressPercent = min(100, round(($paidDaysCount / $totalTermDays) * 100));
+            $extendedDaysCount = max(0, $totalTermDays - 60);
+        @endphp
+
+        <!-- Delinquency & Overdue Alerts -->
+        @if($missedPastDuesCount >= 3)
+            <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 2px 6px rgba(225, 29, 72, 0.08);">
+                <div style="font-size: 24px; line-height: 1;">⚠️</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; color: #9f1239; font-size: 14px; margin-bottom: 3px;">
+                        Overdue Warning: {{ $missedPastDuesCount }} Accumulative Unpaid Days
+                    </div>
+                    <p style="margin: 0; font-size: 12.5px; color: #be123c; line-height: 1.45;">
+                        You have missed <strong>{{ $missedPastDuesCount }} daily payment(s)</strong> totaling <strong>₱{{ number_format($missedPastDuesCount * $activeLoan->daily_installment, 2) }}</strong>. 
+                        Additional extension days (<strong>Day 61+</strong>) have been automatically added to your repayment schedule to give you extra time to settle your unpaid dues. Please coordinate immediately with your assigned collector to avoid account penalties.
+                    </p>
+                </div>
+            </div>
+        @elseif($missedPastDuesCount > 0)
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px;">
+                <div style="font-size: 20px; line-height: 1;">ℹ️</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; color: #92400e; font-size: 13.5px; margin-bottom: 2px;">
+                        Repayment Schedule Extended ({{ $extendedDaysCount }} Extra Day{{ $extendedDaysCount > 1 ? 's' : '' }})
+                    </div>
+                    <p style="margin: 0; font-size: 12px; color: #b45309; line-height: 1.4;">
+                        Because you have {{ $missedPastDuesCount }} unpaid past daily installment(s), an extra {{ $extendedDaysCount }} day(s) (Day 61{{ $extendedDaysCount > 1 ? ' to Day ' . (60 + $extendedDaysCount) : '' }}) has been added to your schedule so you can pay your missed dates without shortening your term.
+                    </p>
+                </div>
+            </div>
+        @endif
+
         <div class="card">
             <div class="card-header">
                 <div>
                     <h3 class="card-title">📄 My Active Loan (#{{ $activeLoan->id }})</h3>
-                    <p style="font-size: 12.5px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                        60-Day Fixed Term Loan Repayment Plan
+                    <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
+                        {{ $totalTermDays }}-Day Term Repayment Plan
+                        @if($extendedDaysCount > 0)
+                            <span style="color: #d97706; font-weight: 600;">(Extended by {{ $extendedDaysCount }} day{{ $extendedDaysCount > 1 ? 's' : '' }} due to unpaid dates)</span>
+                        @endif
                     </p>
                 </div>
                 <span class="badge badge-emerald">{{ ucfirst($activeLoan->status) }}</span>
             </div>
 
             <!-- Loan Progress Tracker -->
-            <div style="margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600;">
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; flex-wrap: wrap; gap: 4px;">
                     <span>Repayment Progress</span>
-                    <span style="color: #059669;">{{ $paidDaysCount }} / 60 Days Completed ({{ round(($paidDaysCount / 60) * 100) }}%)</span>
+                    <span style="color: #059669;">
+                        {{ $paidDaysCount }} / {{ $totalTermDays }} Days Completed ({{ $progressPercent }}%)
+                        @if($extendedDaysCount > 0)
+                            <span class="badge badge-amber" style="font-size: 11px; margin-left: 4px;">+{{ $extendedDaysCount }} Extended Day{{ $extendedDaysCount > 1 ? 's' : '' }}</span>
+                        @endif
+                    </span>
                 </div>
                 <div class="loan-progress-container">
-                    <div class="loan-progress-bar" style="width: {{ ($paidDaysCount / 60) * 100 }}%;"></div>
+                    <div class="loan-progress-bar" style="width: {{ $progressPercent }}%;"></div>
                 </div>
             </div>
 
-            <div class="stats-grid" style="margin-bottom: 20px;">
+            <div class="stats-grid" style="margin-bottom: 16px;">
                 <div class="stat-card">
                     <div class="stat-info">
                         <div class="stat-label">Principal Amount</div>
@@ -108,9 +153,14 @@
                 </div>
             </div>
 
-            <!-- 60-Day Payment Schedule & Receipts -->
-            <h4 style="font-size: 15px; margin-bottom: 12px;">60-Day Payment History & Scheduled Dues</h4>
-            <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+            <!-- Payment Schedule & Receipts -->
+            <h4 style="font-size: 14.5px; margin-bottom: 10px;">
+                {{ $totalTermDays }}-Day Payment History & Scheduled Dues
+                @if($extendedDaysCount > 0)
+                    <span class="badge badge-amber" style="font-size: 11px; font-weight: 600; margin-left: 6px;">Includes {{ $extendedDaysCount }} Extra Extension Day(s)</span>
+                @endif
+            </h4>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -124,9 +174,24 @@
                     </thead>
                     <tbody>
                         @foreach($loanSchedules as $schedule)
-                            <tr>
-                                <td><strong>Day {{ $schedule->day_number }}</strong></td>
-                                <td>{{ $schedule->due_date }}</td>
+                            @php
+                                $isPastDue = \Carbon\Carbon::parse($schedule->due_date)->isPast() && !\Carbon\Carbon::parse($schedule->due_date)->isToday();
+                                $isToday = \Carbon\Carbon::parse($schedule->due_date)->isToday();
+                                $isExtended = $schedule->day_number > 60;
+                            @endphp
+                            <tr @if($isExtended) style="background: rgba(245, 158, 11, 0.04);" @endif>
+                                <td>
+                                    <strong>Day {{ $schedule->day_number }}</strong>
+                                    @if($isExtended)
+                                        <span class="badge badge-amber" style="font-size: 10px; padding: 2px 6px; margin-left: 4px;">Extra Day</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    {{ $schedule->due_date }}
+                                    @if($isToday)
+                                        <span class="badge badge-primary" style="font-size: 10px; padding: 1px 5px; margin-left: 2px;">Today</span>
+                                    @endif
+                                </td>
                                 <td>₱{{ number_format($schedule->expected_amount, 2) }}</td>
                                 <td style="font-weight: 700; color: {{ $schedule->paid_amount > 0 ? '#059669' : 'inherit' }};">
                                     {{ $schedule->paid_amount > 0 ? '₱' . number_format($schedule->paid_amount, 2) : '-' }}
@@ -135,9 +200,11 @@
                                     @if($schedule->status === 'paid')
                                         <span class="badge badge-emerald">✓ Paid</span>
                                     @elseif($schedule->status === 'partial')
-                                        <span class="badge badge-amber">Partial</span>
+                                        <span class="badge badge-amber">Partial (₱{{ number_format($schedule->paid_amount, 2) }})</span>
+                                    @elseif($isPastDue)
+                                        <span class="badge badge-rose">⚠️ Unpaid / Missed</span>
                                     @else
-                                        <span class="badge badge-slate">Unpaid</span>
+                                        <span class="badge badge-slate">Pending</span>
                                     @endif
                                 </td>
                                 <td>{{ $schedule->paid_at ? \Carbon\Carbon::parse($schedule->paid_at)->format('M d, Y h:i A') : '-' }}</td>
@@ -159,7 +226,7 @@
         </div>
 
         @if($savingsAccounts->isEmpty())
-            <div style="padding: 24px; text-align: center; color: var(--text-secondary);">
+            <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 13px;">
                 You currently have no active savings fund. Open one today to earn 10% interest locked for 60 days with daily interest credited to your wallet!
             </div>
         @else
@@ -168,7 +235,7 @@
                     <div class="approval-card" style="border-left-color: #059669;">
                         <div>
                             <div class="approval-header">
-                                <h4 style="font-size: 16px;">Deposit: ₱{{ number_format($sav->deposit_amount, 2) }}</h4>
+                                <h4 style="font-size: 15px;">Deposit: ₱{{ number_format($sav->deposit_amount, 2) }}</h4>
                                 <span class="badge badge-emerald">10% / 60 Days</span>
                             </div>
 
@@ -201,7 +268,7 @@
             <h3 class="card-title">💳 Recent Wallet Transactions & Cash In/Out Requests</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>Date & Time</th>
@@ -212,29 +279,31 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($walletTransactions as $wTx)
+                    @if(!$walletTransactions->isEmpty())
+                        @foreach($walletTransactions as $wTx)
+                            <tr>
+                                <td>{{ $wTx->created_at->format('M d, Y h:i A') }}</td>
+                                <td>
+                                    <span class="badge {{ $wTx->type === 'cash_in' ? 'badge-emerald' : 'badge-amber' }}">
+                                        {{ strtoupper(str_replace('_', ' ', $wTx->type)) }}
+                                    </span>
+                                </td>
+                                <td style="font-weight: 700; color: {{ $wTx->type === 'cash_in' ? '#059669' : '#d97706' }};">
+                                    {{ $wTx->type === 'cash_in' ? '+' : '-' }}₱{{ number_format($wTx->amount, 2) }}
+                                </td>
+                                <td>
+                                    <span class="badge {{ $wTx->status === 'completed' ? 'badge-emerald' : ($wTx->status === 'declined' ? 'badge-rose' : 'badge-amber') }}">
+                                        {{ str_replace('_', ' ', $wTx->status) }}
+                                    </span>
+                                </td>
+                                <td>{{ $wTx->releasing_notes ?? ($wTx->decline_reason ?? '-') }}</td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td>{{ $wTx->created_at->format('M d, Y h:i A') }}</td>
-                            <td>
-                                <span class="badge {{ $wTx->type === 'cash_in' ? 'badge-emerald' : 'badge-amber' }}">
-                                    {{ strtoupper(str_replace('_', ' ', $wTx->type)) }}
-                                </span>
-                            </td>
-                            <td style="font-weight: 700; color: {{ $wTx->type === 'cash_in' ? '#059669' : '#d97706' }};">
-                                {{ $wTx->type === 'cash_in' ? '+' : '-' }}₱{{ number_format($wTx->amount, 2) }}
-                            </td>
-                            <td>
-                                <span class="badge {{ $wTx->status === 'completed' ? 'badge-emerald' : ($wTx->status === 'declined' ? 'badge-rose' : 'badge-amber') }}">
-                                    {{ str_replace('_', ' ', $wTx->status) }}
-                                </span>
-                            </td>
-                            <td>{{ $wTx->releasing_notes ?? ($wTx->decline_reason ?? '-') }}</td>
+                            <td colspan="5" class="text-center" style="padding: 20px; color: var(--text-muted);">No wallet transactions yet.</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="text-center" style="padding: 24px; color: var(--text-muted);">No wallet transactions yet.</td>
-                        </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -250,7 +319,7 @@
             <form action="{{ route('client.cash_in') }}" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px;">
                         Enter the amount you wish to Cash In. A releasing officer or collector will be assigned to collect the cash and credit your balance.
                     </p>
                     <div class="form-group">
@@ -280,9 +349,9 @@
             <form action="{{ route('client.cash_out') }}" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px;">
-                        <div style="font-size: 12px; color: var(--text-secondary);">Current Available Balance:</div>
-                        <div style="font-size: 22px; font-weight: 700; color: #059669;">₱{{ number_format($client->wallet_balance, 2) }}</div>
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 14px;">
+                        <div style="font-size: 11.5px; color: var(--text-secondary);">Current Available Balance:</div>
+                        <div style="font-size: 20px; font-weight: 700; color: #059669;">₱{{ number_format($client->wallet_balance, 2) }}</div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Cash Out Amount (₱) *</label>
@@ -311,10 +380,10 @@
             <form action="{{ route('client.savings.store') }}" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <div class="savings-plan-card" style="margin-bottom: 16px;">
+                    <div class="savings-plan-card" style="margin-bottom: 14px;">
                         <span class="savings-rate-tag">10% GUARANTEED RETURN</span>
-                        <h4 style="font-size: 16px; margin-bottom: 6px;">60-Day Fixed Lock-in Growth</h4>
-                        <p style="font-size: 12.5px; color: var(--text-secondary); margin: 0;">
+                        <h4 style="font-size: 15px; margin-bottom: 4px;">60-Day Fixed Lock-in Growth</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
                             Daily interest is automatically calculated and credited directly to your wallet balance every single day!
                         </p>
                     </div>
@@ -326,24 +395,59 @@
                     </div>
 
                     <!-- Live Calculation Preview -->
-                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-sm); font-size: 13px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); font-size: 12.5px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                             <span style="color: var(--text-secondary);">Daily Interest Credited to Wallet:</span>
                             <strong style="color: #059669;" id="preview_daily_interest">₱0.00 / day</strong>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                             <span style="color: var(--text-secondary);">Total 60-Day Earned Interest:</span>
                             <strong id="preview_total_interest">₱0.00</strong>
                         </div>
-                        <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 6px;">
+                        <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 5px;">
                             <span style="font-weight: 600;">Total Payout at Maturity:</span>
-                            <strong style="color: #059669; font-size: 15px;" id="preview_total_maturity">₱0.00</strong>
+                            <strong style="color: #059669; font-size: 14px;" id="preview_total_maturity">₱0.00</strong>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('addSavingsModal')">Cancel</button>
                     <button type="submit" class="btn btn-emerald">Activate Savings Deposit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change PIN Modal -->
+    <div class="modal-overlay" id="changePinModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">🔐 Change 4-Digit Security PIN</h3>
+                <button type="button" class="modal-close" onclick="closeModal('changePinModal')">&times;</button>
+            </div>
+            <form action="{{ route('client.change_pin') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px;">
+                        Enter your current 4-digit PIN and your new 4-digit PIN to update your account security credentials.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Current 4-Digit PIN *</label>
+                        <input type="password" name="current_pin" class="form-control" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required autocomplete="current-password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">New 4-Digit PIN *</label>
+                        <input type="password" name="new_pin" class="form-control" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required autocomplete="new-password">
+                        <div class="form-hint">Must be exactly 4 numerical digits.</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm New PIN *</label>
+                        <input type="password" name="new_pin_confirmation" class="form-control" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('changePinModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Security PIN</button>
                 </div>
             </form>
         </div>

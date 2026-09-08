@@ -3,11 +3,12 @@
     background: #ffffff;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 20px;
-    margin-bottom: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
     transition: all 0.2s;
     position: relative;
-    border-left: 5px solid var(--emerald);
+    border-left: 4px solid var(--emerald);
+    min-width: 0;
 }
 
 .releasing-request-card.urgent {
@@ -17,21 +18,21 @@
 
 .request-meta-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
     background: #f8fafc;
-    padding: 14px;
+    padding: 12px;
     border-radius: var(--radius-sm);
-    margin: 14px 0;
+    margin: 12px 0;
 }
 
 .request-item {
-    font-size: 13px;
+    font-size: 12.5px;
 }
 
 .request-label {
     color: var(--text-secondary);
-    font-size: 11.5px;
+    font-size: 11px;
     display: block;
 }
 
@@ -42,7 +43,7 @@
 
 /* Loan 60-day schedule preview table */
 .schedule-grid-preview {
-    max-height: 420px;
+    max-height: 400px;
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -50,7 +51,7 @@
 
 .print-card-container {
     background: white;
-    padding: 30px;
+    padding: 24px;
     border: 2px solid #0f172a;
     border-radius: var(--radius-md);
     max-width: 750px;
@@ -60,24 +61,47 @@
 .print-header {
     text-align: center;
     border-bottom: 2px solid #0f172a;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .print-qr-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 15px;
+    margin-bottom: 16px;
+    padding: 12px;
     background: #f8fafc;
     border-radius: var(--radius-sm);
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .print-qr-img {
-    width: 140px;
-    height: 140px;
+    width: 120px;
+    height: 120px;
     background: white;
-    padding: 6px;
+    padding: 4px;
     border: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+    .releasing-request-card {
+        padding: 12px;
+    }
+
+    .request-meta-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .print-card-container {
+        padding: 14px;
+    }
+
+    .print-qr-section {
+        flex-direction: column;
+        text-align: center;
+    }
 }

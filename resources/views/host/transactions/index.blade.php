@@ -6,7 +6,7 @@
 @section('content')
     <!-- Filter Card -->
     <div class="card">
-        <form method="GET" action="{{ route('host.transactions.index') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 16px; align-items: end;">
+        <form method="GET" action="{{ route('host.transactions.index') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) auto; gap: 12px; align-items: end;">
             <div class="form-group" style="margin: 0;">
                 <label class="form-label">Flow Type</label>
                 <select name="type" class="form-select">
@@ -39,7 +39,7 @@
                 <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
             </div>
 
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-emerald">Filter</button>
                 <a href="{{ route('host.transactions.index') }}" class="btn btn-outline">Reset</a>
             </div>
@@ -52,7 +52,7 @@
             <h3 class="card-title">📖 Comprehensive Audit Trail & Vault History</h3>
         </div>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table data-table-enhanced">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -66,38 +66,40 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($ledgers as $l)
+                    @if(!$ledgers->isEmpty())
+                        @foreach($ledgers as $l)
+                            <tr>
+                                <td>#{{ $l->id }}</td>
+                                <td>{{ $l->created_at->format('Y-m-d h:i A') }}</td>
+                                <td>
+                                    @if($l->type === 'in')
+                                        <span class="badge badge-emerald">Cash In (+)</span>
+                                    @else
+                                        <span class="badge badge-amber">Cash Out (-)</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span style="font-weight:600; text-transform:uppercase; font-size:11px;">
+                                        {{ str_replace('_', ' ', $l->category) }}
+                                    </span>
+                                </td>
+                                <td style="font-weight:700; color: {{ $l->type === 'in' ? '#059669' : '#d97706' }};">
+                                    {{ $l->type === 'in' ? '+' : '-' }}₱{{ number_format($l->amount, 2) }}
+                                </td>
+                                <td>{{ $l->description ?? 'N/A' }}</td>
+                                <td style="font-weight:700;">₱{{ number_format($l->vault_balance_after, 2) }}</td>
+                                <td>{{ $l->creator->name ?? 'System' }}</td>
+                            </tr>
+                        @endforeach
+                    @else
                         <tr>
-                            <td>#{{ $l->id }}</td>
-                            <td>{{ $l->created_at->format('Y-m-d h:i A') }}</td>
-                            <td>
-                                @if($l->type === 'in')
-                                    <span class="badge badge-emerald">Cash In (+)</span>
-                                @else
-                                    <span class="badge badge-amber">Cash Out (-)</span>
-                                @endif
-                            </td>
-                            <td>
-                                <span style="font-weight:600; text-transform:uppercase; font-size:11.5px;">
-                                    {{ str_replace('_', ' ', $l->category) }}
-                                </span>
-                            </td>
-                            <td style="font-weight:700; color: {{ $l->type === 'in' ? '#059669' : '#d97706' }};">
-                                {{ $l->type === 'in' ? '+' : '-' }}₱{{ number_format($l->amount, 2) }}
-                            </td>
-                            <td>{{ $l->description ?? 'N/A' }}</td>
-                            <td style="font-weight:700;">₱{{ number_format($l->vault_balance_after, 2) }}</td>
-                            <td>{{ $l->creator->name ?? 'System' }}</td>
+                            <td colspan="8" class="text-center" style="padding: 20px; color: var(--text-muted);">No records found.</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center" style="padding: 24px; color: var(--text-muted);">No records found.</td>
-                        </tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
-        <div style="margin-top: 16px;">
+        <div style="margin-top: 14px;">
             {{ $ledgers->links() }}
         </div>
     </div>

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Host\HostDashboardController;
 use App\Http\Controllers\Host\HostApprovalController;
@@ -14,8 +15,8 @@ use App\Http\Controllers\Client\ClientController;
 
 // Public & Authentication
 Route::get('/', function () {
-    if (auth()->check()) {
-        return app(AuthController::class)->redirectBasedOnRole(auth()->user());
+    if (Auth::check()) {
+        return app(AuthController::class)->redirectBasedOnRole(Auth::user());
     }
     return redirect()->route('login');
 });
@@ -29,7 +30,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // 1. HOST / SUPERADMIN ROUTES
 Route::middleware(['auth', 'role:host'])->prefix('host')->name('host.')->group(function () {
     Route::get('/dashboard', [HostDashboardController::class, 'index'])->name('dashboard');
-    
+
     // Approvals
     Route::get('/approvals', [HostApprovalController::class, 'index'])->name('approvals.index');
     Route::post('/approvals/loans/{loan}/approve', [HostApprovalController::class, 'approveLoan'])->name('approvals.loans.approve');
@@ -60,7 +61,7 @@ Route::middleware(['auth', 'role:admin_encoder,host'])->prefix('admin/encoder')-
     Route::get('/clients', [EncoderController::class, 'clientList'])->name('clients.index');
     Route::get('/clients/{client}/print-card', [EncoderController::class, 'printClientQr'])->name('print_qr');
     Route::post('/clients/{client}/update-request', [EncoderController::class, 'requestClientUpdate'])->name('clients.update_request');
-    
+
     // Expenses
     Route::get('/expenses', [EncoderController::class, 'expensesIndex'])->name('expenses.index');
     Route::post('/expenses', [EncoderController::class, 'storeExpense'])->name('expenses.store');
@@ -96,4 +97,5 @@ Route::middleware(['auth', 'role:client'])->prefix('client')->name('client.')->g
     Route::post('/cash-in', [ClientController::class, 'requestCashIn'])->name('cash_in');
     Route::post('/cash-out', [ClientController::class, 'requestCashOut'])->name('cash_out');
     Route::post('/savings', [ClientController::class, 'createSavings'])->name('savings.store');
+    Route::post('/change-pin', [ClientController::class, 'changePin'])->name('change_pin');
 });

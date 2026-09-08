@@ -14,7 +14,7 @@
                 <h3 class="card-title">📷 Scan Client QR Code for Daily Collection</h3>
             </div>
 
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+            <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 16px;">
                 Align the client's printed or mobile QR code within the camera frame below.
             </p>
 
@@ -23,9 +23,9 @@
                 <div id="reader"></div>
             </div>
 
-            <div style="margin: 20px 0; display: flex; align-items: center; justify-content: center; gap: 12px;">
+            <div style="margin: 16px 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
                 <span style="flex: 1; height: 1px; background: var(--border-color);"></span>
-                <span style="font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">OR Select Client Manually</span>
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">OR Select Client Manually</span>
                 <span style="flex: 1; height: 1px; background: var(--border-color);"></span>
             </div>
 

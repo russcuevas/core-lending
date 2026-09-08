@@ -29,6 +29,12 @@ class CollectorController extends Controller
             ->where('collector_id', $collector->id)
             ->get();
 
+        foreach ($assignedClients as $cl) {
+            if ($cl->currentLoan) {
+                $cl->currentLoan->syncMissedDaysAndExtensions();
+            }
+        }
+
         $activeLoansCount = Loan::where('collector_id', $collector->id)->where('status', 'active')->count();
         $totalCollectedToday = LoanPayment::where('collector_id', $collector->id)
             ->whereDate('payment_date', Carbon::today())
@@ -87,6 +93,9 @@ class CollectorController extends Controller
         }
 
         $loan = $client->currentLoan;
+        $loan->syncMissedDaysAndExtensions();
+        $loan->refresh();
+
         $paidDays = $loan->schedules()->where('status', 'paid')->count();
         $nextUnpaidSchedule = $loan->schedules()->where('status', '!=', 'paid')->first();
 

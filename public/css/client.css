@@ -3,11 +3,13 @@
     background: linear-gradient(135deg, #091e3a 0%, #0077b6 60%, #00b4d8 100%);
     color: #ffffff;
     border-radius: var(--radius-xl);
-    padding: 24px;
-    margin-bottom: 24px;
+    padding: 22px;
+    margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
     box-shadow: 0 12px 28px -5px rgba(9, 30, 58, 0.4);
 }
 
@@ -15,8 +17,8 @@
     background: #ffffff;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 20px 24px;
-    margin-bottom: 24px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
     box-shadow: var(--shadow-sm);
 }
 
@@ -24,31 +26,35 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
 .client-qr-info {
     text-align: left;
+    min-width: 0;
 }
 
 .client-qr-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--brand-navy);
-    margin-bottom: 3px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .client-qr-subtitle {
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--text-secondary);
     margin: 0;
 }
 
 .client-qr-image-display {
-    max-width: 260px;
-    margin: 20px auto 10px auto;
-    padding: 16px;
+    max-width: 240px;
+    margin: 16px auto 8px auto;
+    padding: 14px;
     background: #ffffff;
     border: 2px solid var(--primary);
     border-radius: var(--radius-md);
@@ -71,10 +77,10 @@
 .loan-progress-container {
     background: #f1f5f9;
     border-radius: 999px;
-    height: 12px;
+    height: 10px;
     width: 100%;
     overflow: hidden;
-    margin: 12px 0 8px 0;
+    margin: 10px 0 6px 0;
 }
 
 .loan-progress-bar {
@@ -88,17 +94,45 @@
     border: 2px solid var(--emerald);
     background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
     border-radius: var(--radius-lg);
-    padding: 24px;
-    margin-bottom: 24px;
+    padding: 18px;
+    margin-bottom: 16px;
 }
 
 .savings-rate-tag {
     background: var(--emerald);
     color: #ffffff;
     font-weight: 700;
-    font-size: 12px;
-    padding: 4px 10px;
+    font-size: 11px;
+    padding: 3px 8px;
     border-radius: 999px;
     display: inline-block;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+    .client-hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px;
+        gap: 14px;
+    }
+
+    .client-hero-card > div:last-child {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .client-hero-card > div:last-child .btn {
+        width: 100%;
+    }
+
+    .client-qr-toggle-box {
+        padding: 12px 14px;
+    }
+
+    .savings-plan-card {
+        padding: 14px;
+    }
 }

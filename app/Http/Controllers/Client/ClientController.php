@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Models\Client;
 use App\Models\Loan;
 use App\Models\LoanSchedule;
@@ -28,12 +29,22 @@ class ClientController extends Controller
         ]);
 
         $activeLoan = $client->currentLoan;
+        if ($activeLoan) {
+            $activeLoan->syncMissedDaysAndExtensions();
+            $activeLoan->refresh();
+        }
+
         $loanSchedules = $activeLoan ? $activeLoan->schedules : collect();
         $paidDaysCount = $activeLoan ? $activeLoan->schedules()->where('status', 'paid')->count() : 0;
         $paymentHistory = $activeLoan ? $activeLoan->payments : collect();
 
         $savingsAccounts = SavingsAccount::where('client_id', $client->id)->latest()->get();
         $walletTransactions = WalletTransaction::where('user_id', $user->id)->latest()->take(10)->get();
+
+        $missedPastDuesCount = $activeLoan ? $activeLoan->schedules()
+            ->where('due_date', '<', Carbon::today()->toDateString())
+            ->where('status', '!=', 'paid')
+            ->count() : 0;
 
         return view('client.dashboard', compact(
             'client',
@@ -42,7 +53,8 @@ class ClientController extends Controller
             'paidDaysCount',
             'paymentHistory',
             'savingsAccounts',
-            'walletTransactions'
+            'walletTransactions',
+            'missedPastDuesCount'
         ));
     }
 
@@ -176,5 +188,37 @@ class ClientController extends Controller
         );
 
         return back()->with('success', "Savings Plan activated! ₱" . number_format($deposit, 2) . " locked for 60 days. Daily interest of ₱" . number_format($dailyInterestAmount, 2) . " will be credited directly to your wallet.");
+    }
+
+    public function changePin(Request $request)
+    {
+        $request->validate([
+            'current_pin' => 'required|digits:4',
+            'new_pin' => 'required|digits:4|different:current_pin',
+            'new_pin_confirmation' => 'required|same:new_pin',
+        ], [
+            'current_pin.required' => 'Please enter your current 4-digit PIN.',
+            'current_pin.digits' => 'Current PIN must be exactly 4 digits.',
+            'new_pin.required' => 'Please enter your new 4-digit PIN.',
+            'new_pin.digits' => 'New PIN must be exactly 4 digits.',
+            'new_pin.different' => 'New PIN must be different from your current PIN.',
+            'new_pin_confirmation.same' => 'PIN confirmation does not match the new PIN.',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $isPinValid = ($user->pin_code === $request->current_pin) || Hash::check($request->current_pin, $user->password);
+
+        if (!$isPinValid) {
+            return back()->with('error', 'Incorrect current PIN code entered.');
+        }
+
+        $user->update([
+            'pin_code' => $request->new_pin,
+            'password' => Hash::make($request->new_pin),
+        ]);
+
+        return back()->with('success', 'Your 4-digit security PIN has been updated successfully!');
     }
 }
