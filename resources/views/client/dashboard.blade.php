@@ -26,7 +26,7 @@
                 📤 Cash Out
             </button>
             <button type="button" class="btn btn-primary" style="background: #0284c7; border: none;" onclick="openModal('addSavingsModal')">
-                🐖 Add Savings (10%)
+                🐖 Add Savings ({{ $savingsInterestRate }}%)
             </button>
             <button type="button" class="btn" style="background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.35); backdrop-filter: blur(4px);" onclick="openModal('changePinModal')">
                 🔐 Change PIN
@@ -219,15 +219,15 @@
     <!-- Savings Funds Section -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">🐖 My Active Savings Funds (10% 60-Day Lock-In)</h3>
+            <h3 class="card-title">🐖 My Active Savings Funds</h3>
             <button type="button" class="btn btn-sm btn-emerald" onclick="openModal('addSavingsModal')">
-                + Open New Savings Fund
+                + Open New Savings Fund ({{ $savingsInterestRate }}%)
             </button>
         </div>
 
         @if($savingsAccounts->isEmpty())
             <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 13px;">
-                You currently have no active savings fund. Open one today to earn 10% interest locked for 60 days with daily interest credited to your wallet!
+                You currently have no active savings fund. Open one today to earn {{ $savingsInterestRate }}% interest locked for {{ $savingsLockInDays }} days with daily interest credited to your wallet!
             </div>
         @else
             <div class="host-approval-grid">
@@ -236,7 +236,7 @@
                         <div>
                             <div class="approval-header">
                                 <h4 style="font-size: 15px;">Deposit: ₱{{ number_format($sav->deposit_amount, 2) }}</h4>
-                                <span class="badge badge-emerald">10% / 60 Days</span>
+                                <span class="badge badge-emerald">{{ number_format($sav->interest_rate_percent, 1) }}% / {{ $sav->lock_in_days }} Days</span>
                             </div>
 
                             <div class="approval-meta-row">
@@ -374,15 +374,15 @@
     <div class="modal-overlay" id="addSavingsModal">
         <div class="modal-box">
             <div class="modal-header">
-                <h3 class="modal-title">Open 60-Day 10% Savings Fund</h3>
+                <h3 class="modal-title">Open {{ $savingsLockInDays }}-Day {{ $savingsInterestRate }}% Savings Fund</h3>
                 <button type="button" class="modal-close" onclick="closeModal('addSavingsModal')">&times;</button>
             </div>
             <form action="{{ route('client.savings.store') }}" method="POST">
                 @csrf
                 <div class="modal-body">
                     <div class="savings-plan-card" style="margin-bottom: 14px;">
-                        <span class="savings-rate-tag">10% GUARANTEED RETURN</span>
-                        <h4 style="font-size: 15px; margin-bottom: 4px;">60-Day Fixed Lock-in Growth</h4>
+                        <span class="savings-rate-tag">{{ $savingsInterestRate }}% GUARANTEED RETURN</span>
+                        <h4 style="font-size: 15px; margin-bottom: 4px;">{{ $savingsLockInDays }}-Day Fixed Lock-in Growth</h4>
                         <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
                             Daily interest is automatically calculated and credited directly to your wallet balance every single day!
                         </p>
@@ -390,7 +390,7 @@
 
                     <div class="form-group">
                         <label class="form-label">Savings Deposit Amount (₱) *</label>
-                        <input type="number" step="0.01" min="500" max="{{ $client->wallet_balance }}" name="deposit_amount" id="savings_deposit_amount" class="form-control" placeholder="e.g. 10000" required oninput="previewSavingsCalculation()">
+                        <input type="number" step="0.01" min="500" max="{{ $client->wallet_balance }}" name="deposit_amount" id="savings_deposit_amount" data-rate="{{ $savingsInterestRate }}" data-days="{{ $savingsLockInDays }}" class="form-control" placeholder="e.g. 10000" required oninput="previewSavingsCalculation()">
                         <div class="form-hint">Deducted from your current wallet balance (₱{{ number_format($client->wallet_balance, 2) }}).</div>
                     </div>
 
@@ -401,7 +401,7 @@
                             <strong style="color: #059669;" id="preview_daily_interest">₱0.00 / day</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span style="color: var(--text-secondary);">Total 60-Day Earned Interest:</span>
+                            <span style="color: var(--text-secondary);">Total {{ $savingsLockInDays }}-Day Earned Interest:</span>
                             <strong id="preview_total_interest">₱0.00</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 5px;">

@@ -50,7 +50,8 @@ class HostAccountController extends Controller
             ]);
         }
 
-        return back()->with('success', "New user credentials created successfully for {$user->name} ({$user->role})!");
+        $tab = $request->role === 'collector' ? 'collectors' : 'staff';
+        return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "New user credentials created successfully for {$user->name} ({$user->role})!");
     }
 
     public function resetPin(Request $request, User $user)
@@ -62,14 +63,16 @@ class HostAccountController extends Controller
             'password' => Hash::make($request->pin_code),
         ]);
 
-        return back()->with('success', "PIN code for {$user->name} was reset to {$request->pin_code}!");
+        $tab = $request->input('tab') ?: ($user->role === 'client' ? 'clients' : ($user->role === 'collector' ? 'collectors' : 'staff'));
+        return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "PIN code for {$user->name} was reset to {$request->pin_code}!");
     }
 
-    public function toggleStatus(User $user)
+    public function toggleStatus(Request $request, User $user)
     {
         $newStatus = ($user->status === 'active') ? 'inactive' : 'active';
         $user->update(['status' => $newStatus]);
 
-        return back()->with('success', "Account status for {$user->name} updated to {$newStatus}.");
+        $tab = $request->input('tab') ?: ($user->role === 'client' ? 'clients' : ($user->role === 'collector' ? 'collectors' : 'staff'));
+        return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "Account status for {$user->name} updated to {$newStatus}.");
     }
 }

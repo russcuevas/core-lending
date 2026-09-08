@@ -1,9 +1,10 @@
 // Admin Encoder & Releasing Officer Scripts
 
-// Dynamic 60-Day Loan Schedule Calculator for Encoder
+// Dynamic Loan Schedule Calculator for Encoder
 function calculateLoanSchedule() {
     const principalInput = document.getElementById('principal_amount');
     const interestInput = document.getElementById('interest_rate_percent');
+    const termDaysElem = document.getElementById('loan_term_days_display');
     const totalPayableDisplay = document.getElementById('total_payable_display');
     const dailyInstallmentDisplay = document.getElementById('daily_installment_display');
     const schedulePreviewTable = document.getElementById('schedule_preview_body');
@@ -11,26 +12,36 @@ function calculateLoanSchedule() {
     if (!principalInput || !interestInput) return;
 
     const principal = parseFloat(principalInput.value) || 0;
-    const interestPercent = parseFloat(interestInput.value) || 10;
+    const interestPercent = parseFloat(interestInput.value) || 0;
+    const termDays = termDaysElem ? parseInt(termDaysElem.getAttribute('data-term-days')) || 60 : 60;
     
+    function setDisplay(elem, text) {
+        if (!elem) return;
+        if (elem.tagName === 'INPUT') {
+            elem.value = text;
+        } else {
+            elem.innerText = text;
+        }
+    }
+
     if (principal <= 0) {
-        if (totalPayableDisplay) totalPayableDisplay.value = '₱0.00';
-        if (dailyInstallmentDisplay) dailyInstallmentDisplay.value = '₱0.00';
-        if (schedulePreviewTable) schedulePreviewTable.innerHTML = '<tr><td colspan="4" class="text-center">Enter loan amount to preview schedule</td></tr>';
+        setDisplay(totalPayableDisplay, '₱0.00');
+        setDisplay(dailyInstallmentDisplay, '₱0.00 / day');
+        if (schedulePreviewTable) schedulePreviewTable.innerHTML = `<tr><td colspan="4" class="text-center">Enter loan amount to preview ${termDays}-day schedule</td></tr>`;
         return;
     }
 
     const interestAmount = principal * (interestPercent / 100);
     const totalPayable = principal + interestAmount;
-    const dailyInstallment = (totalPayable / 60);
+    const dailyInstallment = (totalPayable / termDays);
 
-    if (totalPayableDisplay) totalPayableDisplay.value = formatMoney(totalPayable);
-    if (dailyInstallmentDisplay) dailyInstallmentDisplay.value = formatMoney(dailyInstallment);
+    setDisplay(totalPayableDisplay, formatMoney(totalPayable));
+    setDisplay(dailyInstallmentDisplay, formatMoney(dailyInstallment) + (dailyInstallmentDisplay.tagName === 'INPUT' ? '' : ' / day'));
 
     if (schedulePreviewTable) {
         let rows = '';
         let today = new Date();
-        for (let i = 1; i <= 60; i++) {
+        for (let i = 1; i <= termDays; i++) {
             let dueDate = new Date();
             dueDate.setDate(today.getDate() + i);
             let dateStr = dueDate.toISOString().split('T')[0];

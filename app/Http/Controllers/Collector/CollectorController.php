@@ -15,6 +15,7 @@ use App\Models\LoanPayment;
 use App\Models\WalletTransaction;
 use App\Models\HostVaultLedger;
 use App\Models\SystemNotification;
+use App\Models\SystemSetting;
 use Carbon\Carbon;
 
 class CollectorController extends Controller
@@ -67,7 +68,12 @@ class CollectorController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $collector = $user->collector ?? Collector::firstOrCreate(['user_id' => $user->id]);
-        $clients = Client::with(['user', 'currentLoan'])->where('collector_id', $collector->id)->get();
+        $clients = Client::with(['user', 'currentLoan'])
+            ->where('collector_id', $collector->id)
+            ->whereHas('currentLoan', function($q) {
+                $q->where('status', 'active');
+            })
+            ->get();
         return view('collector.scan_qr', compact('clients'));
     }
 
@@ -205,17 +211,20 @@ class CollectorController extends Controller
             Auth::id()
         );
 
-        // 4. Commission Rule: If fully paid, collector receives ₱300 bonus commission!
+        // 4. Commission Rule: If fully paid, collector receives dynamic bonus commission!
         if ($isFullyPaid && !$loan->collector_commission_paid) {
-            $collector->increment('commission_balance', 300.00);
-            $collector->increment('total_earned_commission', 300.00);
+            $bonusComm = (float)SystemSetting::get('collector_loan_commission_fixed', 300.00);
+            if ($bonusComm > 0) {
+                $collector->increment('commission_balance', $bonusComm);
+                $collector->increment('total_earned_commission', $bonusComm);
+            }
             $loan->update(['collector_commission_paid' => true]);
 
             SystemNotification::sendNotification(
                 $collector->user_id,
                 'collector',
-                '₱300 Fully-Paid Loan Commission Earned!',
-                "Congratulations! Client {$clientUser->name} has fully paid their loan. ₱300 commission credited to your balance.",
+                "₱" . number_format($bonusComm, 2) . " Fully-Paid Loan Commission Earned!",
+                "Congratulations! Client {$clientUser->name} has fully paid their loan. ₱" . number_format($bonusComm, 2) . " commission credited to your balance.",
                 'payment_received'
             );
         }

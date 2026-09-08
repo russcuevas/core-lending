@@ -16,6 +16,7 @@ use App\Models\LoanPayment;
 use App\Models\Expense;
 use App\Models\ClientUpdateRequest;
 use App\Models\SystemNotification;
+use App\Models\SystemSetting;
 use Carbon\Carbon;
 
 class EncoderController extends Controller
@@ -25,7 +26,9 @@ class EncoderController extends Controller
         $totalClientsEncoded = Client::count();
         $pendingHostApprovals = Loan::where('status', 'pending_host_approval')->count();
         $recentClients = Client::with(['user', 'collector.user', 'currentLoan'])->latest()->take(10)->get();
-        $collectors = Collector::with('user')->get();
+        $collectors = Collector::with('user')->whereHas('user', function($q) {
+            $q->where('status', 'active');
+        })->get();
         $expensesToday = Expense::whereDate('date', Carbon::today())->sum('amount');
 
         return view('admin.encoder.dashboard', compact(
@@ -43,7 +46,18 @@ class EncoderController extends Controller
             $q->where('status', 'active');
         })->get();
 
-        return view('admin.encoder.create_client', compact('collectors'));
+        $defaultInterestRate = SystemSetting::get('loan_interest_rate_percent', 10.00);
+        $defaultTermDays = (int)SystemSetting::get('loan_term_days', 60);
+        $collectorLoanComm = SystemSetting::get('collector_loan_commission_fixed', 300.00);
+        $collectorSavingsComm = SystemSetting::get('collector_savings_commission_percent', 5.00);
+
+        return view('admin.encoder.create_client', compact(
+            'collectors',
+            'defaultInterestRate',
+            'defaultTermDays',
+            'collectorLoanComm',
+            'collectorSavingsComm'
+        ));
     }
 
     public function storeClient(Request $request)
@@ -55,7 +69,7 @@ class EncoderController extends Controller
             'address' => 'required|string',
             'valid_id' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
             'loan_amount' => 'required|numeric|min:500',
-            'interest_rate_percent' => 'required|numeric|min:0',
+            'interest_rate_percent' => 'nullable|numeric|min:0',
             'collector_id' => 'required|exists:collectors,id',
             'pin_code' => 'nullable|digits:4',
         ]);
@@ -95,12 +109,13 @@ class EncoderController extends Controller
             'status' => 'pending_host_approval',
         ]);
 
-        // 3. Calculate Loan Details (60 Days Term)
+        // 3. Calculate Loan Details (Enforced from Host Global Settings)
+        $termDays = (int)SystemSetting::get('loan_term_days', 60);
+        $interestPercent = (float)SystemSetting::get('loan_interest_rate_percent', 10.00);
         $principal = (float)$request->loan_amount;
-        $interestPercent = (float)$request->interest_rate_percent;
         $interestTotal = $principal * ($interestPercent / 100);
         $totalPayable = $principal + $interestTotal;
-        $dailyInstallment = round($totalPayable / 60, 2);
+        $dailyInstallment = round($totalPayable / $termDays, 2);
 
         $loan = Loan::create([
             'client_id' => $client->id,
@@ -109,7 +124,7 @@ class EncoderController extends Controller
             'interest_rate_percent' => $interestPercent,
             'total_payable' => $totalPayable,
             'daily_installment' => $dailyInstallment,
-            'term_days' => 60,
+            'term_days' => $termDays,
             'remaining_balance' => $totalPayable,
             'total_paid' => 0.00,
             'status' => 'pending_host_approval',
@@ -118,9 +133,9 @@ class EncoderController extends Controller
 
         $client->update(['current_loan_id' => $loan->id]);
 
-        // 4. Generate 60-Day Loan Payment Schedule
+        // 4. Generate Loan Payment Schedule based on Term Days
         $today = Carbon::today();
-        for ($day = 1; $day <= 60; $day++) {
+        for ($day = 1; $day <= $termDays; $day++) {
             LoanSchedule::create([
                 'loan_id' => $loan->id,
                 'day_number' => $day,
@@ -163,7 +178,9 @@ class EncoderController extends Controller
         }
 
         $clients = $query->paginate(20);
-        $collectors = Collector::with('user')->get();
+        $collectors = Collector::with('user')->whereHas('user', function($q) {
+            $q->where('status', 'active');
+        })->get();
 
         return view('admin.encoder.clients', compact('clients', 'collectors'));
     }

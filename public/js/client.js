@@ -14,7 +14,7 @@ function toggleClientQr() {
     }
 }
 
-// Savings interest preview calculator (60-day 10% daily payout)
+// Savings interest preview calculator (dynamic interest % and lock-in days)
 function previewSavingsCalculation() {
     const depositInput = document.getElementById('savings_deposit_amount');
     const dailyInterestSpan = document.getElementById('preview_daily_interest');
@@ -24,6 +24,9 @@ function previewSavingsCalculation() {
     if (!depositInput) return;
 
     const deposit = parseFloat(depositInput.value) || 0;
+    const ratePercent = parseFloat(depositInput.getAttribute('data-rate')) || 10;
+    const lockInDays = parseInt(depositInput.getAttribute('data-days')) || 60;
+
     if (deposit <= 0) {
         if (dailyInterestSpan) dailyInterestSpan.innerText = '₱0.00 / day';
         if (totalInterestSpan) totalInterestSpan.innerText = '₱0.00';
@@ -31,8 +34,8 @@ function previewSavingsCalculation() {
         return;
     }
 
-    const totalInterest = deposit * 0.10; // 10%
-    const dailyInterest = totalInterest / 60;
+    const totalInterest = deposit * (ratePercent / 100);
+    const dailyInterest = totalInterest / lockInDays;
     const totalMaturity = deposit + totalInterest;
 
     if (dailyInterestSpan) dailyInterestSpan.innerText = formatMoney(dailyInterest) + ' / day';

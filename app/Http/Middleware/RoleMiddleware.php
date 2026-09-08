@@ -19,6 +19,13 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
+        if ($request->user()->status !== 'active') {
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')->with('error', 'Your account is pending approval or inactive. Please contact administration.');
+        }
+
         if (!in_array($request->user()->role, $roles)) {
             abort(403, 'Unauthorized access to this portal.');
         }

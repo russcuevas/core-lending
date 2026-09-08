@@ -8,6 +8,7 @@ use App\Http\Controllers\Host\HostApprovalController;
 use App\Http\Controllers\Host\HostAccountController;
 use App\Http\Controllers\Host\HostTransactionController;
 use App\Http\Controllers\Host\HostReportController;
+use App\Http\Controllers\Host\HostSettingController;
 use App\Http\Controllers\Admin\EncoderController;
 use App\Http\Controllers\Admin\ReleasingController;
 use App\Http\Controllers\Collector\CollectorController;
@@ -50,7 +51,14 @@ Route::middleware(['auth', 'role:host'])->prefix('host')->name('host.')->group(f
 
     // Ledgers & Reports
     Route::get('/transactions', [HostTransactionController::class, 'index'])->name('transactions.index');
+    Route::post('/transactions', [HostTransactionController::class, 'store'])->name('transactions.store');
+    Route::post('/transactions/adjust-balance', [HostTransactionController::class, 'adjustBalance'])->name('transactions.adjust_balance');
+    Route::put('/transactions/{ledger}', [HostTransactionController::class, 'update'])->name('transactions.update');
     Route::get('/reports', [HostReportController::class, 'index'])->name('reports.index');
+
+    // System Settings & Rates
+    Route::get('/settings', [HostSettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [HostSettingController::class, 'update'])->name('settings.update');
 });
 
 // 2. ADMIN ENCODER ROUTES

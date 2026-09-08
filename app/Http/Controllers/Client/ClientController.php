@@ -15,6 +15,7 @@ use App\Models\WalletTransaction;
 use App\Models\Collector;
 use App\Models\HostVaultLedger;
 use App\Models\SystemNotification;
+use App\Models\SystemSetting;
 use Carbon\Carbon;
 
 class ClientController extends Controller
@@ -41,6 +42,9 @@ class ClientController extends Controller
         $savingsAccounts = SavingsAccount::where('client_id', $client->id)->latest()->get();
         $walletTransactions = WalletTransaction::where('user_id', $user->id)->latest()->take(10)->get();
 
+        $savingsInterestRate = (float)SystemSetting::get('savings_interest_rate_percent', 10.00);
+        $savingsLockInDays = (int)SystemSetting::get('savings_lock_in_days', 60);
+
         $missedPastDuesCount = $activeLoan ? $activeLoan->schedules()
             ->where('due_date', '<', Carbon::today()->toDateString())
             ->where('status', '!=', 'paid')
@@ -54,7 +58,9 @@ class ClientController extends Controller
             'paymentHistory',
             'savingsAccounts',
             'walletTransactions',
-            'missedPastDuesCount'
+            'missedPastDuesCount',
+            'savingsInterestRate',
+            'savingsLockInDays'
         ));
     }
 
@@ -141,37 +147,41 @@ class ClientController extends Controller
 
         $client->decrement('wallet_balance', $deposit);
 
-        $totalExpectedInterest = $deposit * 0.10; // 10%
-        $dailyInterestAmount = round($totalExpectedInterest / 60, 4);
-        $collectorCommission = round($deposit * 0.05, 2); // 5% collector commission
+        $interestRate = (float)SystemSetting::get('savings_interest_rate_percent', 10.00);
+        $lockInDays = (int)SystemSetting::get('savings_lock_in_days', 60);
+        $commissionRate = (float)SystemSetting::get('collector_savings_commission_percent', 5.00);
+
+        $totalExpectedInterest = round($deposit * ($interestRate / 100), 2);
+        $dailyInterestAmount = round($totalExpectedInterest / $lockInDays, 4);
+        $collectorCommission = round($deposit * ($commissionRate / 100), 2);
 
         $savings = SavingsAccount::create([
             'client_id' => $client->id,
             'collector_id' => $client->collector_id,
             'deposit_amount' => $deposit,
-            'interest_rate_percent' => 10.00,
-            'lock_in_days' => 60,
+            'interest_rate_percent' => $interestRate,
+            'lock_in_days' => $lockInDays,
             'daily_interest_amount' => $dailyInterestAmount,
             'total_expected_interest' => $totalExpectedInterest,
             'accumulated_interest_paid' => 0.00,
             'days_credited' => 0,
             'start_date' => Carbon::today()->format('Y-m-d'),
-            'maturity_date' => Carbon::today()->addDays(60)->format('Y-m-d'),
+            'maturity_date' => Carbon::today()->addDays($lockInDays)->format('Y-m-d'),
             'status' => 'active',
             'collector_commission_amount' => $collectorCommission,
             'collector_commission_credited' => true,
         ]);
 
-        // Automatically credit 5% commission to assigned collector
-        if ($client->collector) {
+        // Automatically credit dynamic commission to assigned collector
+        if ($client->collector && $collectorCommission > 0) {
             $client->collector->increment('commission_balance', $collectorCommission);
             $client->collector->increment('total_earned_commission', $collectorCommission);
 
             SystemNotification::sendNotification(
                 $client->collector->user_id,
                 'collector',
-                '5% Savings Commission Earned!',
-                "Client {$client->user->name} deposited ₱" . number_format($deposit, 2) . " to Savings. ₱" . number_format($collectorCommission, 2) . " (5%) added to your balance.",
+                "{$commissionRate}% Savings Commission Earned!",
+                "Client {$client->user->name} deposited ₱" . number_format($deposit, 2) . " to Savings. ₱" . number_format($collectorCommission, 2) . " ({$commissionRate}%) added to your balance.",
                 'payment_received'
             );
         }
@@ -181,13 +191,13 @@ class ClientController extends Controller
             'in',
             'savings_deposit',
             $deposit,
-            "Client {$client->user->name} deposited ₱" . number_format($deposit, 2) . " to 60-day 10% savings fund.",
+            "Client {$client->user->name} deposited ₱" . number_format($deposit, 2) . " to {$lockInDays}-day {$interestRate}% savings fund.",
             'SavingsAccount',
             $savings->id,
             Auth::id()
         );
 
-        return back()->with('success', "Savings Plan activated! ₱" . number_format($deposit, 2) . " locked for 60 days. Daily interest of ₱" . number_format($dailyInterestAmount, 2) . " will be credited directly to your wallet.");
+        return back()->with('success', "Savings Plan activated! ₱" . number_format($deposit, 2) . " locked for {$lockInDays} days ({$interestRate}% return). Daily interest of ₱" . number_format($dailyInterestAmount, 2) . " will be credited directly to your wallet.");
     }
 
     public function changePin(Request $request)

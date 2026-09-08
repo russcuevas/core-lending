@@ -72,7 +72,12 @@
                 <tbody>
                     @if(!$assignedClients->isEmpty())
                         @foreach($assignedClients as $c)
-                            @php $loan = $c->currentLoan; @endphp
+                            @php 
+                                $loan = $c->currentLoan; 
+                                $isActive = $loan && $loan->status === 'active';
+                                $isPending = ($c->status === 'pending_host_approval' || $c->status === 'pending') || ($loan && in_array($loan->status, ['pending_host_approval', 'pending_releasing_review', 'pending_approval', 'pending', 'approved_for_release', 'ready_for_release']));
+                                $isCompleted = $loan && $loan->status === 'completed';
+                            @endphp
                             <tr>
                                 <td>
                                     <strong>{{ $c->user->name }}</strong>
@@ -80,33 +85,51 @@
                                 </td>
                                 <td>{{ $c->user->phone_number }}</td>
                                 <td>
-                                    @if($loan && $loan->status === 'active')
+                                    @if($isActive)
                                         <span class="badge badge-emerald">₱{{ number_format($loan->principal_amount, 2) }}</span>
+                                    @elseif($isPending)
+                                        <span class="badge badge-amber" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">⏳ Pending Host Approval</span>
                                     @else
                                         <span class="badge badge-slate">No Active Loan</span>
                                     @endif
                                 </td>
                                 <td style="font-weight: 700; color: #d97706;">
-                                    {{ $loan ? '₱' . number_format($loan->daily_installment, 2) : '-' }}
+                                    @if($isActive)
+                                        ₱{{ number_format($loan->daily_installment, 2) }}
+                                    @else
+                                        <span style="color: var(--text-muted); font-weight: normal;">-</span>
+                                    @endif
                                 </td>
                                 <td style="font-weight: 700; color: #059669;">
-                                    {{ $loan ? '₱' . number_format($loan->remaining_balance, 2) : '-' }}
+                                    @if($isActive)
+                                        ₱{{ number_format($loan->remaining_balance, 2) }}
+                                    @elseif($isCompleted)
+                                        <span style="color: #059669;">₱0.00</span>
+                                    @else
+                                        <span style="color: var(--text-muted); font-weight: normal;">-</span>
+                                    @endif
                                 </td>
                                 <td>
-                                    @if($loan)
-                                        <span style="font-weight: 600;">{{ $loan->days_paid_count }} / 60</span>
+                                    @if($isActive)
+                                        <span style="font-weight: 600;">{{ $loan->days_paid_count }} / {{ $loan->term_days ?? 60 }}</span>
+                                    @elseif($isCompleted)
+                                        <span style="font-weight: 600; color: var(--text-secondary);">{{ $loan->term_days ?? 60 }} / {{ $loan->term_days ?? 60 }}</span>
                                     @else
-                                        -
+                                        <span style="color: var(--text-muted);">-</span>
                                     @endif
                                 </td>
                                 <td>{{ $c->last_payment_date ?? 'No payments yet' }}</td>
                                 <td>
-                                    @if($loan && $loan->status === 'active')
+                                    @if($isActive)
                                         <a href="{{ route('collector.payments.collect_form', ['client_id' => $c->id]) }}" class="btn btn-sm btn-emerald">
                                             Collect Payment
                                         </a>
+                                    @elseif($isPending)
+                                        <span class="badge badge-amber" style="background: #fef3c7; color: #b45309; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600; border: 1px solid #fde68a;">⏳ Pending Host Approval</span>
+                                    @elseif($isCompleted)
+                                        <span class="badge badge-emerald" style="background: #d1fae5; color: #065f46; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600;">✓ Completed</span>
                                     @else
-                                        <span style="font-size: 12px; color: var(--text-muted);">Completed</span>
+                                        <span style="font-size: 12px; color: var(--text-muted);">-</span>
                                     @endif
                                 </td>
                             </tr>

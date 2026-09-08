@@ -85,58 +85,73 @@
 
                 <!-- Loan & Interest Configuration -->
                 <div
-                    style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin: 18px 0;">
-                    <h4 style="font-size: 14.5px; margin-bottom: 14px; color: var(--text-primary);">
-                        💰 Loan Terms & Commission Settings
-                    </h4>
+                    style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px; margin: 20px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="font-size: 14.5px; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <span>💰</span> Loan Parameters & Computations
+                        </h4>
+                        <span class="badge badge-emerald" style="font-size: 11px; padding: 4px 10px;">
+                            🔒 Locked to Host Global Settings
+                        </span>
+                    </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
-                        <div class="form-group">
+                    <!-- Row 1: Principal Input and Readonly Host Settings -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                        <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label" for="principal_amount">Principal Loan Amount (₱) *</label>
                             <input type="number" step="0.01" name="loan_amount" id="principal_amount"
-                                class="form-control" placeholder="e.g. 20000" required oninput="calculateLoanSchedule()">
+                                class="form-control" placeholder="e.g. 20000" required oninput="calculateLoanSchedule()"
+                                style="font-size: 15px; font-weight: 600;">
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label" for="interest_rate_percent">Loan Interest Rate (%) *</label>
-                            <input type="number" step="0.01" name="interest_rate_percent" id="interest_rate_percent"
-                                class="form-control" value="10" required oninput="calculateLoanSchedule()">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label class="form-label" for="interest_rate_percent">Interest Rate (%)</label>
+                                <span style="font-size: 11px; color: var(--text-secondary);">Host Set</span>
+                            </div>
+                            <div style="position: relative;">
+                                <input type="text" class="form-control" value="{{ number_format($defaultInterestRate, 2) }}% Fixed" readonly
+                                    style="background: #f1f5f9; font-weight: 600; cursor: not-allowed;">
+                                <input type="hidden" name="interest_rate_percent" id="interest_rate_percent" value="{{ $defaultInterestRate }}">
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label">Loan Term (Days)</label>
-                            <input type="text" class="form-control" value="60 Days Fixed" readonly
-                                style="background: #f1f5f9;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label class="form-label">Loan Term Duration</label>
+                                <span style="font-size: 11px; color: var(--text-secondary);">Host Set</span>
+                            </div>
+                            <input type="text" id="loan_term_days_display" data-term-days="{{ $defaultTermDays }}" class="form-control" value="{{ $defaultTermDays }} Days Fixed" readonly
+                                style="background: #f1f5f9; font-weight: 600; cursor: not-allowed;">
                         </div>
+                    </div>
 
-                        <div class="form-group">
-                            <label class="form-label">Total Payable Amount</label>
-                            <input type="text" id="total_payable_display" class="form-control" readonly
-                                style="background: #f1f5f9; font-weight: 700; color: #059669;" value="₱0.00">
+                    <!-- Row 2: Live Computed Results in Highlighted Cards -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 12px 16px;">
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <span style="font-size: 12px; color: var(--text-secondary); margin-bottom: 2px;">Total Payable Amount (Principal + {{ number_format($defaultInterestRate, 1) }}% Interest)</span>
+                            <span id="total_payable_display" style="font-size: 18px; font-weight: 700; color: #059669;">₱0.00</span>
                         </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Computed Daily Installment</label>
-                            <input type="text" id="daily_installment_display" class="form-control" readonly
-                                style="background: #f1f5f9; font-weight: 700;" value="₱0.00">
+                        <div style="display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #e2e8f0; padding-left: 16px;">
+                            <span style="font-size: 12px; color: var(--text-secondary); margin-bottom: 2px;">Computed Daily Repayment ({{ $defaultTermDays }} Days)</span>
+                            <span id="daily_installment_display" style="font-size: 18px; font-weight: 700; color: var(--text-primary);">₱0.00 / day</span>
                         </div>
                     </div>
 
                     <!-- System Commission Rules Summary -->
                     <div
-                        style="margin-top: 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; border-top: 1px dashed var(--border-color); padding-top: 10px;">
-                        <strong>Standard Commission System Applied:</strong>
-                        <ul style="margin-left: 18px; margin-top: 4px;">
-                            <li>₱300 bonus commission automatically credited to Collector upon loan completion (60 days
-                                fully paid).</li>
-                            <li>5% automatic collector commission on any savings deposit opened by this client.</li>
+                        style="margin-top: 14px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+                        <strong>System Commission Rules Configured by Host:</strong>
+                        <ul style="margin-left: 18px; margin-top: 4px; margin-bottom: 0;">
+                            <li>₱{{ number_format($collectorLoanComm, 2) }} bonus commission automatically credited to Collector upon loan completion ({{ $defaultTermDays }} days fully paid).</li>
+                            <li>{{ $collectorSavingsComm }}% automatic collector commission on any savings deposit opened by this client.</li>
                         </ul>
                     </div>
                 </div>
 
-                <!-- 60 Days Repayment Preview -->
+                <!-- Repayment Schedule Preview -->
                 <div class="form-group">
-                    <label class="form-label">60-Day Loan Payment Schedule Preview</label>
+                    <label class="form-label">{{ $defaultTermDays }}-Day Loan Payment Schedule Preview</label>
                     <div class="schedule-grid-preview">
                         <table class="data-table">
                             <thead>
@@ -151,7 +166,7 @@
                                 <tr>
                                     <td colspan="4" class="text-center"
                                         style="padding: 16px; color: var(--text-muted);">
-                                        Enter loan amount above to generate live 60-day schedule preview.
+                                        Enter loan amount above to generate live {{ $defaultTermDays }}-day schedule preview.
                                     </td>
                                 </tr>
                             </tbody>

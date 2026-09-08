@@ -334,5 +334,13 @@ class DatabaseSeeder extends Seeder
             'type' => 'request_alert',
             'link_url' => '/admin/releasing/requests',
         ]);
+
+        // 13. Default Global System Settings
+        \App\Models\SystemSetting::set('loan_interest_rate_percent', '10.00', 'float', 'loan', 'Default Loan Interest Rate (%)', 'Standard global interest percentage applied to newly encoded loan applications.');
+        \App\Models\SystemSetting::set('loan_term_days', '60', 'int', 'loan', 'Default Loan Term (Days)', 'Standard total payment cycle days for new loan applications.');
+        \App\Models\SystemSetting::set('savings_interest_rate_percent', '10.00', 'float', 'savings', 'Client Savings Return Rate (%)', 'Guaranteed return percentage earned by clients for locked savings deposits.');
+        \App\Models\SystemSetting::set('savings_lock_in_days', '60', 'int', 'savings', 'Savings Lock-in Period (Days)', 'Number of days client savings funds remain locked to earn daily interest payouts.');
+        \App\Models\SystemSetting::set('collector_loan_commission_fixed', '300.00', 'float', 'collector', 'Collector Commission per Fully-Paid Loan (₱)', 'Incentive credited to collector wallet upon client completing all loan schedules.');
+        \App\Models\SystemSetting::set('collector_savings_commission_percent', '5.00', 'float', 'collector', 'Collector Commission on Savings (%)', 'Instant commission percentage credited to collector balance when client deposits to savings.');
     }
 }

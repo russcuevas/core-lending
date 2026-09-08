@@ -34,7 +34,10 @@ class AuthController extends Controller
 
             if ($user->status !== 'active') {
                 Auth::logout();
-                return back()->with('error', 'Your account is pending approval or inactive. Please contact Superadmin.');
+                if (in_array($user->status, ['pending', 'pending_host_approval', 'pending_approval'])) {
+                    return back()->with('error', 'Your account is currently pending approval by the Host Superadmin. Please wait for approval before logging in.')->withInput();
+                }
+                return back()->with('error', 'Your account is currently inactive or deactivated. Please contact the administrator.')->withInput();
             }
 
             return $this->redirectBasedOnRole($user)->with('success', "Welcome back, {$user->name}!");
@@ -58,12 +61,11 @@ class AuthController extends Controller
             return back()->with('error', 'No client account found with this phone number.')->withInput();
         }
 
-        if ($user->status === 'pending_approval' || $user->status === 'pending') {
-            return back()->with('error', 'Your client account is still pending Superadmin approval.');
-        }
-
-        if ($user->status === 'inactive' || $user->status === 'rejected') {
-            return back()->with('error', 'Your account is currently inactive.');
+        if ($user->status !== 'active') {
+            if (in_array($user->status, ['pending', 'pending_host_approval', 'pending_approval'])) {
+                return back()->with('error', 'Your client account and loan application are still pending Host Superadmin approval. Please wait for approval before logging in.')->withInput();
+            }
+            return back()->with('error', 'Your account is currently inactive or deactivated. Please contact administration.')->withInput();
         }
 
         // Check PIN code (plain match or hash check)
