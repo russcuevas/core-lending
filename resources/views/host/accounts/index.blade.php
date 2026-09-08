@@ -93,6 +93,14 @@
                                                     {{ $admin->status === 'active' ? 'Deactivate' : 'Activate' }}
                                                 </button>
                                             </form>
+                                            <form action="{{ route('host.accounts.destroy', $admin->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('⚠️ Are you sure you want to permanently delete staff account {{ addslashes($admin->name) }}?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <input type="hidden" name="tab" value="staff">
+                                                <button type="submit" class="btn btn-sm btn-rose" style="padding: 4px 8px;" title="Delete Staff Account">
+                                                    🗑 Delete
+                                                </button>
+                                            </form>
                                         @endif
                                     </div>
                                 </td>
@@ -151,6 +159,14 @@
                                                 {{ $col->user->status === 'active' ? 'Deactivate' : 'Activate' }}
                                             </button>
                                         </form>
+                                        <form action="{{ route('host.accounts.destroy', $col->user->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('⚠️ Are you sure you want to permanently delete collector {{ addslashes($col->user->name) }}?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="tab" value="collectors">
+                                            <button type="submit" class="btn btn-sm btn-rose" style="padding: 4px 8px;" title="Delete Collector">
+                                                🗑 Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -195,7 +211,7 @@
                                     </span>
                                 </td>
                                 <td style="text-align: right;">
-                                    <div style="display: inline-flex; gap: 6px;">
+                                    <div style="display: inline-flex; gap: 6px; align-items: center;">
                                         <button type="button" class="btn btn-sm btn-outline" onclick="openResetPinModal('{{ $cUser->id }}', '{{ $cUser->name }}', 'clients')">
                                             Reset PIN
                                         </button>
@@ -204,6 +220,14 @@
                                             <input type="hidden" name="tab" value="clients">
                                             <button type="submit" class="btn btn-sm {{ $cUser->status === 'active' ? 'btn-outline' : 'btn-emerald' }}">
                                                 {{ $cUser->status === 'active' ? 'Deactivate' : 'Activate' }}
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('host.accounts.destroy', $cUser->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('⚠️ Permanently delete client {{ addslashes($cUser->name) }}? All their loan records, schedules, and history will be completely deleted.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="tab" value="clients">
+                                            <button type="submit" class="btn btn-sm btn-rose" style="padding: 4px 8px;" title="Permanently Delete Client">
+                                                🗑 Delete
                                             </button>
                                         </form>
                                     </div>

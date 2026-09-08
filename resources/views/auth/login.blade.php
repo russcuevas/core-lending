@@ -55,6 +55,7 @@
                 <label style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <input type="checkbox" name="remember"> Remember me
                 </label>
+                <a href="javascript:void(0)" onclick="showForgotAlert('password')" class="auth-link" style="font-size: 12.5px;">Forgot Password?</a>
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%;">
@@ -79,57 +80,13 @@
                 <label style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <input type="checkbox" name="remember" checked> Remember me
                 </label>
-                <a href="javascript:void(0)" onclick="openModal('forgotPinModal')" class="auth-link" style="font-size: 12.5px;">Forgot PIN?</a>
+                <a href="javascript:void(0)" onclick="showForgotAlert('pin')" class="auth-link" style="font-size: 12.5px;">Forgot PIN?</a>
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%;">
                 Sign In with PIN
             </button>
         </form>
-
-        <!-- One-Click Demo Logins -->
-        <div class="demo-credentials-box">
-            <div class="demo-credentials-title">
-                <span>Quick Demo Logins (1-Click)</span>
-            </div>
-            <div>
-                <span class="demo-pill" onclick="fillDemo('host')">👑 Host Superadmin</span>
-                <span class="demo-pill" onclick="fillDemo('encoder')">📝 Admin Encoder</span>
-                <span class="demo-pill" onclick="fillDemo('releasing')">💵 Admin Releasing</span>
-                <span class="demo-pill" onclick="fillDemo('collector')">🛵 Collector</span>
-                <span class="demo-pill" onclick="fillDemo('client')">👤 Client (09171234567)</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Forgot PIN Modal -->
-    <div class="modal-overlay" id="forgotPinModal">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3 class="modal-title">Reset PIN Code Request</h3>
-                <button type="button" class="modal-close" onclick="closeModal('forgotPinModal')">&times;</button>
-            </div>
-            <form action="{{ route('login.reset_pin') }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
-                        Enter your registered mobile phone number. Our Superadmin will verify and assist in resetting your PIN code.
-                    </p>
-                    <div class="form-group">
-                        <label class="form-label">Contact Number (CP No)</label>
-                        <input type="text" name="phone_number" class="form-control" placeholder="09XXXXXXXXX" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Email Address (Optional)</label>
-                        <input type="email" name="email" class="form-control" placeholder="juan@example.com">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('forgotPinModal')">Cancel</button>
-                    <button type="submit" class="btn btn-emerald">Submit PIN Reset Request</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     <script src="{{ asset('js/common.js') }}"></script>

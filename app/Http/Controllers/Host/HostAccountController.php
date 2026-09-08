@@ -75,4 +75,44 @@ class HostAccountController extends Controller
         $tab = $request->input('tab') ?: ($user->role === 'client' ? 'clients' : ($user->role === 'collector' ? 'collectors' : 'staff'));
         return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "Account status for {$user->name} updated to {$newStatus}.");
     }
+
+    public function destroy(Request $request, User $user)
+    {
+        // Protect superadmin from accidental deletion
+        if ($user->id === auth()->id() || ($user->role === 'host' && User::where('role', 'host')->count() <= 1)) {
+            return back()->with('error', 'The active Host Superadmin account cannot be deleted.');
+        }
+
+        $name = $user->name;
+        $tab = $request->input('tab') ?: ($user->role === 'client' ? 'clients' : ($user->role === 'collector' ? 'collectors' : 'staff'));
+
+        // If client, clean up related records safely
+        if ($user->client) {
+            $client = $user->client;
+            
+            // Delete schedules & payments for all client loans
+            foreach ($client->loans as $loan) {
+                $loan->schedules()->delete();
+                $loan->payments()->delete();
+                $loan->delete();
+            }
+            
+            $client->savings()->delete();
+            $client->updateRequests()->delete();
+            $client->delete();
+        }
+
+        // Clean up wallet transactions & notifications
+        \App\Models\WalletTransaction::where('user_id', $user->id)->delete();
+        \App\Models\SystemNotification::where('user_id', $user->id)->delete();
+
+        // If collector, remove collector record
+        if ($user->collector) {
+            $user->collector->delete();
+        }
+
+        $user->delete();
+
+        return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "Account '{$name}' has been permanently deleted.");
+    }
 }

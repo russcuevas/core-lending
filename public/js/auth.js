@@ -18,27 +18,41 @@ function switchAuthTab(type) {
     }
 }
 
-// Fill quick demo credentials
-function fillDemo(role) {
-    if (role === 'host') {
-        switchAuthTab('staff');
-        document.getElementById('staff-email').value = 'host@lending.com';
-        document.getElementById('staff-password').value = 'password123';
-    } else if (role === 'encoder') {
-        switchAuthTab('staff');
-        document.getElementById('staff-email').value = 'encoder@lending.com';
-        document.getElementById('staff-password').value = 'password123';
-    } else if (role === 'releasing') {
-        switchAuthTab('staff');
-        document.getElementById('staff-email').value = 'releasing@lending.com';
-        document.getElementById('staff-password').value = 'password123';
-    } else if (role === 'collector') {
-        switchAuthTab('staff');
-        document.getElementById('staff-email').value = 'collector@lending.com';
-        document.getElementById('staff-password').value = 'password123';
-    } else if (role === 'client') {
-        switchAuthTab('client');
-        document.getElementById('client-phone').value = '09171234567';
-        document.getElementById('client-pin').value = '1234';
+// Development Phase Alerts for Password & PIN recovery
+function showForgotAlert(type) {
+    if (type === 'password') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Forgot Password',
+            html: `
+                <div style="font-size: 13.5px; line-height: 1.5; color: var(--text-secondary); text-align: center; padding: 6px 0;">
+                    <span style="display: inline-block; background: #fef3c7; color: #b45309; font-weight: 700; font-size: 11.5px; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px;">
+                        🚧 Development Phase
+                    </span>
+                    <p style="margin: 6px 0 0 0;">
+                        Self-service password recovery is currently under development. Please contact your <strong>Host Superadmin</strong> to reset or re-issue your account credentials.
+                    </p>
+                </div>
+            `,
+            confirmButtonColor: '#0077b6',
+            confirmButtonText: 'Understood'
+        });
+    } else if (type === 'pin') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Forgot PIN Code',
+            html: `
+                <div style="font-size: 13.5px; line-height: 1.5; color: var(--text-secondary); text-align: center; padding: 6px 0;">
+                    <span style="display: inline-block; background: #fef3c7; color: #b45309; font-weight: 700; font-size: 11.5px; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px;">
+                        🚧 Development Phase
+                    </span>
+                    <p style="margin: 6px 0 0 0;">
+                        Self-service PIN reset is currently under development. Please reach out to your <strong>Assigned Field Collector</strong> or <strong>Host Superadmin</strong> to verify your identity and reset your 4-digit security PIN.
+                    </p>
+                </div>
+            `,
+            confirmButtonColor: '#0077b6',
+            confirmButtonText: 'Understood'
+        });
     }
 }
