@@ -375,15 +375,21 @@
                                     {{ $schedule->paid_amount > 0 ? '₱' . number_format($schedule->paid_amount, 2) : '-' }}
                                 </td>
                                 @php
-                                    $isFullySettled = ($activeLoan->remaining_balance <= 0) || ($activeLoan->status === 'fully_paid');
-                                    $isSchedulePaid = ($schedule->status === 'paid') || ($isFullySettled && ($schedule->paid_amount > 0 || $schedule->day_number == $activeLoan->term_days));
+                                    $isFullySettled =
+                                        $activeLoan->remaining_balance <= 0 || $activeLoan->status === 'fully_paid';
+                                    $isSchedulePaid =
+                                        $schedule->status === 'paid' ||
+                                        ($isFullySettled &&
+                                            ($schedule->paid_amount > 0 ||
+                                                $schedule->day_number == $activeLoan->term_days));
                                 @endphp
                                 <td>
                                     @if ($isSchedulePaid)
                                         <span class="badge badge-emerald">✓ Paid</span>
                                     @elseif($schedule->status === 'partial')
                                         <span class="badge badge-amber">Partial
-                                            (₱{{ number_format($schedule->paid_amount, 2) }})</span>
+                                            (₱{{ number_format($schedule->paid_amount, 2) }})
+                                        </span>
                                     @elseif($isPastDue)
                                         <span class="badge badge-rose">⚠️ Missed</span>
                                     @else
@@ -447,7 +453,7 @@
             <div>
                 <h3 class="card-title">🐖 My Active Savings Funds</h3>
                 <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                    Fixed growth savings with daily interest automatically credited to your wallet.
+                    Fixed growth savings with daily interest automatically credited to your wallet, and full capital + final interest released on maturity.
                 </p>
             </div>
             <button type="button" class="btn btn-sm btn-emerald" onclick="openModal('addSavingsModal')">
@@ -463,6 +469,11 @@
         @else
             <div class="host-approval-grid">
                 @foreach ($savingsAccounts as $sav)
+                    @php
+                        $remainingInterest = max(0, (float)$sav->total_expected_interest - (float)$sav->accumulated_interest_paid);
+                        $finalPayout = (float)$sav->deposit_amount + $remainingInterest;
+                        $progressPercent = $sav->lock_in_days > 0 ? min(100, round(($sav->days_credited / $sav->lock_in_days) * 100)) : 0;
+                    @endphp
                     <div class="approval-card" style="border-left-color: #059669;">
                         <div>
                             <div class="approval-header">
@@ -471,16 +482,26 @@
                                     {{ $sav->lock_in_days }} Days</span>
                             </div>
 
+                            <!-- Progress Bar -->
+                            <div style="margin: 10px 0 12px 0;">
+                                <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px;">
+                                    <span style="font-weight: 600; color: var(--text-secondary);">Daily Term Progress:</span>
+                                    <strong style="color: #059669;">Day {{ $sav->days_credited }} of {{ $sav->lock_in_days }} ({{ $progressPercent }}%)</strong>
+                                </div>
+                                <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                                    <div style="width: {{ $progressPercent }}%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 999px; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+
                             <div class="approval-meta-row">
-                                <span class="approval-meta-label">Daily Interest Payout</span>
+                                <span class="approval-meta-label">Daily Interest (Credited Daily)</span>
                                 <span class="approval-meta-val"
-                                    style="color: #059669;">+₱{{ number_format($sav->daily_interest_amount, 2) }} /
-                                    day</span>
+                                    style="color: #059669; font-weight: 700;">+₱{{ number_format($sav->daily_interest_amount, 2) }} / day</span>
                             </div>
                             <div class="approval-meta-row">
-                                <span class="approval-meta-label">Total Expected Interest</span>
+                                <span class="approval-meta-label">Total Interest Received so far</span>
                                 <span
-                                    class="approval-meta-val">₱{{ number_format($sav->total_expected_interest, 2) }}</span>
+                                    class="approval-meta-val" style="font-weight: 600;">₱{{ number_format($sav->accumulated_interest_paid, 2) }} <span style="font-weight: normal; color: var(--text-secondary);">/ ₱{{ number_format($sav->total_expected_interest, 2) }}</span></span>
                             </div>
                             <div class="approval-meta-row">
                                 <span class="approval-meta-label">Maturity Date</span>
@@ -490,7 +511,8 @@
                                 <span class="approval-meta-label">Status</span>
                                 <span class="approval-meta-val">
                                     @if ($sav->status === 'matured')
-                                        <span class="badge badge-emerald" style="background: #059669; color: #fff; font-weight: 700;">✓ Matured</span>
+                                        <span class="badge badge-emerald"
+                                            style="background: #059669; color: #fff; font-weight: 700;">✓ Matured & Paid</span>
                                     @else
                                         <span class="badge badge-emerald">{{ ucfirst($sav->status) }}</span>
                                     @endif
@@ -498,15 +520,31 @@
                             </div>
 
                             @if ($sav->status === 'active')
-                                <form action="{{ route('client.savings.mature', $sav->id) }}" method="POST" style="margin-top: 12px;" onsubmit="return confirm('⚡ DEMO / FAST-FORWARD: Simulate 60-Day Maturity now?\n\nDeposit Capital: ₱{{ number_format($sav->deposit_amount, 2) }}\nEarned Interest ({{ $sav->interest_rate_percent }}%): ₱{{ number_format($sav->total_expected_interest, 2) }}\nTOTAL PAYOUT: ₱{{ number_format($sav->deposit_amount + $sav->total_expected_interest, 2) }}\n\nThis will instantly credit ₱{{ number_format($sav->deposit_amount + $sav->total_expected_interest, 2) }} directly to your Available Wallet Balance!')">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-emerald" style="width: 100%; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(5,150,105,0.25);">
-                                        <span>⚡ Fast-Forward 60 Days (Claim Payout ₱{{ number_format($sav->deposit_amount + $sav->total_expected_interest, 2) }})</span>
-                                    </button>
-                                </form>
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+                                    <!-- Test/Simulate 1-Day Daily Interest -->
+                                    <form action="{{ route('client.savings.simulate_day', $sav->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline"
+                                            style="width: 100%; font-size: 11.5px; border-color: #059669; color: #047857; display: flex; align-items: center; justify-content: center; gap: 4px;"
+                                            title="Credit 1 day of daily interest to wallet balance">
+                                            <span>⚡ Test: Credit +1 Day Interest (+₱{{ number_format($sav->daily_interest_amount, 2) }})</span>
+                                        </button>
+                                    </form>
+
+                                    <!-- Fast-forward Maturity -->
+                                    <form action="{{ route('client.savings.mature', $sav->id) }}" method="POST"
+                                        onsubmit="return confirm('⚡ DEMO / FAST-FORWARD: Settle Maturity now?\n\nCapital Deposit: ₱{{ number_format($sav->deposit_amount, 2) }}\nRemaining Uncredited Interest: ₱{{ number_format($remainingInterest, 2) }}\nTOTAL MATURITY PAYOUT: ₱{{ number_format($finalPayout, 2) }}\n\nThis will credit ₱{{ number_format($finalPayout, 2) }} directly to your Available Wallet Balance!')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-emerald"
+                                            style="width: 100%; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(5,150,105,0.25);">
+                                            <span>⚡ Settle Maturity (Capital ₱{{ number_format($sav->deposit_amount, 2) }} + ₱{{ number_format($remainingInterest, 2) }} Interest)</span>
+                                        </button>
+                                    </form>
+                                </div>
                             @else
-                                <div style="margin-top: 10px; background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.25); border-radius: 6px; padding: 8px 10px; font-size: 11.5px; color: #047857; font-weight: 600; text-align: center;">
-                                    ✓ Matured & Credited to Wallet (+₱{{ number_format($sav->deposit_amount + $sav->total_expected_interest, 2) }})
+                                <div
+                                    style="margin-top: 10px; background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.25); border-radius: 6px; padding: 8px 10px; font-size: 11.5px; color: #047857; font-weight: 600; text-align: center;">
+                                    ✓ Matured & Full Capital (+₱{{ number_format($sav->deposit_amount, 2) }}) and Total Interest (+₱{{ number_format($sav->total_expected_interest, 2) }}) Successfully Credited
                                 </div>
                             @endif
                         </div>
@@ -545,8 +583,7 @@
                                         {{ strtoupper(str_replace('_', ' ', $wTx->type)) }}
                                     </span>
                                 </td>
-                                <td
-                                    style="font-weight: 700; color: {{ $isPositive ? '#059669' : '#d97706' }};">
+                                <td style="font-weight: 700; color: {{ $isPositive ? '#059669' : '#d97706' }};">
                                     {{ $isPositive ? '+' : '-' }}₱{{ number_format($wTx->amount, 2) }}
                                 </td>
                                 <td>
@@ -555,7 +592,8 @@
                                     @elseif($wTx->status === 'approved_by_host')
                                         <span class="badge badge-emerald"
                                             style="background: #059669; color: #fff; font-weight: 700;">✓ Approved
-                                            (Ready)</span>
+                                            (Ready)
+                                        </span>
                                     @elseif($wTx->status === 'pending_host_approval')
                                         <span class="badge badge-indigo">⏳ For Host Approval</span>
                                     @elseif($wTx->status === 'pending_releasing_review')
@@ -600,8 +638,9 @@
                     </p>
                     <div class="form-group">
                         <label class="form-label">Cash In Amount (₱) *</label>
-                        <input type="number" step="0.01" min="100" name="amount" class="form-control @error('amount') is-invalid @enderror"
-                            value="{{ old('amount') }}" placeholder="e.g. 3000" required>
+                        <input type="number" step="0.01" min="100" name="amount"
+                            class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount') }}"
+                            placeholder="e.g. 3000" required>
                         @error('amount')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -642,14 +681,16 @@
                     <div class="form-group">
                         <label class="form-label">Cash Out Amount (₱) *</label>
                         <input type="number" step="0.01" min="100" max="{{ $client->wallet_balance }}"
-                            name="amount" class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount') }}" placeholder="e.g. 1000" required>
+                            name="amount" class="form-control @error('amount') is-invalid @enderror"
+                            value="{{ old('amount') }}" placeholder="e.g. 1000" required>
                         @error('amount')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="form-group">
                         <label class="form-label">Notes (Optional)</label>
-                        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="2" placeholder="Preferred release schedule...">{{ old('notes') }}</textarea>
+                        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="2"
+                            placeholder="Preferred release schedule...">{{ old('notes') }}</textarea>
                         @error('notes')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -679,7 +720,7 @@
                         <h4 style="font-size: 14.5px; margin-bottom: 4px; font-weight: 700;">{{ $savingsLockInDays }}-Day
                             Fixed Lock-in Growth</h4>
                         <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                            Daily interest is automatically calculated and credited directly to your wallet every day!
+                            Daily interest is automatically credited directly to your wallet every day (Days 1–{{ $savingsLockInDays - 1 }}). On Day {{ $savingsLockInDays }} (Maturity), your full Capital Deposit + final 1-day interest will be released!
                         </p>
                     </div>
 
@@ -687,7 +728,9 @@
                         <label class="form-label">Savings Deposit Amount (₱) *</label>
                         <input type="number" step="0.01" min="500" max="{{ $client->wallet_balance }}"
                             name="deposit_amount" id="savings_deposit_amount" data-rate="{{ $savingsInterestRate }}"
-                            data-days="{{ $savingsLockInDays }}" class="form-control @error('deposit_amount') is-invalid @enderror" value="{{ old('deposit_amount') }}" placeholder="e.g. 10000" required
+                            data-days="{{ $savingsLockInDays }}"
+                            class="form-control @error('deposit_amount') is-invalid @enderror"
+                            value="{{ old('deposit_amount') }}" placeholder="e.g. 10000" required
                             oninput="previewSavingsCalculation()">
                         <div class="form-hint">Deducted from your current wallet balance
                             (₱{{ number_format($client->wallet_balance, 2) }}).</div>
@@ -700,17 +743,16 @@
                     <div
                         style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); font-size: 12.5px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span style="color: var(--text-secondary);">Daily Interest Credited:</span>
+                            <span style="color: var(--text-secondary);">Daily Interest (Credited Every Day):</span>
                             <strong style="color: #059669;" id="preview_daily_interest">₱0.00 / day</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span style="color: var(--text-secondary);">Total {{ $savingsLockInDays }}-Day Earned
-                                Interest:</span>
+                            <span style="color: var(--text-secondary);">Total {{ $savingsLockInDays }}-Day Interest:</span>
                             <strong id="preview_total_interest">₱0.00</strong>
                         </div>
                         <div
                             style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 5px;">
-                            <span style="font-weight: 600;">Total Payout at Maturity:</span>
+                            <span style="font-weight: 600;">Maturity Day Release (Capital + Final Interest):</span>
                             <strong style="color: #059669; font-size: 14px;" id="preview_total_maturity">₱0.00</strong>
                         </div>
                     </div>
@@ -739,7 +781,8 @@
                     </p>
                     <div class="form-group">
                         <label class="form-label">Current 4-Digit PIN *</label>
-                        <input type="password" name="current_pin" class="form-control @error('current_pin') is-invalid @enderror" maxlength="4"
+                        <input type="password" name="current_pin"
+                            class="form-control @error('current_pin') is-invalid @enderror" maxlength="4"
                             pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required
                             autocomplete="current-password">
                         @error('current_pin')
@@ -748,8 +791,9 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">New 4-Digit PIN *</label>
-                        <input type="password" name="new_pin" class="form-control @error('new_pin') is-invalid @enderror" maxlength="4" pattern="[0-9]{4}"
-                            inputmode="numeric" placeholder="••••" required autocomplete="new-password">
+                        <input type="password" name="new_pin" class="form-control @error('new_pin') is-invalid @enderror"
+                            maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required
+                            autocomplete="new-password">
                         <div class="form-hint">Must be exactly 4 numerical digits.</div>
                         @error('new_pin')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -757,7 +801,8 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Confirm New PIN *</label>
-                        <input type="password" name="new_pin_confirmation" class="form-control @error('new_pin_confirmation') is-invalid @enderror" maxlength="4"
+                        <input type="password" name="new_pin_confirmation"
+                            class="form-control @error('new_pin_confirmation') is-invalid @enderror" maxlength="4"
                             pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required
                             autocomplete="new-password">
                         @error('new_pin_confirmation')
@@ -800,8 +845,8 @@
                     <div class="form-group">
                         <label class="form-label">Requested Loan Amount (₱) <span style="color:red;">*</span></label>
                         <input type="number" step="100" min="500" name="amount" id="client_renew_principal"
-                            class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount') }}" placeholder="Enter amount, e.g. 10000" required
-                            oninput="calculateClientRenewLoan()">
+                            class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount') }}"
+                            placeholder="Enter amount, e.g. 10000" required oninput="calculateClientRenewLoan()">
                         @error('amount')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
