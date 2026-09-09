@@ -37,7 +37,7 @@
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="{{ asset('css/common.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/common.css') }}?v={{ file_exists(public_path('css/common.css')) ? filemtime(public_path('css/common.css')) : time() }}">
     @stack('styles')
 </head>
 
@@ -217,29 +217,6 @@
                     </a>
                 @endif
             </nav>
-
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div class="user-avatar">{{ substr(auth()->user()->name ?? 'U', 0, 1) }}</div>
-                    <div class="user-info">
-                        <div class="user-name">{{ auth()->user()->name ?? 'Guest' }}</div>
-                        <div class="user-role-badge">{{ str_replace('_', ' ', auth()->user()->role ?? '') }}</div>
-                    </div>
-                </div>
-
-                <form action="{{ route('logout') }}" method="POST" style="margin:0;">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-outline"
-                        style="color:#ef4444; border-color:#334155; padding:6px;" title="Logout">
-                        <svg width="16" height="16" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                            </path>
-                        </svg>
-                    </button>
-                </form>
-            </div>
         </aside>
 
         <!-- Main Wrapper -->
@@ -259,6 +236,23 @@
                 <div class="top-navbar-actions">
                     <div class="top-navbar-date">
                         {{ \Carbon\Carbon::now()->format('l, F d, Y') }}
+                    </div>
+                    <div class="top-user-profile">
+                        <div class="top-user-avatar">{{ substr(auth()->user()->name ?? 'U', 0, 1) }}</div>
+                        <div class="top-user-info">
+                            <div class="top-user-name">{{ auth()->user()->name ?? 'Guest' }}</div>
+                            <div class="top-user-role">{{ str_replace('_', ' ', auth()->user()->role ?? '') }}</div>
+                        </div>
+                        <form action="{{ route('logout') }}" method="POST" class="top-logout-form" style="margin:0; display:inline-flex;">
+                            @csrf
+                            <button type="submit" class="top-logout-btn" title="Logout">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                    </path>
+                                </svg>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </header>
