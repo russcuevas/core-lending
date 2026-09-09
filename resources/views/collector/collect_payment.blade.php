@@ -11,7 +11,7 @@
 @section('content')
     <div style="max-width: 800px; margin: 0 auto;">
         <!-- Client & Loan Info Card -->
-        <div class="card">
+        <div class="card" style="border-radius: var(--radius-xl);">
             <div class="card-header">
                 <div>
                     <h3 class="card-title">{{ $client->user->name }}</h3>
@@ -52,10 +52,24 @@
                 </div>
             </div>
 
+            @php
+                $pendingWalletTx = $client->user && $client->user->walletTransactions ? $client->user->walletTransactions()->whereIn('status', ['pending_releasing_review', 'pending_host_approval', 'approved_by_host'])->latest()->first() : null;
+            @endphp
+
+            @if($pendingWalletTx)
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; padding: 12px 14px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px;">
+                    <div style="font-size: 18px; line-height: 1;">⏳</div>
+                    <div style="flex: 1; font-size: 12.5px; color: #92400e;">
+                        <strong>Pending {{ strtoupper(str_replace('_', ' ', $pendingWalletTx->type)) }} Request (₱{{ number_format($pendingWalletTx->amount, 2) }}):</strong> 
+                        This client currently has a pending transaction awaiting Host Superadmin authorization. (This daily payment collection will post directly to their active loan balance).
+                    </div>
+                </div>
+            @endif
+
             <!-- Payment Form -->
-            <form action="{{ route('collector.payments.process', $loan->id) }}" method="POST">
+            <form action="{{ route('collector.payments.process', $loan->id) }}" method="POST" id="collectorPaymentForm" onsubmit="return validateCollectorPaymentForm()">
                 @csrf
-                <input type="hidden" name="photo_proof" id="collectorProofInput">
+                <input type="hidden" name="photo_proof" id="collectorProofInput" required>
 
                 <!-- Customizable Payment Amount Entry -->
                 <div class="form-group">
@@ -76,45 +90,85 @@
                 </div>
 
                 <!-- Client PIN Verification -->
-                <div style="background: #f1f5f9; border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md); margin: 16px 0;">
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md); margin: 16px 0;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-size: 13.5px; font-weight: 700; color: #0f172a;">
-                            🔐 Client Verification: Enter Client 4-Digit PIN Code *
+                        <label class="form-label" style="font-size: 13.5px; font-weight: 700; color: #0f172a; display: flex; justify-content: space-between;">
+                            <span>🔐 Client Verification: Enter Client 4-Digit PIN Code *</span>
+                            <span style="font-size: 11.5px; color: var(--text-muted); font-weight: normal;">Hand phone to borrower</span>
                         </label>
                         <p style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 8px;">
-                            Hand device to client to verify and confirm payment transaction authorization.
+                            Client must enter their confidential 4-digit PIN code to authorize this transaction.
                         </p>
-                        <input type="password" name="client_pin" maxlength="4" class="form-control" placeholder="••••" required style="letter-spacing: 6px; font-size: 20px; text-align: center; max-width: 200px; background: white;">
+                        <input type="password" name="client_pin" id="collector_client_pin" maxlength="4" inputmode="numeric" class="form-control" placeholder="••••" required style="letter-spacing: 8px; font-size: 22px; text-align: center; max-width: 200px; font-weight: 700; background: white; margin: 0 auto;">
                     </div>
                 </div>
 
-                <!-- Camera Photo Proof Capture with Timestamp -->
-                <div class="form-group">
-                    <label class="form-label" style="font-weight: 700;">📸 Live Camera Photo Proof with Timestamp Watermark *</label>
-                    
-                    <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-sm btn-outline" onclick="startCamera('colCameraVideo')">
-                            📹 Turn On Camera
-                        </button>
-                        <button type="button" class="btn btn-sm btn-emerald" onclick="captureSnapshotWithTimestamp('colCameraVideo', 'colCanvas', 'collectorProofInput', 'colPreviewImg')">
-                            📸 Capture Photo Proof
-                        </button>
+                <!-- Enhanced Camera Photo Proof Capture with Real-Time Stamped Preview -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label" style="font-weight: 700; font-size: 13.5px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span>📸 Payment Handover Photo Proof (with Auto Timestamp) *</span>
+                        <span style="font-size: 11.5px; color: #059669; font-weight: 600;">Camera Ready</span>
+                    </label>
+
+                    <!-- Option 1: Live Video Camera Viewport -->
+                    <div id="camera-stream-wrapper" style="position: relative;">
+                        <div class="camera-box-viewport">
+                            <!-- Floating Quick Actions Bar -->
+                            <div class="camera-top-toolbar">
+                                <button type="button" class="camera-tool-pill" onclick="flipReleasingCamera('colCameraVideo')" title="Switch Front/Back Camera">
+                                    🔄 Flip Camera
+                                </button>
+                                <button type="button" class="camera-tool-pill" id="releasing-torch-btn" onclick="toggleReleasingTorch()" style="display: none;" title="Toggle Flashlight">
+                                    💡 Flash
+                                </button>
+                            </div>
+
+                            <video id="colCameraVideo" autoplay playsinline muted></video>
+                            <canvas id="colCanvas" style="display: none;"></canvas>
+
+                            <!-- Big Mobile Camera Shutter Button -->
+                            <div class="camera-shutter-bar">
+                                <button type="button" class="camera-shutter-btn" onclick="captureSnapshotWithTimestamp('colCameraVideo', 'colCanvas', 'collectorProofInput', 'colPreviewImg')" title="Take Photo">
+                                    <div class="camera-shutter-btn-inner">📸</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Native Phone Camera / Photo Upload Fallback Bar -->
+                        <div style="text-align: center; margin-top: 10px;">
+                            <label class="btn btn-outline btn-sm" style="font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                <span>📱 Open Phone Camera App / Upload Photo</span>
+                                <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="processUploadedProofImage(this, 'colCanvas', 'collectorProofInput', 'colPreviewImg')">
+                            </label>
+                        </div>
                     </div>
 
-                    <div class="camera-container" style="max-height: 260px;">
-                        <video id="colCameraVideo" autoplay playsinline></video>
-                        <canvas id="colCanvas" style="display: none;"></canvas>
-                    </div>
-
-                    <!-- Captured Preview -->
-                    <div style="margin-top: 10px;">
-                        <img id="colPreviewImg" src="" alt="Captured Proof Preview" style="display: none; width: 100%; max-height: 180px; object-fit: contain; border-radius: var(--radius-sm); border: 2px solid #059669;">
+                    <!-- Option 2: Captured Photo Preview & Retake Bar (Visible immediately after capture) -->
+                    <div id="photo-preview-wrapper" style="display: none;">
+                        <div class="photo-preview-card">
+                            <div style="font-size: 12px; color: #ffffff; font-weight: 600; margin-bottom: 6px; text-align: left;">
+                                📷 Captured & Verified Photo Proof:
+                            </div>
+                            <img id="colPreviewImg" src="" alt="Captured Proof Preview">
+                            <div class="photo-preview-actions">
+                                <button type="button" class="btn btn-sm btn-outline" onclick="retakeReleasingPhoto('colCameraVideo', 'colPreviewImg', 'collectorProofInput')" style="background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.3);">
+                                    🔄 Retake Photo
+                                </button>
+                                <label class="btn btn-sm btn-outline" style="background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.3); cursor: pointer;">
+                                    📁 Choose Different Photo
+                                    <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="processUploadedProofImage(this, 'colCanvas', 'collectorProofInput', 'colPreviewImg')">
+                                </label>
+                            </div>
+                        </div>
+                        <div style="font-size: 12.5px; color: #059669; font-weight: 700; text-align: center; margin-top: 8px;">
+                            ✓ Photo Verified with Official Timestamp & Ready for Submission!
+                        </div>
                     </div>
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; flex-wrap: wrap;">
-                    <a href="{{ route('collector.dashboard') }}" class="btn btn-outline">Cancel</a>
-                    <button type="submit" class="btn btn-emerald">
+                    <a href="{{ route('collector.dashboard') }}" class="btn btn-outline" onclick="stopCamera()">Cancel</a>
+                    <button type="submit" class="btn btn-emerald" style="font-weight: 700;">
                         ✓ Submit & Post Payment to Ledger
                     </button>
                 </div>
@@ -129,6 +183,25 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             onPaymentAmountChange();
+            startCamera('colCameraVideo');
         });
+
+        function validateCollectorPaymentForm() {
+            const photoInput = document.getElementById('collectorProofInput');
+            const pinInput = document.getElementById('collector_client_pin');
+
+            if (!pinInput.value || pinInput.value.length !== 4) {
+                showToast('error', 'Please enter a valid 4-digit client PIN.');
+                pinInput.focus();
+                return false;
+            }
+
+            if (!photoInput.value) {
+                showToast('error', 'Please capture or upload photo proof before submitting payment.');
+                return false;
+            }
+
+            return true;
+        }
     </script>
 @endpush

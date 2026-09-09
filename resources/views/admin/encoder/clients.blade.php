@@ -130,7 +130,10 @@
 
                     <div class="form-group">
                         <label class="form-label">New Principal Loan Amount (₱) <span style="color:red;">*</span></label>
-                        <input type="number" step="100" name="loan_amount" id="renew_principal" class="form-control" placeholder="Enter amount, e.g. 10000" required oninput="calculateRenewLoan()">
+                        <input type="number" step="100" name="loan_amount" id="renew_principal" class="form-control @error('loan_amount') is-invalid @enderror" value="{{ old('loan_amount') }}" placeholder="Enter amount, e.g. 10000" required oninput="calculateRenewLoan()">
+                        @error('loan_amount')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                         
                         <!-- Quick Preset Buttons -->
                         <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
@@ -164,16 +167,22 @@
 
                     <div class="form-group">
                         <label class="form-label">Assigned Collector <span style="color:red;">*</span></label>
-                        <select name="collector_id" id="renew_collector" class="form-select" required>
+                        <select name="collector_id" id="renew_collector" class="form-select @error('collector_id') is-invalid @enderror" required>
                             @foreach($collectors as $col)
-                                <option value="{{ $col->id }}">{{ $col->user->name }} ({{ $col->assigned_area }})</option>
+                                <option value="{{ $col->id }}" {{ old('collector_id') == $col->id ? 'selected' : '' }}>{{ $col->user->name }} ({{ $col->assigned_area }})</option>
                             @endforeach
                         </select>
+                        @error('collector_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Notes / Renewal Reason (Optional)</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Good paying client re-loan request"></textarea>
+                        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="2" placeholder="e.g. Good paying client re-loan request">{{ old('notes') }}</textarea>
+                        @error('notes')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -200,31 +209,46 @@
 
                     <div class="form-group">
                         <label class="form-label">Client Name</label>
-                        <input type="text" name="name" id="modal_name" class="form-control" required>
+                        <input type="text" name="name" id="modal_name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Contact Number (CP No)</label>
-                        <input type="text" name="phone_number" id="modal_phone" class="form-control" required>
+                        <input type="text" name="phone_number" id="modal_phone" class="form-control @error('phone_number') is-invalid @enderror" value="{{ old('phone_number') }}" required>
+                        @error('phone_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Residential Address</label>
-                        <textarea name="address" id="modal_address" class="form-control" rows="2" required></textarea>
+                        <textarea name="address" id="modal_address" class="form-control @error('address') is-invalid @enderror" rows="2" required>{{ old('address') }}</textarea>
+                        @error('address')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Assigned Collector</label>
-                        <select name="collector_id" id="modal_collector" class="form-select" required>
+                        <select name="collector_id" id="modal_collector" class="form-select @error('collector_id') is-invalid @enderror" required>
                             @foreach($collectors as $col)
-                                <option value="{{ $col->id }}">{{ $col->user->name }} ({{ $col->assigned_area }})</option>
+                                <option value="{{ $col->id }}" {{ old('collector_id') == $col->id ? 'selected' : '' }}>{{ $col->user->name }} ({{ $col->assigned_area }})</option>
                             @endforeach
                         </select>
+                        @error('collector_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Reason for Update Request</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Client changed SIM card or moved to new address"></textarea>
+                        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="2" placeholder="e.g. Client changed SIM card or moved to new address">{{ old('notes') }}</textarea>
+                        @error('notes')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="modal-footer">

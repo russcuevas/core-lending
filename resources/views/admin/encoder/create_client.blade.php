@@ -27,30 +27,42 @@
                     <!-- Full Name -->
                     <div class="form-group">
                         <label class="form-label" for="client_name">Client Full Name *</label>
-                        <input type="text" name="name" id="client_name" class="form-control"
+                        <input type="text" name="name" id="client_name" class="form-control @error('name') is-invalid @enderror"
                             placeholder="e.g. Juan Santos Dela Cruz" required value="{{ old('name') }}">
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <!-- Contact No / Username -->
                     <div class="form-group">
                         <label class="form-label" for="phone_number">Contact Number (CP No / Login Username) *</label>
-                        <input type="text" name="phone_number" id="phone_number" class="form-control"
+                        <input type="text" name="phone_number" id="phone_number" class="form-control @error('phone_number') is-invalid @enderror"
                             placeholder="09171234567" required value="{{ old('phone_number') }}">
+                        @error('phone_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                         <div class="form-hint">Used as login username on client portal.</div>
                     </div>
 
                     <!-- Email -->
                     <div class="form-group">
                         <label class="form-label" for="email">Email Address (Optional)</label>
-                        <input type="email" name="email" id="email" class="form-control"
+                        <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror"
                             placeholder="client@example.com" value="{{ old('email') }}">
+                        @error('email')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <!-- Default PIN Code -->
                     <div class="form-group">
                         <label class="form-label" for="pin_code">Default PIN Code *</label>
-                        <input type="text" name="pin_code" id="pin_code" class="form-control" value="1234"
+                        <input type="text" name="pin_code" id="pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code', '1234') }}"
                             maxlength="4" required style="font-weight: 700; letter-spacing: 2px;">
+                        @error('pin_code')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                         <div class="form-hint">Default is 1234. Client can reset via Email.</div>
                     </div>
                 </div>
@@ -58,15 +70,18 @@
                 <!-- Address -->
                 <div class="form-group">
                     <label class="form-label" for="address">Complete Residential Address *</label>
-                    <textarea name="address" id="address" class="form-control" rows="2"
+                    <textarea name="address" id="address" class="form-control @error('address') is-invalid @enderror" rows="2"
                         placeholder="House No., Street, Barangay, City/Municipality" required>{{ old('address') }}</textarea>
+                    @error('address')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- Assigned Collector -->
                 <div class="form-group">
                     <label class="form-label" for="collector_id">Assigned Field Collector (Who Referred / Collects)
                         *</label>
-                    <select name="collector_id" id="collector_id" class="form-select" required>
+                    <select name="collector_id" id="collector_id" class="form-select @error('collector_id') is-invalid @enderror" required>
                         <option value="">-- Select Assigned Collector --</option>
                         @foreach ($collectors as $col)
                             <option value="{{ $col->id }}" {{ old('collector_id') == $col->id ? 'selected' : '' }}>
@@ -74,13 +89,29 @@
                             </option>
                         @endforeach
                     </select>
+                    @error('collector_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
-                <!-- Valid ID Upload -->
+                <!-- Valid ID Upload with Live Preview & Remove [✕] Button -->
                 <div class="form-group">
                     <label class="form-label" for="valid_id">Client Valid Government ID (Image Upload)</label>
-                    <input type="file" name="valid_id" id="valid_id" class="form-control" accept="image/*">
-                    <div class="form-hint">Saved directly to public assets for quick verification.</div>
+                    <input type="file" name="valid_id" id="valid_id" class="form-control image-upload-input @error('valid_id') is-invalid @enderror" accept="image/*"
+                        data-preview-wrapper="valid_id_preview_wrapper" data-preview-img="valid_id_preview_img" data-preview-name="valid_id_preview_name">
+                    @error('valid_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div class="form-hint">Upload valid government ID (JPG, PNG). Live preview will display below.</div>
+
+                    <!-- Live Image Preview Container -->
+                    <div class="image-preview-wrapper" id="valid_id_preview_wrapper" style="display: none;">
+                        <div class="image-preview-box">
+                            <button type="button" class="image-preview-remove-btn" onclick="removeImageUpload('valid_id', 'valid_id_preview_wrapper', 'valid_id_preview_img', 'valid_id_preview_name')" title="Remove this image">✕</button>
+                            <img id="valid_id_preview_img" class="image-preview-img" src="" alt="Valid ID Preview">
+                        </div>
+                        <div class="image-preview-filename" id="valid_id_preview_name"></div>
+                    </div>
                 </div>
 
                 <!-- Loan & Interest Configuration -->
@@ -100,8 +131,11 @@
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label" for="principal_amount">Principal Loan Amount (₱) *</label>
                             <input type="number" step="0.01" name="loan_amount" id="principal_amount"
-                                class="form-control" placeholder="e.g. 20000" required oninput="calculateLoanSchedule()"
-                                style="font-size: 15px; font-weight: 600;">
+                                class="form-control @error('loan_amount') is-invalid @enderror" placeholder="e.g. 20000" required oninput="calculateLoanSchedule()"
+                                value="{{ old('loan_amount') }}" style="font-size: 15px; font-weight: 600;">
+                            @error('loan_amount')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="form-group" style="margin-bottom: 0;">

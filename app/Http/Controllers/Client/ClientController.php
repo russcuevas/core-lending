@@ -40,7 +40,25 @@ class ClientController extends Controller
         $paymentHistory = $activeLoan ? $activeLoan->payments : collect();
 
         $savingsAccounts = SavingsAccount::where('client_id', $client->id)->latest()->get();
-        $walletTransactions = WalletTransaction::where('user_id', $user->id)->latest()->take(10)->get();
+        $walletTransactions = WalletTransaction::where('user_id', $user->id)->latest()->take(15)->get();
+
+        // Incoming / Approved by Host transactions ready for execution
+        $incomingApprovedWalletTx = WalletTransaction::where('user_id', $user->id)
+            ->where('status', 'approved_by_host')
+            ->latest()
+            ->get();
+
+        // Pending review / approval transactions
+        $pendingUnderReviewWalletTx = WalletTransaction::where('user_id', $user->id)
+            ->whereIn('status', ['pending_releasing_review', 'pending_host_approval'])
+            ->latest()
+            ->get();
+
+        // Loan ready for release
+        $approvedLoanForRelease = Loan::where('client_id', $client->id)
+            ->where('status', 'approved_for_release')
+            ->latest()
+            ->first();
 
         $savingsInterestRate = (float)SystemSetting::get('savings_interest_rate_percent', 10.00);
         $savingsLockInDays = (int)SystemSetting::get('savings_lock_in_days', 60);
@@ -61,6 +79,9 @@ class ClientController extends Controller
             'paymentHistory',
             'savingsAccounts',
             'walletTransactions',
+            'incomingApprovedWalletTx',
+            'pendingUnderReviewWalletTx',
+            'approvedLoanForRelease',
             'missedPastDuesCount',
             'savingsInterestRate',
             'savingsLockInDays',
@@ -175,11 +196,15 @@ class ClientController extends Controller
         $client->update(['current_loan_id' => $loan->id]);
 
         for ($day = 1; $day <= $termDays; $day++) {
+            $expectedForDay = ($day === $termDays)
+                ? round($totalPayable - ($dailyInstallment * ($termDays - 1)), 2)
+                : $dailyInstallment;
+
             LoanSchedule::create([
                 'loan_id' => $loan->id,
                 'day_number' => $day,
                 'due_date' => null,
-                'expected_amount' => $dailyInstallment,
+                'expected_amount' => $expectedForDay,
                 'amount_paid' => 0.00,
                 'status' => 'unpaid',
             ]);

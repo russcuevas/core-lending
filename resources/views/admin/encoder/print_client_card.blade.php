@@ -90,14 +90,27 @@
                     </thead>
                     <tbody>
                         @foreach($loan->schedules as $sch)
+                            @php
+                                $isFullySettled = ($loan->remaining_balance <= 0) || ($loan->status === 'fully_paid') || ($client->status === 'completed');
+                                $isLastDay = ($sch->day_number == $loan->term_days);
+                                $isSchedulePaid = ($sch->status === 'paid') || ($isFullySettled && ($sch->paid_amount > 0 || $sch->status !== 'unpaid' || $isLastDay));
+                            @endphp
                             <tr>
                                 <td style="padding: 4px 8px; font-weight: 600;">Day {{ $sch->day_number }}</td>
                                 <td style="padding: 4px 8px;">{{ $sch->due_date }}</td>
                                 <td style="padding: 4px 8px;">₱{{ number_format($sch->expected_amount, 2) }}</td>
-                                <td style="padding: 4px 8px;">{{ $sch->paid_amount > 0 ? '₱' . number_format($sch->paid_amount, 2) : '-' }}</td>
                                 <td style="padding: 4px 8px;">
-                                    <span class="badge {{ $sch->status === 'paid' ? 'badge-emerald' : 'badge-slate' }}" style="font-size: 9.5px;">
-                                        {{ $sch->status }}
+                                    @if($sch->paid_amount > 0)
+                                        ₱{{ number_format($sch->paid_amount, 2) }}
+                                    @elseif($isSchedulePaid)
+                                        ₱{{ number_format($sch->expected_amount, 2) }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td style="padding: 4px 8px;">
+                                    <span class="badge {{ $isSchedulePaid ? 'badge-emerald' : ($sch->status === 'partial' ? 'badge-amber' : 'badge-slate') }}" style="font-size: 9.5px;">
+                                        {{ $isSchedulePaid ? 'paid' : $sch->status }}
                                     </span>
                                 </td>
                                 <td style="padding: 4px 8px; border-bottom: 1px dotted #ccc; width: 140px;"></td>

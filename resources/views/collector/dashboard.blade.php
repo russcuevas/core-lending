@@ -75,20 +75,37 @@
                             @php 
                                 $loan = $c->currentLoan; 
                                 $isActive = $loan && $loan->status === 'active';
-                                $isPending = ($c->status === 'pending_host_approval' || $c->status === 'pending') || ($loan && in_array($loan->status, ['pending_host_approval', 'pending_releasing_review', 'pending_approval', 'pending', 'approved_for_release', 'ready_for_release']));
+                                $isPendingLoan = ($c->status === 'pending_host_approval' || $c->status === 'pending') || ($loan && in_array($loan->status, ['pending_host_approval', 'pending_approval', 'pending']));
+                                $isApprovedForRelease = $loan && in_array($loan->status, ['approved_for_release', 'ready_for_release', 'releasing_in_process']);
                                 $isCompleted = $loan && $loan->status === 'completed';
+                                
+                                // Check if user has a pending wallet transaction (Cash-In, Cash-Out)
+                                $pendingWalletTx = $c->user && $c->user->walletTransactions ? $c->user->walletTransactions->whereIn('status', ['pending_releasing_review', 'pending_host_approval', 'approved_by_host'])->first() : null;
                             @endphp
                             <tr>
                                 <td>
                                     <strong>{{ $c->user->name }}</strong>
                                     <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $c->user->address }}</div>
+                                    @if($pendingWalletTx)
+                                        <div style="margin-top: 3px;">
+                                            <span class="badge" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 10px; font-weight: 700;">
+                                                ⏳ Pending {{ strtoupper(str_replace('_', ' ', $pendingWalletTx->type)) }} (₱{{ number_format($pendingWalletTx->amount, 2) }})
+                                            </span>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>{{ $c->user->phone_number }}</td>
                                 <td>
                                     @if($isActive)
                                         <span class="badge badge-emerald">₱{{ number_format($loan->principal_amount, 2) }}</span>
-                                    @elseif($isPending)
-                                        <span class="badge badge-amber" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">⏳ Pending Host Approval</span>
+                                    @elseif($isApprovedForRelease)
+                                        <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10.5px; font-weight: 700;">
+                                            📦 Ready for Release
+                                        </span>
+                                    @elseif($isPendingLoan)
+                                        <span class="badge badge-amber" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">
+                                            ⏳ Pending Host Approval
+                                        </span>
                                     @else
                                         <span class="badge badge-slate">No Active Loan</span>
                                     @endif
@@ -120,14 +137,26 @@
                                 </td>
                                 <td>{{ $c->last_payment_date ?? 'No payments yet' }}</td>
                                 <td>
-                                    @if($isActive)
+                                    @if($pendingWalletTx)
+                                        <button type="button" class="btn btn-sm btn-outline" style="opacity: 0.7; cursor: not-allowed; font-size: 11.5px; border-color: #f59e0b; color: #b45309; background: #fffbeb;" title="Payment locked while client has a pending transaction awaiting Host authorization">
+                                            🔒 Payment Locked
+                                        </button>
+                                    @elseif($isActive)
                                         <a href="{{ route('collector.payments.collect_form', ['client_id' => $c->id]) }}" class="btn btn-sm btn-emerald">
                                             Collect Payment
                                         </a>
-                                    @elseif($isPending)
-                                        <span class="badge badge-amber" style="background: #fef3c7; color: #b45309; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600; border: 1px solid #fde68a;">⏳ Pending Host Approval</span>
+                                    @elseif($isApprovedForRelease)
+                                        <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600; border: 1px solid #bae6fd;">
+                                            📦 Awaiting Releasing Officer
+                                        </span>
+                                    @elseif($isPendingLoan)
+                                        <span class="badge badge-amber" style="background: #fef3c7; color: #b45309; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600; border: 1px solid #fde68a;">
+                                            ⏳ Pending Host Approval
+                                        </span>
                                     @elseif($isCompleted)
-                                        <span class="badge badge-emerald" style="background: #d1fae5; color: #065f46; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600;">✓ Completed</span>
+                                        <span class="badge badge-emerald" style="background: #d1fae5; color: #065f46; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600;">
+                                            ✓ Completed
+                                        </span>
                                     @else
                                         <span style="font-size: 12px; color: var(--text-muted);">-</span>
                                     @endif

@@ -73,33 +73,55 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="form-label">Expense Date *</label>
-                        <input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        <input type="date" name="date" class="form-control @error('date') is-invalid @enderror" value="{{ old('date', date('Y-m-d')) }}" required>
+                        @error('date')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Particulars (Description) *</label>
-                        <input type="text" name="particulars" class="form-control" placeholder="e.g. Office Bond Paper, QR Laminating Film" required>
+                        <input type="text" name="particulars" class="form-control @error('particulars') is-invalid @enderror" value="{{ old('particulars') }}" placeholder="e.g. Office Bond Paper, QR Laminating Film" required>
+                        @error('particulars')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Category *</label>
-                        <select name="category" class="form-select" required>
-                            <option value="Office Supplies">Office Supplies</option>
-                            <option value="Transportation / Fuel">Transportation / Fuel</option>
-                            <option value="Utilities">Utilities</option>
-                            <option value="Representation">Representation</option>
-                            <option value="Miscellaneous">Miscellaneous</option>
+                        <select name="category" class="form-select @error('category') is-invalid @enderror" required>
+                            <option value="Office Supplies" {{ old('category') == 'Office Supplies' ? 'selected' : '' }}>Office Supplies</option>
+                            <option value="Transportation / Fuel" {{ old('category') == 'Transportation / Fuel' ? 'selected' : '' }}>Transportation / Fuel</option>
+                            <option value="Utilities" {{ old('category') == 'Utilities' ? 'selected' : '' }}>Utilities</option>
+                            <option value="Representation" {{ old('category') == 'Representation' ? 'selected' : '' }}>Representation</option>
+                            <option value="Miscellaneous" {{ old('category') == 'Miscellaneous' ? 'selected' : '' }}>Miscellaneous</option>
                         </select>
+                        @error('category')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Amount (₱) *</label>
-                        <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
+                        <input type="number" step="0.01" name="amount" class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount') }}" placeholder="0.00" required>
+                        @error('amount')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Receipt Photo Proof</label>
-                        <input type="file" name="receipt" class="form-control" accept="image/*">
+                        <input type="file" id="expense_receipt_input" name="receipt" class="form-control image-upload-input @error('receipt') is-invalid @enderror" accept="image/*" data-preview-wrapper="receipt_preview_wrapper" data-preview-img="receipt_preview_img" data-preview-name="receipt_preview_name">
+                        <div class="image-preview-wrapper" id="receipt_preview_wrapper" style="display: none;">
+                            <div class="image-preview-box">
+                                <img src="" id="receipt_preview_img" class="image-preview-img" alt="Receipt Preview">
+                                <button type="button" class="image-preview-remove-btn" title="Remove image" onclick="removeImageUpload('expense_receipt_input', 'receipt_preview_wrapper', 'receipt_preview_img', 'receipt_preview_name')">✕</button>
+                            </div>
+                            <div class="image-preview-filename" id="receipt_preview_name"></div>
+                        </div>
+                        @error('receipt')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="modal-footer">

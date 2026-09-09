@@ -121,7 +121,7 @@ class HostApprovalController extends Controller
             '/admin/releasing/dashboard'
         );
 
-        return back()->with('success', "Loan #{$loan->id} approved for release!");
+        return redirect()->to(route('host.approvals.index') . '#tab-loans')->with('success', "Loan #{$loan->id} approved for release!");
     }
 
     public function declineLoan(Request $request, Loan $loan)
@@ -140,7 +140,7 @@ class HostApprovalController extends Controller
             $loan->client->update(['status' => 'rejected']);
         }
 
-        return back()->with('success', "Loan #{$loan->id} has been declined.");
+        return redirect()->to(route('host.approvals.index') . '#tab-loans')->with('success', "Loan #{$loan->id} has been declined.");
     }
 
     public function approveWalletTransaction(Request $request, WalletTransaction $transaction)
@@ -163,7 +163,7 @@ class HostApprovalController extends Controller
             '/admin/releasing/dashboard'
         );
 
-        return back()->with('success', "Transaction #{$transaction->id} approved by Host!");
+        return redirect()->to(route('host.approvals.index') . '#tab-wallet')->with('success', "Transaction #{$transaction->id} approved by Host!");
     }
 
     public function declineWalletTransaction(Request $request, WalletTransaction $transaction)
@@ -179,7 +179,7 @@ class HostApprovalController extends Controller
         ]);
 
         // If it was a cash out, restore or ensure funds remain untouched
-        return back()->with('success', "Transaction #{$transaction->id} has been declined.");
+        return redirect()->to(route('host.approvals.index') . '#tab-wallet')->with('success', "Transaction #{$transaction->id} has been declined.");
     }
 
     public function approveCollector(User $user)
@@ -197,7 +197,7 @@ class HostApprovalController extends Controller
             'approval_notice'
         );
 
-        return back()->with('success', "Collector {$user->name} has been approved and activated!");
+        return redirect()->to(route('host.approvals.index') . '#tab-collectors')->with('success', "Collector {$user->name} has been approved and activated!");
     }
 
     public function declineCollector(User $user)
@@ -207,7 +207,7 @@ class HostApprovalController extends Controller
             'is_read' => true,
         ]);
 
-        return back()->with('success', "Collector {$user->name} registration was rejected.");
+        return redirect()->to(route('host.approvals.index') . '#tab-collectors')->with('success', "Collector {$user->name} registration was rejected.");
     }
 
     public function approveClientUpdate(ClientUpdateRequest $updateRequest)
@@ -233,7 +233,7 @@ class HostApprovalController extends Controller
             'host_approved_at' => Carbon::now(),
         ]);
 
-        return back()->with('success', 'Client details updated and approved successfully!');
+        return redirect()->to(route('host.approvals.index') . '#tab-updates')->with('success', 'Client details updated and approved successfully!');
     }
 
     public function declineClientUpdate(ClientUpdateRequest $updateRequest)
@@ -245,6 +245,6 @@ class HostApprovalController extends Controller
             'host_approved_at' => Carbon::now(),
         ]);
 
-        return back()->with('success', 'Client update request was declined.');
+        return redirect()->to(route('host.approvals.index') . '#tab-updates')->with('success', 'Client update request was declined.');
     }
 }

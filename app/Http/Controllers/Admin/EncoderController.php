@@ -136,11 +136,15 @@ class EncoderController extends Controller
         // 4. Generate Loan Payment Schedule based on Term Days
         $today = Carbon::today();
         for ($day = 1; $day <= $termDays; $day++) {
+            $expectedForDay = ($day === $termDays)
+                ? round($totalPayable - ($dailyInstallment * ($termDays - 1)), 2)
+                : $dailyInstallment;
+
             LoanSchedule::create([
                 'loan_id' => $loan->id,
                 'day_number' => $day,
                 'due_date' => $today->copy()->addDays($day)->format('Y-m-d'),
-                'expected_amount' => $dailyInstallment,
+                'expected_amount' => $expectedForDay,
                 'paid_amount' => 0.00,
                 'status' => 'unpaid',
             ]);
@@ -234,11 +238,15 @@ class EncoderController extends Controller
 
         // Generate Loan Payment Schedule
         for ($day = 1; $day <= $termDays; $day++) {
+            $expectedForDay = ($day === $termDays)
+                ? round($totalPayable - ($dailyInstallment * ($termDays - 1)), 2)
+                : $dailyInstallment;
+
             LoanSchedule::create([
                 'loan_id' => $loan->id,
                 'day_number' => $day,
                 'due_date' => null,
-                'expected_amount' => $dailyInstallment,
+                'expected_amount' => $expectedForDay,
                 'amount_paid' => 0.00,
                 'status' => 'unpaid',
             ]);

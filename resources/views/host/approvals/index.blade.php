@@ -502,7 +502,10 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="form-label">State Reason for Declining *</label>
-                        <textarea name="reason" class="form-control" rows="4" placeholder="Enter clear explanation for audit logging..." required></textarea>
+                        <textarea name="reason" class="form-control @error('reason') is-invalid @enderror" rows="4" placeholder="Enter clear explanation for audit logging..." required>{{ old('reason') }}</textarea>
+                        @error('reason')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -529,7 +532,9 @@
             openModal('imagePreviewModal');
         }
 
-        function switchApprovalTab(tabId) {
+        function switchApprovalTab(tabId, updateUrl = true) {
+            if (!tabId) tabId = 'tab-loans';
+
             // Remove active from all tabs
             document.querySelectorAll('.approval-tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.approval-tab-pane').forEach(pane => pane.classList.remove('active'));
@@ -544,7 +549,40 @@
                 if (targetPane) targetPane.classList.add('active');
                 if (targetBtn) targetBtn.classList.add('active');
             }
+
+            try {
+                localStorage.setItem('active_approval_tab', tabId);
+                if (updateUrl && window.history && window.history.replaceState) {
+                    window.history.replaceState(null, null, '#' + tabId);
+                }
+            } catch(e) {}
         }
+
+        function getInitialApprovalTab() {
+            const validTabs = ['tab-loans', 'tab-wallet', 'tab-collectors', 'tab-updates', 'tab-all'];
+            const hash = window.location.hash ? window.location.hash.replace('#', '') : '';
+            if (hash && validTabs.includes(hash)) {
+                return hash;
+            }
+            const saved = localStorage.getItem('active_approval_tab');
+            if (saved && validTabs.includes(saved)) {
+                return saved;
+            }
+            return 'tab-loans';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeTab = getInitialApprovalTab();
+            switchApprovalTab(activeTab, false);
+        });
+
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash.replace('#', '');
+            const validTabs = ['tab-loans', 'tab-wallet', 'tab-collectors', 'tab-updates', 'tab-all'];
+            if (hash && validTabs.includes(hash)) {
+                switchApprovalTab(hash, false);
+            }
+        });
 
         function markItemAsRead(type, id, rowId) {
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');

@@ -255,42 +255,63 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="form-label">Account Role</label>
-                        <select name="role" class="form-select" required onchange="toggleAreaInput(this.value)">
-                            <option value="admin_encoder">Admin Encoder</option>
-                            <option value="admin_releasing">Admin Releasing Officer</option>
-                            <option value="collector">Field Collector</option>
-                            <option value="host">Host Superadmin</option>
+                        <select name="role" class="form-select @error('role') is-invalid @enderror" required onchange="toggleAreaInput(this.value)">
+                            <option value="admin_encoder" {{ old('role') == 'admin_encoder' ? 'selected' : '' }}>Admin Encoder</option>
+                            <option value="admin_releasing" {{ old('role') == 'admin_releasing' ? 'selected' : '' }}>Admin Releasing Officer</option>
+                            <option value="collector" {{ old('role') == 'collector' ? 'selected' : '' }}>Field Collector</option>
+                            <option value="host" {{ old('role') == 'host' ? 'selected' : '' }}>Host Superadmin</option>
                         </select>
+                        @error('role')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Full Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. Maria Clara" required>
+                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="e.g. Maria Clara" required>
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Email Address (Login Username)</label>
-                        <input type="email" name="email" class="form-control" placeholder="staff@lending.com" required>
+                        <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email') }}" placeholder="staff@lending.com" required>
+                        @error('email')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Contact Number (CP No)</label>
-                        <input type="text" name="phone_number" class="form-control" placeholder="09181234567">
+                        <input type="text" name="phone_number" class="form-control @error('phone_number') is-invalid @enderror" value="{{ old('phone_number') }}" placeholder="09181234567">
+                        @error('phone_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
-                    <div class="form-group" id="assignedAreaGroup" style="display: none;">
+                    <div class="form-group" id="assignedAreaGroup" style="{{ old('role') == 'collector' ? 'display: block;' : 'display: none;' }}">
                         <label class="form-label">Assigned Collection Area</label>
-                        <input type="text" name="assigned_area" class="form-control" placeholder="e.g. District 1 - Pasig">
+                        <input type="text" name="assigned_area" class="form-control @error('assigned_area') is-invalid @enderror" value="{{ old('assigned_area') }}" placeholder="e.g. District 1 - Pasig">
+                        @error('assigned_area')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Initial Password</label>
-                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                        <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••" required>
+                        @error('password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Office / Residential Address</label>
-                        <textarea name="address" class="form-control" rows="2" placeholder="Address details..."></textarea>
+                        <textarea name="address" class="form-control @error('address') is-invalid @enderror" rows="2" placeholder="Address details...">{{ old('address') }}</textarea>
+                        @error('address')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -314,7 +335,10 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="form-label">New Password</label>
-                        <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" minlength="6" required>
+                        <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Minimum 6 characters" minlength="6" required>
+                        @error('password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -338,7 +362,10 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="form-label">New 4-Digit PIN Code</label>
-                        <input type="password" name="pin_code" class="form-control" maxlength="4" placeholder="1234" required style="letter-spacing: 4px; font-size: 18px; text-align: center;">
+                        <input type="password" name="pin_code" class="form-control @error('pin_code') is-invalid @enderror" maxlength="4" placeholder="1234" required style="letter-spacing: 4px; font-size: 18px; text-align: center;">
+                        @error('pin_code')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="modal-footer">

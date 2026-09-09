@@ -216,59 +216,97 @@
 
     <!-- Physical Execution Modal with Live Camera & Date/Time Stamp Overlay -->
     <div class="modal-overlay" id="disburseModal">
-        <div class="modal-box modal-lg">
+        <div class="modal-box modal-lg" style="max-width: 620px;">
             <div class="modal-header">
                 <h3 class="modal-title" id="disburseModalTitle">Execute Physical Transaction</h3>
                 <button type="button" class="modal-close" onclick="closeDisburseModal()">&times;</button>
             </div>
-            <form id="disburseForm" method="POST">
+            <form id="disburseForm" method="POST" onsubmit="return validateDisbursementForm()">
                 @csrf
-                <input type="hidden" name="photo_proof" id="photoProofInput">
+                <input type="hidden" name="photo_proof" id="photoProofInput" required>
 
-                <div class="modal-body">
-                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;">
-                        <h4 style="font-size: 14.5px; margin-bottom: 3px;" id="disburseSummaryTitle">Transaction Details</h4>
-                        <div style="font-size: 12.5px; color: var(--text-secondary);">
-                            Step 1: Have the client enter their 4-digit PIN code. <br>
-                            Step 2: Capture a live camera photo of client and cash handover (automatic timestamp watermark).
+                <div class="modal-body" style="padding: 16px;">
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-md); margin-bottom: 14px;">
+                        <h4 style="font-size: 14.5px; margin-bottom: 2px; font-weight: 700; color: var(--text-primary);" id="disburseSummaryTitle">Transaction Details</h4>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            Enter client 4-digit PIN & capture real-time verified photo proof with automatic timestamp watermark.
                         </div>
                     </div>
 
                     <!-- Client PIN Input -->
-                    <div class="form-group">
-                        <label class="form-label" style="font-size: 13.5px; font-weight: 700;">Client 4-Digit PIN Code *</label>
-                        <input type="password" name="client_pin" maxlength="4" class="form-control" placeholder="••••" required style="letter-spacing: 6px; font-size: 20px; text-align: center; max-width: 200px;">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="form-label" style="font-size: 13px; font-weight: 700; display: flex; justify-content: space-between;">
+                            <span>Client 4-Digit PIN Code *</span>
+                            <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 400;">Ask borrower to enter</span>
+                        </label>
+                        <input type="password" name="client_pin" id="releasing_client_pin" maxlength="4" inputmode="numeric" class="form-control" placeholder="••••" required style="letter-spacing: 10px; font-size: 24px; text-align: center; max-width: 220px; font-weight: 700; margin: 0 auto;">
                     </div>
 
                     <!-- Camera Section -->
-                    <div class="form-group">
-                        <label class="form-label" style="font-weight: 700;">Camera Photo Proof with Timestamp Watermark *</label>
-                        
-                        <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
-                            <button type="button" class="btn btn-sm btn-outline" onclick="startCamera('webcamVideo')">
-                                📹 Turn On Camera
-                            </button>
-                            <button type="button" class="btn btn-sm btn-emerald" onclick="captureSnapshotWithTimestamp('webcamVideo', 'proofCanvas', 'photoProofInput', 'proofPreviewImg')">
-                                📸 Capture Photo with Timestamp
-                            </button>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" style="font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span>Photo Proof (with Auto Timestamp) *</span>
+                            <span style="font-size: 11.5px; color: #059669; font-weight: 600;">Live Camera Ready</span>
+                        </label>
+
+                        <!-- Option 1: Live Video Camera Viewport -->
+                        <div id="camera-stream-wrapper" style="position: relative;">
+                            <div class="camera-box-viewport">
+                                <!-- Floating Quick Actions Bar -->
+                                <div class="camera-top-toolbar">
+                                    <button type="button" class="camera-tool-pill" onclick="flipReleasingCamera('webcamVideo')" title="Switch Front/Back Camera">
+                                        🔄 Flip Camera
+                                    </button>
+                                    <button type="button" class="camera-tool-pill" id="releasing-torch-btn" onclick="toggleReleasingTorch()" style="display: none;" title="Toggle Flashlight">
+                                        💡 Flash
+                                    </button>
+                                </div>
+
+                                <video id="webcamVideo" autoplay playsinline muted></video>
+                                <canvas id="proofCanvas" style="display: none;"></canvas>
+
+                                <!-- Big Mobile Camera Shutter Button -->
+                                <div class="camera-shutter-bar">
+                                    <button type="button" class="camera-shutter-btn" onclick="captureSnapshotWithTimestamp('webcamVideo', 'proofCanvas', 'photoProofInput', 'proofPreviewImg')" title="Take Photo">
+                                        <div class="camera-shutter-btn-inner">📸</div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Native Phone Camera / Photo Upload Fallback Bar -->
+                            <div style="text-align: center; margin-top: 10px;">
+                                <label class="btn btn-outline btn-sm" style="font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span>📱 Open Phone Camera App / Upload Photo</span>
+                                    <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="processUploadedProofImage(this, 'proofCanvas', 'photoProofInput', 'proofPreviewImg')">
+                                </label>
+                            </div>
                         </div>
 
-                        <div class="camera-container" style="max-height: 260px;">
-                            <video id="webcamVideo" autoplay playsinline></video>
-                            <canvas id="proofCanvas" style="display: none;"></canvas>
-                        </div>
-
-                        <!-- Captured Preview -->
-                        <div style="margin-top: 10px;">
-                            <img id="proofPreviewImg" src="" alt="Captured Proof Preview" style="display: none; width: 100%; max-height: 180px; object-fit: contain; border-radius: var(--radius-sm); border: 2px solid #059669;">
+                        <!-- Option 2: Captured Photo Preview & Retake Bar -->
+                        <div id="photo-preview-wrapper" style="display: none;">
+                            <div class="photo-preview-card">
+                                <img id="proofPreviewImg" src="" alt="Captured Proof Preview">
+                                <div class="photo-preview-actions">
+                                    <button type="button" class="btn btn-sm btn-outline" onclick="retakeReleasingPhoto('webcamVideo', 'proofPreviewImg', 'photoProofInput')" style="background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.3);">
+                                        🔄 Retake Photo
+                                    </button>
+                                    <label class="btn btn-sm btn-outline" style="background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.3); cursor: pointer;">
+                                        📁 Choose Different Photo
+                                        <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="processUploadedProofImage(this, 'proofCanvas', 'photoProofInput', 'proofPreviewImg')">
+                                    </label>
+                                </div>
+                            </div>
+                            <div style="font-size: 12px; color: #059669; font-weight: 700; text-align: center; margin-top: 8px;">
+                                ✓ Photo Stamped with Verified Timestamp and Ready for Submission.
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer" style="padding: 12px 16px;">
                     <button type="button" class="btn btn-outline" onclick="closeDisburseModal()">Cancel</button>
-                    <button type="submit" class="btn btn-emerald" id="submitDisbursementBtn">
-                        ✓ Post & Complete Transaction
+                    <button type="submit" class="btn btn-emerald" id="submitDisbursementBtn" style="font-weight: 700;">
+                        ✓ Complete & Release Cash
                     </button>
                 </div>
             </form>
@@ -304,7 +342,12 @@
             document.getElementById('disburseModalTitle').innerText = typeName + ' - ' + clientName;
             document.getElementById('disburseSummaryTitle').innerText = clientName + ' | Amount: ₱' + amount;
             document.getElementById('photoProofInput').value = '';
-            document.getElementById('proofPreviewImg').style.display = 'none';
+            document.getElementById('releasing_client_pin').value = '';
+            
+            document.getElementById('camera-stream-wrapper').style.display = 'block';
+            document.getElementById('photo-preview-wrapper').style.display = 'none';
+            document.getElementById('proofPreviewImg').src = '';
+
             openModal('disburseModal');
             startCamera('webcamVideo');
         }
@@ -312,6 +355,24 @@
         function closeDisburseModal() {
             stopCamera();
             closeModal('disburseModal');
+        }
+
+        function validateDisbursementForm() {
+            const photoInput = document.getElementById('photoProofInput');
+            const pinInput = document.getElementById('releasing_client_pin');
+
+            if (!pinInput.value || pinInput.value.length !== 4) {
+                showToast('error', 'Please enter a valid 4-digit client PIN.');
+                pinInput.focus();
+                return false;
+            }
+
+            if (!photoInput.value) {
+                showToast('error', 'Please capture or upload photo proof before submitting.');
+                return false;
+            }
+
+            return true;
         }
     </script>
 @endpush

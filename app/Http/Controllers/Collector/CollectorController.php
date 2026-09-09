@@ -26,7 +26,7 @@ class CollectorController extends Controller
         $user = Auth::user();
         $collector = $user->collector ?? Collector::firstOrCreate(['user_id' => $user->id]);
 
-        $assignedClients = Client::with(['user', 'currentLoan.schedules'])
+        $assignedClients = Client::with(['user.walletTransactions', 'currentLoan.schedules'])
             ->where('collector_id', $collector->id)
             ->get();
 
@@ -68,7 +68,7 @@ class CollectorController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $collector = $user->collector ?? Collector::firstOrCreate(['user_id' => $user->id]);
-        $clients = Client::with(['user', 'currentLoan'])
+        $clients = Client::with(['user.walletTransactions', 'currentLoan'])
             ->where('collector_id', $collector->id)
             ->whereHas('currentLoan', function($q) {
                 $q->where('status', 'active');
@@ -98,6 +98,15 @@ class CollectorController extends Controller
             return redirect()->route('collector.scan_qr')->with('error', 'Client does not currently have an active loan for collection.');
         }
 
+        // Check if client has a pending wallet transaction (Cash-In, Cash-Out) awaiting Host Approval
+        $hasPendingWalletTx = $client->user->walletTransactions()
+            ->whereIn('status', ['pending_releasing_review', 'pending_host_approval', 'approved_by_host'])
+            ->exists();
+
+        if ($hasPendingWalletTx) {
+            return redirect()->route('collector.dashboard')->with('error', "Payment collection locked: Client {$client->user->name} has a pending wallet transaction awaiting Host approval.");
+        }
+
         $loan = $client->currentLoan;
         $loan->syncMissedDaysAndExtensions();
         $loan->refresh();
@@ -123,6 +132,15 @@ class CollectorController extends Controller
         $user = Auth::user();
         $collector = $user->collector ?? Collector::firstOrCreate(['user_id' => $user->id]);
 
+        // Guard against processing if client has pending wallet transactions
+        $hasPendingWalletTx = $clientUser->walletTransactions()
+            ->whereIn('status', ['pending_releasing_review', 'pending_host_approval', 'approved_by_host'])
+            ->exists();
+
+        if ($hasPendingWalletTx) {
+            return back()->with('error', 'Cannot process payment. Client has a pending wallet transaction awaiting Host approval.');
+        }
+
         // 1. Verify Client PIN code
         $isPinValid = ($clientUser->pin_code === $request->client_pin) || Hash::check($request->client_pin, $clientUser->password);
         if (!$isPinValid) {
@@ -146,20 +164,21 @@ class CollectorController extends Controller
         $newTotalPaid = $loan->total_paid + $amountPaid;
 
         // Apply payment across schedules
-        $remainingToDistribute = $amountPaid;
-        $unpaidSchedules = $loan->schedules()->where('status', '!=', 'paid')->get();
+        // Check if loan is now fully paid
+        $isFullyPaid = ($newRemainingBalance <= 0);
 
         foreach ($unpaidSchedules as $schedule) {
-            if ($remainingToDistribute <= 0) break;
+            if ($remainingToDistribute <= 0 && !$isFullyPaid) break;
 
             $neededForThisDay = $schedule->expected_amount - $schedule->paid_amount;
-            if ($remainingToDistribute >= $neededForThisDay) {
+            if ($remainingToDistribute >= $neededForThisDay || $isFullyPaid) {
+                $actualApplied = min($remainingToDistribute, $neededForThisDay);
                 $schedule->update([
                     'paid_amount' => $schedule->expected_amount,
                     'status' => 'paid',
                     'paid_at' => Carbon::now(),
                 ]);
-                $remainingToDistribute -= $neededForThisDay;
+                $remainingToDistribute = max(0, $remainingToDistribute - $actualApplied);
             } else {
                 // Partial payment - carry over rest
                 $schedule->update([
@@ -171,8 +190,13 @@ class CollectorController extends Controller
             }
         }
 
-        // Check if loan is now fully paid
-        $isFullyPaid = ($newRemainingBalance <= 0);
+        // If loan is fully settled, ensure all schedules are marked as paid
+        if ($isFullyPaid) {
+            $loan->schedules()->where('status', '!=', 'paid')->update([
+                'status' => 'paid',
+                'paid_at' => Carbon::now(),
+            ]);
+        }
 
         $loan->update([
             'remaining_balance' => $newRemainingBalance,
