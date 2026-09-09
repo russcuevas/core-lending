@@ -82,8 +82,8 @@
                                 <td>{{ $admin->created_at->format('M d, Y') }}</td>
                                 <td style="text-align: right;">
                                     <div style="display: inline-flex; gap: 6px;">
-                                        <button type="button" class="btn btn-sm btn-outline" onclick="openResetPinModal('{{ $admin->id }}', '{{ $admin->name }}', 'staff')">
-                                            Reset PIN
+                                        <button type="button" class="btn btn-sm btn-outline" onclick="openResetPasswordModal('{{ $admin->id }}', '{{ $admin->name }}', 'staff')">
+                                            Reset Password
                                         </button>
                                         @if($admin->id !== auth()->id())
                                             <form action="{{ route('host.accounts.toggle_status', $admin->id) }}" method="POST" style="display:inline;">
@@ -149,8 +149,8 @@
                                 </td>
                                 <td style="text-align: right;">
                                     <div style="display: inline-flex; gap: 6px;">
-                                        <button type="button" class="btn btn-sm btn-outline" onclick="openResetPinModal('{{ $col->user->id }}', '{{ $col->user->name }}', 'collectors')">
-                                            Reset PIN
+                                        <button type="button" class="btn btn-sm btn-outline" onclick="openResetPasswordModal('{{ $col->user->id }}', '{{ $col->user->name }}', 'collectors')">
+                                            Reset Password
                                         </button>
                                         <form action="{{ route('host.accounts.toggle_status', $col->user->id) }}" method="POST" style="display:inline;">
                                             @csrf
@@ -301,6 +301,30 @@
         </div>
     </div>
 
+    <!-- Reset Password Modal (Staff & Collectors) -->
+    <div class="modal-overlay" id="resetPasswordModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="resetPasswordTitle">Reset Password</h3>
+                <button type="button" class="modal-close" onclick="closeModal('resetPasswordModal')">&times;</button>
+            </div>
+            <form id="resetPasswordForm" method="POST">
+                @csrf
+                <input type="hidden" name="tab" id="reset_password_tab_input" value="staff">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">New Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" minlength="6" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('resetPasswordModal')">Cancel</button>
+                    <button type="submit" class="btn btn-emerald">Save New Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Reset PIN Modal -->
     <div class="modal-overlay" id="resetPinModal">
         <div class="modal-box">
@@ -364,6 +388,13 @@
             } else {
                 group.style.display = 'none';
             }
+        }
+
+        function openResetPasswordModal(userId, userName, tab = 'staff') {
+            document.getElementById('resetPasswordForm').action = '/host/accounts/' + userId + '/reset-password';
+            document.getElementById('resetPasswordTitle').innerText = 'Reset Password for ' + userName;
+            document.getElementById('reset_password_tab_input').value = tab;
+            openModal('resetPasswordModal');
         }
 
         function openResetPinModal(userId, userName, tab = 'clients') {

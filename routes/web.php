@@ -46,6 +46,7 @@ Route::middleware(['auth', 'role:host'])->prefix('host')->name('host.')->group(f
     // Accounts & Credentials
     Route::get('/accounts', [HostAccountController::class, 'index'])->name('accounts.index');
     Route::post('/accounts/staff', [HostAccountController::class, 'storeStaff'])->name('accounts.store_staff');
+    Route::post('/accounts/{user}/reset-password', [HostAccountController::class, 'resetPassword'])->name('accounts.reset_password');
     Route::post('/accounts/{user}/reset-pin', [HostAccountController::class, 'resetPin'])->name('accounts.reset_pin');
     Route::post('/accounts/{user}/toggle-status', [HostAccountController::class, 'toggleStatus'])->name('accounts.toggle_status');
     Route::delete('/accounts/{user}', [HostAccountController::class, 'destroy'])->name('accounts.destroy');

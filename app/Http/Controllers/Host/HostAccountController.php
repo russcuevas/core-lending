@@ -54,6 +54,20 @@ class HostAccountController extends Controller
         return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "New user credentials created successfully for {$user->name} ({$user->role})!");
     }
 
+    public function resetPassword(Request $request, User $user)
+    {
+        $request->validate([
+            'password' => 'required|string|min:6',
+        ]);
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        $tab = $request->input('tab') ?: ($user->role === 'collector' ? 'collectors' : 'staff');
+        return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "Password for {$user->name} has been successfully updated!");
+    }
+
     public function resetPin(Request $request, User $user)
     {
         $request->validate(['pin_code' => 'required|digits:4']);
@@ -63,7 +77,7 @@ class HostAccountController extends Controller
             'password' => Hash::make($request->pin_code),
         ]);
 
-        $tab = $request->input('tab') ?: ($user->role === 'client' ? 'clients' : ($user->role === 'collector' ? 'collectors' : 'staff'));
+        $tab = $request->input('tab') ?: 'clients';
         return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "PIN code for {$user->name} was reset to {$request->pin_code}!");
     }
 
