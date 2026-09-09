@@ -70,7 +70,7 @@ class CollectorController extends Controller
         $collector = $user->collector ?? Collector::firstOrCreate(['user_id' => $user->id]);
         $clients = Client::with(['user.walletTransactions', 'currentLoan'])
             ->where('collector_id', $collector->id)
-            ->whereHas('currentLoan', function($q) {
+            ->whereHas('currentLoan', function ($q) {
                 $q->where('status', 'active');
             })
             ->get();
@@ -150,6 +150,10 @@ class CollectorController extends Controller
         // 2. Save proof photo to public/uploads/payment_proofs
         $photoData = $request->photo_proof;
         $proofFilename = 'proof_pay_' . time() . '_' . Str::random(8) . '.jpg';
+        $proofDir = public_path('uploads/payment_proofs');
+        if (!file_exists($proofDir)) {
+            mkdir($proofDir, 0755, true);
+        }
         $proofPath = 'uploads/payment_proofs/' . $proofFilename;
         if (preg_match('/^data:image\/(\w+);base64,/', $photoData, $type)) {
             $data = substr($photoData, strpos($photoData, ',') + 1);
@@ -166,6 +170,9 @@ class CollectorController extends Controller
         // Apply payment across schedules
         // Check if loan is now fully paid
         $isFullyPaid = ($newRemainingBalance <= 0);
+
+        $remainingToDistribute = $amountPaid;
+        $unpaidSchedules = $loan->schedules()->where('status', '!=', 'paid')->orderBy('day_number', 'asc')->get();
 
         foreach ($unpaidSchedules as $schedule) {
             if ($remainingToDistribute <= 0 && !$isFullyPaid) break;
