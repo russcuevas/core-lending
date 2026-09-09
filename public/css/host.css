@@ -335,3 +335,66 @@
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Dashboard Running Date & Time Widget */
+.dashboard-live-clock {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 9px 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(9, 30, 58, 0.04);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.live-clock-left {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.live-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: livePulse 2s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes livePulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.live-clock-time {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--brand-blue);
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums;
+}

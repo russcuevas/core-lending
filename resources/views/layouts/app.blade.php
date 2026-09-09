@@ -234,9 +234,6 @@
                     <div class="top-navbar-title">@yield('page_title', 'Core Lending')</div>
                 </div>
                 <div class="top-navbar-actions">
-                    <div class="top-navbar-date">
-                        {{ \Carbon\Carbon::now()->format('l, F d, Y') }}
-                    </div>
                     <div class="top-user-profile">
                         <div class="top-user-avatar">{{ substr(auth()->user()->name ?? 'U', 0, 1) }}</div>
                         <div class="top-user-info">

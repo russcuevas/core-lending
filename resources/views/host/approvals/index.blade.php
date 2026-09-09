@@ -4,7 +4,7 @@
 @section('page_title', 'Host Superadmin - Master Approvals Hub')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/host.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/host.css') }}?v={{ file_exists(public_path('css/host.css')) ? filemtime(public_path('css/host.css')) : time() }}">
 @endpush
 
 @section('content')

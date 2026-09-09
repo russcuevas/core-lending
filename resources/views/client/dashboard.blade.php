@@ -4,7 +4,7 @@
 @section('page_title', 'Client Portal - My Lending Account')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/client.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/client.css') }}?v={{ file_exists(public_path('css/client.css')) ? filemtime(public_path('css/client.css')) : time() }}">
 @endpush
 
 @section('content')
