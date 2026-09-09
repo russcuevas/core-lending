@@ -34,6 +34,7 @@ Route::middleware(['auth', 'role:host'])->prefix('host')->name('host.')->group(f
 
     // Approvals
     Route::get('/approvals', [HostApprovalController::class, 'index'])->name('approvals.index');
+    Route::post('/approvals/mark-as-read', [HostApprovalController::class, 'markAsRead'])->name('approvals.mark_read');
     Route::post('/approvals/loans/{loan}/approve', [HostApprovalController::class, 'approveLoan'])->name('approvals.loans.approve');
     Route::post('/approvals/loans/{loan}/decline', [HostApprovalController::class, 'declineLoan'])->name('approvals.loans.decline');
     Route::post('/approvals/wallet/{transaction}/approve', [HostApprovalController::class, 'approveWalletTransaction'])->name('approvals.wallet.approve');

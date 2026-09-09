@@ -14,6 +14,7 @@ class WalletTransaction extends Model
         'type',
         'amount',
         'status',
+        'is_read',
         'releasing_officer_id',
         'releasing_notes',
         'releasing_scheduled_date',
@@ -24,6 +25,10 @@ class WalletTransaction extends Model
         'proof_image_path',
         'pin_verified',
         'user_balance_after',
+    ];
+
+    protected $casts = [
+        'is_read' => 'boolean',
     ];
 
     public function user()

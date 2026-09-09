@@ -18,42 +18,85 @@ class HostApprovalController extends Controller
 {
     public function index()
     {
-        // 1. Pending Loans / Client Applications
+        // 1. Pending Loans / Client Applications (Unread first, then latest)
         $pendingLoans = Loan::with(['client.user', 'collector.user', 'encoder'])
             ->where('status', 'pending_host_approval')
-            ->latest()
+            ->orderBy('is_read', 'asc')
+            ->latest('id')
             ->get();
 
-        // 2. Pending Cash In / Cash Out transactions
+        // 2. Pending Cash In / Cash Out transactions (Unread first, then latest)
         $pendingWalletRequests = WalletTransaction::with(['user', 'releasingOfficer'])
             ->where('status', 'pending_host_approval')
-            ->latest()
+            ->orderBy('is_read', 'asc')
+            ->latest('id')
             ->get();
 
-        // 3. Pending Collector Accounts
+        // 3. Pending Collector Accounts (Unread first, then latest)
         $pendingCollectors = User::where('role', 'collector')
             ->where('status', 'pending')
-            ->latest()
+            ->orderBy('is_read', 'asc')
+            ->latest('id')
             ->get();
 
-        // 4. Pending Client Detail Updates
+        // 4. Pending Client Detail Updates (Unread first, then latest)
         $pendingClientUpdates = ClientUpdateRequest::with(['client.user', 'requester'])
             ->where('status', 'pending_host_approval')
-            ->latest()
+            ->orderBy('is_read', 'asc')
+            ->latest('id')
             ->get();
+
+        $unreadLoansCount = $pendingLoans->where('is_read', false)->count();
+        $unreadWalletCount = $pendingWalletRequests->where('is_read', false)->count();
+        $unreadCollectorsCount = $pendingCollectors->where('is_read', false)->count();
+        $unreadUpdatesCount = $pendingClientUpdates->where('is_read', false)->count();
+        $totalUnreadCount = $unreadLoansCount + $unreadWalletCount + $unreadCollectorsCount + $unreadUpdatesCount;
 
         return view('host.approvals.index', compact(
             'pendingLoans',
             'pendingWalletRequests',
             'pendingCollectors',
-            'pendingClientUpdates'
+            'pendingClientUpdates',
+            'unreadLoansCount',
+            'unreadWalletCount',
+            'unreadCollectorsCount',
+            'unreadUpdatesCount',
+            'totalUnreadCount'
         ));
+    }
+
+    public function markAsRead(Request $request)
+    {
+        $type = $request->input('type'); // 'loan', 'wallet', 'collector', 'update', or 'all'
+        $id = $request->input('id');
+
+        if ($type === 'loan' && $id) {
+            Loan::where('id', $id)->update(['is_read' => true]);
+        } elseif ($type === 'wallet' && $id) {
+            WalletTransaction::where('id', $id)->update(['is_read' => true]);
+        } elseif ($type === 'collector' && $id) {
+            User::where('id', $id)->update(['is_read' => true]);
+        } elseif ($type === 'update' && $id) {
+            ClientUpdateRequest::where('id', $id)->update(['is_read' => true]);
+        } elseif ($type === 'all') {
+            Loan::where('status', 'pending_host_approval')->update(['is_read' => true]);
+            WalletTransaction::where('status', 'pending_host_approval')->update(['is_read' => true]);
+            User::where('role', 'collector')->where('status', 'pending')->update(['is_read' => true]);
+            ClientUpdateRequest::where('status', 'pending_host_approval')->update(['is_read' => true]);
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Requests marked as read.');
     }
 
     public function approveLoan(Request $request, Loan $loan)
     {
         $loan->update([
             'status' => 'approved_for_release',
+            'is_read' => true,
             'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
             'release_note' => $request->notes ?? $loan->release_note,
@@ -87,6 +130,7 @@ class HostApprovalController extends Controller
 
         $loan->update([
             'status' => 'rejected',
+            'is_read' => true,
             'decline_reason' => $request->reason,
             'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
@@ -103,6 +147,7 @@ class HostApprovalController extends Controller
     {
         $transaction->update([
             'status' => 'approved_by_host',
+            'is_read' => true,
             'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
             'host_notes' => $request->notes,
@@ -127,6 +172,7 @@ class HostApprovalController extends Controller
 
         $transaction->update([
             'status' => 'declined',
+            'is_read' => true,
             'decline_reason' => $request->reason,
             'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
@@ -138,7 +184,10 @@ class HostApprovalController extends Controller
 
     public function approveCollector(User $user)
     {
-        $user->update(['status' => 'active']);
+        $user->update([
+            'status' => 'active',
+            'is_read' => true,
+        ]);
 
         SystemNotification::sendNotification(
             $user->id,
@@ -153,7 +202,10 @@ class HostApprovalController extends Controller
 
     public function declineCollector(User $user)
     {
-        $user->update(['status' => 'rejected']);
+        $user->update([
+            'status' => 'rejected',
+            'is_read' => true,
+        ]);
 
         return back()->with('success', "Collector {$user->name} registration was rejected.");
     }
@@ -176,6 +228,7 @@ class HostApprovalController extends Controller
 
         $updateRequest->update([
             'status' => 'approved',
+            'is_read' => true,
             'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
         ]);
@@ -187,6 +240,7 @@ class HostApprovalController extends Controller
     {
         $updateRequest->update([
             'status' => 'declined',
+            'is_read' => true,
             'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
         ]);

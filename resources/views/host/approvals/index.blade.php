@@ -8,9 +8,12 @@
 @endpush
 
 @section('content')
-    <!-- Top Summary Approval KPI Cards -->
+    <!-- Top Summary Approval KPI Cards with Real-Time Unread Pills -->
     <div class="approval-kpi-grid">
-        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-loans')">
+        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-loans')" style="position: relative;">
+            @if($unreadLoansCount > 0)
+                <span class="kpi-unread-pill" title="{{ $unreadLoansCount }} new unread loan applications">{{ $unreadLoansCount }}</span>
+            @endif
             <div class="approval-kpi-icon" style="background: rgba(5, 150, 105, 0.12); color: #059669;">📋</div>
             <div class="approval-kpi-info">
                 <div class="approval-kpi-title">Pending Loans</div>
@@ -19,7 +22,10 @@
             </div>
         </div>
 
-        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-wallet')">
+        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-wallet')" style="position: relative;">
+            @if($unreadWalletCount > 0)
+                <span class="kpi-unread-pill" title="{{ $unreadWalletCount }} new unread transactions">{{ $unreadWalletCount }}</span>
+            @endif
             <div class="approval-kpi-icon" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">💸</div>
             <div class="approval-kpi-info">
                 <div class="approval-kpi-title">Cash In / Out Requests</div>
@@ -28,7 +34,10 @@
             </div>
         </div>
 
-        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-collectors')">
+        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-collectors')" style="position: relative;">
+            @if($unreadCollectorsCount > 0)
+                <span class="kpi-unread-pill" title="{{ $unreadCollectorsCount }} new unread collector accounts">{{ $unreadCollectorsCount }}</span>
+            @endif
             <div class="approval-kpi-icon" style="background: rgba(124, 58, 237, 0.12); color: #7c3aed;">🛵</div>
             <div class="approval-kpi-info">
                 <div class="approval-kpi-title">Collector Accounts</div>
@@ -37,7 +46,10 @@
             </div>
         </div>
 
-        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-updates')">
+        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-updates')" style="position: relative;">
+            @if($unreadUpdatesCount > 0)
+                <span class="kpi-unread-pill" title="{{ $unreadUpdatesCount }} new unread profile updates">{{ $unreadUpdatesCount }}</span>
+            @endif
             <div class="approval-kpi-icon" style="background: rgba(217, 119, 6, 0.12); color: #d97706;">🔄</div>
             <div class="approval-kpi-info">
                 <div class="approval-kpi-title">Profile Updates</div>
@@ -47,27 +59,49 @@
         </div>
     </div>
 
-    <!-- Approval Category Switcher Tabs -->
-    <div class="approval-tabs-nav">
-        <button type="button" class="approval-tab-btn active" id="btn-tab-loans" onclick="switchApprovalTab('tab-loans')">
-            <span>📋 Loan Applications</span>
-            <span class="tab-badge">{{ $pendingLoans->count() }}</span>
-        </button>
-        <button type="button" class="approval-tab-btn" id="btn-tab-wallet" onclick="switchApprovalTab('tab-wallet')">
-            <span>💸 Cash In / Out</span>
-            <span class="tab-badge">{{ $pendingWalletRequests->count() }}</span>
-        </button>
-        <button type="button" class="approval-tab-btn" id="btn-tab-collectors" onclick="switchApprovalTab('tab-collectors')">
-            <span>🛵 Collector Accounts</span>
-            <span class="tab-badge">{{ $pendingCollectors->count() }}</span>
-        </button>
-        <button type="button" class="approval-tab-btn" id="btn-tab-updates" onclick="switchApprovalTab('tab-updates')">
-            <span>🔄 Client Detail Updates</span>
-            <span class="tab-badge">{{ $pendingClientUpdates->count() }}</span>
-        </button>
-        <button type="button" class="approval-tab-btn" id="btn-tab-all" onclick="switchApprovalTab('tab-all')">
-            <span>👁️ View All Categories</span>
-        </button>
+    <!-- Approval Category Switcher Tabs & Mark All Read Toolbar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+        <div class="approval-tabs-nav" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+            <button type="button" class="approval-tab-btn active" id="btn-tab-loans" onclick="switchApprovalTab('tab-loans')">
+                <span>📋 Loan Applications</span>
+                <span class="tab-badge">{{ $pendingLoans->count() }}</span>
+                @if($unreadLoansCount > 0)
+                    <span class="tab-badge-new" id="badge-tab-loans">{{ $unreadLoansCount }} new</span>
+                @endif
+            </button>
+            <button type="button" class="approval-tab-btn" id="btn-tab-wallet" onclick="switchApprovalTab('tab-wallet')">
+                <span>💸 Cash In / Out</span>
+                <span class="tab-badge">{{ $pendingWalletRequests->count() }}</span>
+                @if($unreadWalletCount > 0)
+                    <span class="tab-badge-new" id="badge-tab-wallet">{{ $unreadWalletCount }} new</span>
+                @endif
+            </button>
+            <button type="button" class="approval-tab-btn" id="btn-tab-collectors" onclick="switchApprovalTab('tab-collectors')">
+                <span>🛵 Collector Accounts</span>
+                <span class="tab-badge">{{ $pendingCollectors->count() }}</span>
+                @if($unreadCollectorsCount > 0)
+                    <span class="tab-badge-new" id="badge-tab-collectors">{{ $unreadCollectorsCount }} new</span>
+                @endif
+            </button>
+            <button type="button" class="approval-tab-btn" id="btn-tab-updates" onclick="switchApprovalTab('tab-updates')">
+                <span>🔄 Client Detail Updates</span>
+                <span class="tab-badge">{{ $pendingClientUpdates->count() }}</span>
+                @if($unreadUpdatesCount > 0)
+                    <span class="tab-badge-new" id="badge-tab-updates">{{ $unreadUpdatesCount }} new</span>
+                @endif
+            </button>
+            <button type="button" class="approval-tab-btn" id="btn-tab-all" onclick="switchApprovalTab('tab-all')">
+                <span>👁️ View All Categories</span>
+            </button>
+        </div>
+
+        @if($totalUnreadCount > 0)
+            <div>
+                <button type="button" class="btn btn-sm btn-outline" onclick="markAllAsRead('all')" style="font-size: 12px; padding: 6px 12px;" title="Mark all items as read">
+                    ✓ Mark All as Read
+                </button>
+            </div>
+        @endif
     </div>
 
     <!-- TAB 1: Pending Client Loans -->
@@ -77,7 +111,7 @@
                 <div>
                     <h3 class="card-title">📋 Pending Client Loan Applications ({{ $pendingLoans->count() }})</h3>
                     <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                        Superadmin authorization required before loan release and activation.
+                        Superadmin authorization required before loan release and activation. Unread / new requests are pinned at the top.
                     </p>
                 </div>
                 <span class="badge badge-amber">Total: ₱{{ number_format($pendingLoans->sum('principal_amount'), 2) }}</span>
@@ -101,17 +135,20 @@
                     <tbody>
                         @if(!$pendingLoans->isEmpty())
                             @foreach($pendingLoans as $loan)
-                                <tr>
+                                <tr class="{{ !$loan->is_read ? 'unread-row' : '' }}" id="row-loan-{{ $loan->id }}">
                                     <td>
-                                        <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                                            {{ $loan->client->user->name ?? 'Unknown' }}
+                                        <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                            <span>{{ $loan->client->user->name ?? 'Unknown' }}</span>
+                                            @if(!$loan->is_read)
+                                                <span class="badge-new pulse-effect" id="badge-loan-{{ $loan->id }}">🆕 New</span>
+                                            @endif
                                             @if($loan->client && $loan->client->loans()->count() > 1)
-                                                <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 10px; padding: 2px 6px; font-weight: 700;">🔄 Reloan</span>
-                                            @else
-                                                <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 10px; padding: 2px 6px; font-weight: 700;">🆕 New</span>
+                                                <span class="badge-reloan">🔄 Reloan</span>
                                             @endif
                                         </div>
-                                        <div style="font-size: 11.5px; color: var(--text-secondary);">📞 {{ $loan->client->user->phone_number ?? 'N/A' }}</div>
+                                        <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
+                                            📞 {{ $loan->client->user->phone_number ?? 'N/A' }}
+                                        </div>
                                     </td>
                                     <td>
                                         <span style="font-weight: 800; color: #059669; font-size: 14px;">
@@ -130,8 +167,8 @@
                                         {{ $loan->encoder->name ?? 'Encoder' }}
                                     </td>
                                     <td>
-                                        @if($loan->client->user->valid_id_path)
-                                            <button type="button" class="btn btn-sm btn-outline" style="padding: 3px 8px; font-size: 11.5px;" onclick="previewIdImage('{{ asset($loan->client->user->valid_id_path) }}', '{{ $loan->client->user->name }}')">
+                                        @if($loan->client && $loan->client->user && $loan->client->user->valid_id_path)
+                                            <button type="button" class="btn btn-sm btn-outline" style="padding: 3px 8px; font-size: 11.5px;" onclick="previewIdImage('{{ asset($loan->client->user->valid_id_path) }}', '{{ $loan->client->user->name }}'); markItemAsRead('loan', {{ $loan->id }}, 'row-loan-{{ $loan->id }}');">
                                                 🔍 View ID
                                             </button>
                                         @else
@@ -146,9 +183,14 @@
                                                     ✓ Approve
                                                 </button>
                                             </form>
-                                            <button type="button" class="btn btn-rose btn-sm" style="padding: 4px 10px;" onclick="openDeclineModal('{{ route('host.approvals.loans.decline', $loan->id) }}', 'Loan for {{ $loan->client->user->name }}')" title="Decline Loan Application">
+                                            <button type="button" class="btn btn-rose btn-sm" style="padding: 4px 10px;" onclick="openDeclineModal('{{ route('host.approvals.loans.decline', $loan->id) }}', 'Loan for {{ $loan->client->user->name ?? 'Client' }}')" title="Decline Loan Application">
                                                 ✕
                                             </button>
+                                            @if(!$loan->is_read)
+                                                <button type="button" class="btn-read-check" onclick="markItemAsRead('loan', {{ $loan->id }}, 'row-loan-{{ $loan->id }}')" title="Mark as read">
+                                                    ✓
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -173,7 +215,7 @@
                 <div>
                     <h3 class="card-title">💸 Cash-In & Cash-Out Transaction Approvals ({{ $pendingWalletRequests->count() }})</h3>
                     <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                        Disbursement authorizations reviewed and endorsed by Releasing Officers.
+                        Disbursement authorizations reviewed and endorsed by Releasing Officers. Unread / new requests appear first.
                     </p>
                 </div>
                 <span class="badge badge-indigo">Total: ₱{{ number_format($pendingWalletRequests->sum('amount'), 2) }}</span>
@@ -195,10 +237,17 @@
                     <tbody>
                         @if(!$pendingWalletRequests->isEmpty())
                             @foreach($pendingWalletRequests as $req)
-                                <tr>
+                                <tr class="{{ !$req->is_read ? 'unread-row' : '' }}" id="row-wallet-{{ $req->id }}">
                                     <td>
-                                        <div style="font-weight: 700; color: var(--text-primary);">{{ $req->user->name }}</div>
-                                        <div style="font-size: 11.5px; color: var(--text-secondary);">📞 {{ $req->user->phone_number }} ({{ strtoupper($req->user->role) }})</div>
+                                        <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                            <span>{{ $req->user->name }}</span>
+                                            @if(!$req->is_read)
+                                                <span class="badge-new pulse-effect" id="badge-wallet-{{ $req->id }}">🆕 New</span>
+                                            @endif
+                                        </div>
+                                        <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
+                                            📞 {{ $req->user->phone_number }} ({{ strtoupper($req->user->role) }})
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge {{ $req->type === 'cash_in' ? 'badge-emerald' : 'badge-amber' }}">
@@ -230,6 +279,11 @@
                                             <button type="button" class="btn btn-rose btn-sm" style="padding: 4px 10px;" onclick="openDeclineModal('{{ route('host.approvals.wallet.decline', $req->id) }}', 'Request for {{ $req->user->name }}')">
                                                 ✕
                                             </button>
+                                            @if(!$req->is_read)
+                                                <button type="button" class="btn-read-check" onclick="markItemAsRead('wallet', {{ $req->id }}, 'row-wallet-{{ $req->id }}')" title="Mark as read">
+                                                    ✓
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -254,7 +308,7 @@
                 <div>
                     <h3 class="card-title">🛵 Collector Account Registrations ({{ $pendingCollectors->count() }})</h3>
                     <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                        Field collector user access approvals and area assignment authorizations.
+                        Field collector user access approvals and area assignment authorizations. Unread / new registrations listed first.
                     </p>
                 </div>
             </div>
@@ -274,10 +328,15 @@
                     <tbody>
                         @if(!$pendingCollectors->isEmpty())
                             @foreach($pendingCollectors as $colUser)
-                                <tr>
+                                <tr class="{{ !$colUser->is_read ? 'unread-row' : '' }}" id="row-collector-{{ $colUser->id }}">
                                     <td>
-                                        <div style="font-weight: 700; color: var(--text-primary);">{{ $colUser->name }}</div>
-                                        <span class="badge badge-primary" style="font-size: 10.5px;">New Collector</span>
+                                        <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                            <span>{{ $colUser->name }}</span>
+                                            @if(!$colUser->is_read)
+                                                <span class="badge-new pulse-effect" id="badge-collector-{{ $colUser->id }}">🆕 New</span>
+                                            @endif
+                                        </div>
+                                        <span class="badge badge-primary" style="font-size: 10.5px; margin-top: 3px;">New Collector</span>
                                     </td>
                                     <td>
                                         <div style="font-size: 12.5px;">📞 {{ $colUser->phone_number }}</div>
@@ -291,7 +350,7 @@
                                     </td>
                                     <td>
                                         @if($colUser->valid_id_path)
-                                            <button type="button" class="btn btn-sm btn-outline" style="padding: 3px 8px; font-size: 11.5px;" onclick="previewIdImage('{{ asset($colUser->valid_id_path) }}', '{{ $colUser->name }}')">
+                                            <button type="button" class="btn btn-sm btn-outline" style="padding: 3px 8px; font-size: 11.5px;" onclick="previewIdImage('{{ asset($colUser->valid_id_path) }}', '{{ $colUser->name }}'); markItemAsRead('collector', {{ $colUser->id }}, 'row-collector-{{ $colUser->id }}');">
                                                 🔍 View ID
                                             </button>
                                         @else
@@ -312,6 +371,11 @@
                                                     ✕ Decline
                                                 </button>
                                             </form>
+                                            @if(!$colUser->is_read)
+                                                <button type="button" class="btn-read-check" onclick="markItemAsRead('collector', {{ $colUser->id }}, 'row-collector-{{ $colUser->id }}')" title="Mark as read">
+                                                    ✓
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -336,7 +400,7 @@
                 <div>
                     <h3 class="card-title">🔄 Client Details Update Requests ({{ $pendingClientUpdates->count() }})</h3>
                     <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                        Profile changes submitted by Encoders requiring Superadmin verification.
+                        Profile changes submitted by Encoders requiring Superadmin verification. Unread / new requests appear at the top.
                     </p>
                 </div>
             </div>
@@ -356,8 +420,15 @@
                     <tbody>
                         @if(!$pendingClientUpdates->isEmpty())
                             @foreach($pendingClientUpdates as $update)
-                                <tr>
-                                    <td><strong>{{ $update->client->user->name ?? 'N/A' }}</strong></td>
+                                <tr class="{{ !$update->is_read ? 'unread-row' : '' }}" id="row-update-{{ $update->id }}">
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                            <span>{{ $update->client->user->name ?? 'N/A' }}</span>
+                                            @if(!$update->is_read)
+                                                <span class="badge-new pulse-effect" id="badge-update-{{ $update->id }}">🆕 New</span>
+                                            @endif
+                                        </div>
+                                    </td>
                                     <td>{{ $update->requester->name ?? 'Admin' }}</td>
                                     <td>
                                         <div style="font-size: 11.5px; color: var(--text-secondary);">Name: {{ $update->old_data['name'] ?? '' }}</div>
@@ -380,6 +451,11 @@
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-rose" style="padding: 4px 10px;">✕ Decline</button>
                                             </form>
+                                            @if(!$update->is_read)
+                                                <button type="button" class="btn-read-check" onclick="markItemAsRead('update', {{ $update->id }}, 'row-update-{{ $update->id }}')" title="Mark as read">
+                                                    ✓
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -469,6 +545,48 @@
                 if (targetBtn) targetBtn.classList.add('active');
             }
         }
+
+        function markItemAsRead(type, id, rowId) {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            fetch("{{ route('host.approvals.mark_read') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ type: type, id: id })
+            }).then(response => response.json()).then(data => {
+                if (data.success) {
+                    const row = document.getElementById(rowId);
+                    if (row) {
+                        row.classList.remove('unread-row');
+                        const badge = row.querySelector('.badge-new');
+                        if (badge) badge.remove();
+                        const checkBtn = row.querySelector('.btn-read-check');
+                        if (checkBtn) checkBtn.remove();
+                    }
+                }
+            }).catch(err => console.error('Error marking as read:', err));
+        }
+
+        function markAllAsRead(type) {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            fetch("{{ route('host.approvals.mark_read') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ type: type })
+            }).then(response => response.json()).then(data => {
+                if (data.success) {
+                    window.location.reload();
+                }
+            }).catch(err => {
+                window.location.reload();
+            });
+        }
     </script>
 @endpush
-

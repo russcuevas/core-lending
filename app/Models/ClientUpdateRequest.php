@@ -15,6 +15,7 @@ class ClientUpdateRequest extends Model
         'old_data',
         'new_data',
         'status',
+        'is_read',
         'host_approved_by',
         'host_approved_at',
         'notes',
@@ -23,6 +24,7 @@ class ClientUpdateRequest extends Model
     protected $casts = [
         'old_data' => 'array',
         'new_data' => 'array',
+        'is_read' => 'boolean',
     ];
 
     public function client()

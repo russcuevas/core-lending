@@ -20,6 +20,7 @@ class User extends Authenticatable
         'address',
         'valid_id_path',
         'status',
+        'is_read',
     ];
 
     protected $hidden = [
@@ -33,6 +34,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_read' => 'boolean',
         ];
     }
 

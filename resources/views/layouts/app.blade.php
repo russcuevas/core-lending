@@ -59,9 +59,17 @@
             </div>
 
             <nav class="sidebar-nav">
-                @php $role = auth()->user()->role ?? ''; @endphp
+                @php 
+                    $role = \Illuminate\Support\Facades\Auth::user()->role ?? ''; 
+                @endphp
 
                 @if ($role === 'host')
+                    @php
+                        $navUnreadApprovals = \App\Models\Loan::where('status', 'pending_host_approval')->where('is_read', false)->count()
+                            + \App\Models\WalletTransaction::where('status', 'pending_host_approval')->where('is_read', false)->count()
+                            + \App\Models\User::where('role', 'collector')->where('status', 'pending')->where('is_read', false)->count()
+                            + \App\Models\ClientUpdateRequest::where('status', 'pending_host_approval')->where('is_read', false)->count();
+                    @endphp
                     <div class="nav-label">Main Administration</div>
                     <a href="{{ route('host.dashboard') }}"
                         class="nav-link {{ request()->routeIs('host.dashboard') ? 'active' : '' }}">
@@ -73,12 +81,15 @@
                         <span>Dashboard</span>
                     </a>
                     <a href="{{ route('host.approvals.index') }}"
-                        class="nav-link {{ request()->routeIs('host.approvals.*') ? 'active' : '' }}">
+                        class="nav-link {{ request()->routeIs('host.approvals.*') ? 'active' : '' }}" style="display: flex; align-items: center;">
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         <span>Approvals</span>
+                        @if($navUnreadApprovals > 0)
+                            <span style="margin-left: auto; background: #ef4444; color: #ffffff; font-size: 10px; font-weight: 800; padding: 1.5px 6px; border-radius: 9999px; line-height: 1.2;">{{ $navUnreadApprovals }}</span>
+                        @endif
                     </a>
                     <a href="{{ route('host.accounts.index') }}"
                         class="nav-link {{ request()->routeIs('host.accounts.*') ? 'active' : '' }}">

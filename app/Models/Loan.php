@@ -21,6 +21,7 @@ class Loan extends Model
         'remaining_balance',
         'total_paid',
         'status',
+        'is_read',
         'release_date',
         'release_note',
         'decline_reason',
@@ -30,6 +31,10 @@ class Loan extends Model
         'host_approved_at',
         'disbursement_proof_path',
         'collector_commission_paid',
+    ];
+
+    protected $casts = [
+        'is_read' => 'boolean',
     ];
 
     public function client()
