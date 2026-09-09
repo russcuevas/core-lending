@@ -324,4 +324,67 @@ class ClientController extends Controller
 
         return back()->with('success', 'Your 4-digit security PIN has been updated successfully!');
     }
+
+    public function matureSavings(SavingsAccount $savings)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $client = $user->client;
+
+        if (!$client || $savings->client_id !== $client->id) {
+            return back()->with('error', 'Unauthorized access to this savings account.');
+        }
+
+        if ($savings->status !== 'active') {
+            return back()->with('error', 'This savings fund has already matured or is no longer active.');
+        }
+
+        $deposit = (float)$savings->deposit_amount;
+        $totalInterest = (float)$savings->total_expected_interest;
+        $totalPayout = $deposit + $totalInterest;
+
+        // 1. Mark savings as matured & update metrics
+        $savings->update([
+            'status' => 'matured',
+            'days_credited' => $savings->lock_in_days,
+            'accumulated_interest_paid' => $totalInterest,
+            'maturity_date' => Carbon::today()->format('Y-m-d'),
+        ]);
+
+        // 2. Credit Capital + Interest to Client Wallet
+        $client->increment('wallet_balance', $totalPayout);
+        $client->refresh();
+
+        // 3. Create completed WalletTransaction record
+        WalletTransaction::create([
+            'user_id' => $user->id,
+            'type' => 'savings_payout',
+            'amount' => $totalPayout,
+            'status' => 'completed',
+            'releasing_notes' => "Savings Fund #{$savings->id} 60-Day Maturity: ₱" . number_format($deposit, 2) . " capital + ₱" . number_format($totalInterest, 2) . " interest credited to wallet.",
+            'user_balance_after' => $client->wallet_balance,
+        ]);
+
+        // 4. Log Host Vault Outflow
+        HostVaultLedger::logEntry(
+            'out',
+            'savings_payout',
+            $totalPayout,
+            "Matured Savings Payout to {$client->user->name}: ₱" . number_format($deposit, 2) . " capital + ₱" . number_format($totalInterest, 2) . " interest.",
+            'SavingsAccount',
+            $savings->id,
+            Auth::id()
+        );
+
+        // 5. System Notification
+        SystemNotification::sendNotification(
+            $user->id,
+            'client',
+            '🎉 Savings Fund Matured & Credited!',
+            "Your {$savings->lock_in_days}-day Savings Fund has matured! Total payout of ₱" . number_format($totalPayout, 2) . " (₱" . number_format($deposit, 2) . " capital + ₱" . number_format($totalInterest, 2) . " interest) is now in your available wallet balance.",
+            'payment_received'
+        );
+
+        return back()->with('success', "🎉 60-Day Maturity Simulated! ₱" . number_format($totalPayout, 2) . " (₱" . number_format($deposit, 2) . " Capital + ₱" . number_format($totalInterest, 2) . " Interest) has been credited to your available wallet balance!");
+    }
 }

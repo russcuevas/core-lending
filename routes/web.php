@@ -110,5 +110,6 @@ Route::middleware(['auth', 'role:client'])->prefix('client')->name('client.')->g
     Route::post('/cash-out', [ClientController::class, 'requestCashOut'])->name('cash_out');
     Route::post('/request-renewal', [ClientController::class, 'requestRenewal'])->name('request_renewal');
     Route::post('/savings', [ClientController::class, 'createSavings'])->name('savings.store');
+    Route::post('/savings/{savings}/mature', [ClientController::class, 'matureSavings'])->name('savings.mature');
     Route::post('/change-pin', [ClientController::class, 'changePin'])->name('change_pin');
 });

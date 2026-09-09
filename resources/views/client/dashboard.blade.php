@@ -488,9 +488,27 @@
                             </div>
                             <div class="approval-meta-row">
                                 <span class="approval-meta-label">Status</span>
-                                <span class="approval-meta-val"><span
-                                        class="badge badge-emerald">{{ ucfirst($sav->status) }}</span></span>
+                                <span class="approval-meta-val">
+                                    @if ($sav->status === 'matured')
+                                        <span class="badge badge-emerald" style="background: #059669; color: #fff; font-weight: 700;">✓ Matured</span>
+                                    @else
+                                        <span class="badge badge-emerald">{{ ucfirst($sav->status) }}</span>
+                                    @endif
+                                </span>
                             </div>
+
+                            @if ($sav->status === 'active')
+                                <form action="{{ route('client.savings.mature', $sav->id) }}" method="POST" style="margin-top: 12px;" onsubmit="return confirm('⚡ DEMO / FAST-FORWARD: Simulate 60-Day Maturity now?\n\nDeposit Capital: ₱{{ number_format($sav->deposit_amount, 2) }}\nEarned Interest ({{ $sav->interest_rate_percent }}%): ₱{{ number_format($sav->total_expected_interest, 2) }}\nTOTAL PAYOUT: ₱{{ number_format($sav->deposit_amount + $sav->total_expected_interest, 2) }}\n\nThis will instantly credit ₱{{ number_format($sav->deposit_amount + $sav->total_expected_interest, 2) }} directly to your Available Wallet Balance!')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-emerald" style="width: 100%; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(5,150,105,0.25);">
+                                        <span>⚡ Fast-Forward 60 Days (Claim Payout ₱{{ number_format($sav->deposit_amount + $sav->total_expected_interest, 2) }})</span>
+                                    </button>
+                                </form>
+                            @else
+                                <div style="margin-top: 10px; background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.25); border-radius: 6px; padding: 8px 10px; font-size: 11.5px; color: #047857; font-weight: 600; text-align: center;">
+                                    ✓ Matured & Credited to Wallet (+₱{{ number_format($sav->deposit_amount + $sav->total_expected_interest, 2) }})
+                                </div>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -517,16 +535,19 @@
                 <tbody>
                     @if (!$walletTransactions->isEmpty())
                         @foreach ($walletTransactions as $wTx)
+                            @php
+                                $isPositive = in_array($wTx->type, ['cash_in', 'savings_payout', 'daily_interest']);
+                            @endphp
                             <tr>
                                 <td>{{ $wTx->created_at->format('M d, Y h:i A') }}</td>
                                 <td>
-                                    <span class="badge {{ $wTx->type === 'cash_in' ? 'badge-emerald' : 'badge-amber' }}">
+                                    <span class="badge {{ $isPositive ? 'badge-emerald' : 'badge-amber' }}">
                                         {{ strtoupper(str_replace('_', ' ', $wTx->type)) }}
                                     </span>
                                 </td>
                                 <td
-                                    style="font-weight: 700; color: {{ $wTx->type === 'cash_in' ? '#059669' : '#d97706' }};">
-                                    {{ $wTx->type === 'cash_in' ? '+' : '-' }}₱{{ number_format($wTx->amount, 2) }}
+                                    style="font-weight: 700; color: {{ $isPositive ? '#059669' : '#d97706' }};">
+                                    {{ $isPositive ? '+' : '-' }}₱{{ number_format($wTx->amount, 2) }}
                                 </td>
                                 <td>
                                     @if ($wTx->status === 'completed')
