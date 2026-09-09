@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Host;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Loan;
 use App\Models\Client;
 use App\Models\User;
@@ -53,7 +54,7 @@ class HostApprovalController extends Controller
     {
         $loan->update([
             'status' => 'approved_for_release',
-            'host_approved_by' => auth()->id(),
+            'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
             'release_note' => $request->notes ?? $loan->release_note,
         ]);
@@ -87,7 +88,7 @@ class HostApprovalController extends Controller
         $loan->update([
             'status' => 'rejected',
             'decline_reason' => $request->reason,
-            'host_approved_by' => auth()->id(),
+            'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
         ]);
 
@@ -102,7 +103,7 @@ class HostApprovalController extends Controller
     {
         $transaction->update([
             'status' => 'approved_by_host',
-            'host_approved_by' => auth()->id(),
+            'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
             'host_notes' => $request->notes,
         ]);
@@ -127,7 +128,7 @@ class HostApprovalController extends Controller
         $transaction->update([
             'status' => 'declined',
             'decline_reason' => $request->reason,
-            'host_approved_by' => auth()->id(),
+            'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
         ]);
 
@@ -175,7 +176,7 @@ class HostApprovalController extends Controller
 
         $updateRequest->update([
             'status' => 'approved',
-            'host_approved_by' => auth()->id(),
+            'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
         ]);
 
@@ -186,7 +187,7 @@ class HostApprovalController extends Controller
     {
         $updateRequest->update([
             'status' => 'declined',
-            'host_approved_by' => auth()->id(),
+            'host_approved_by' => Auth::id(),
             'host_approved_at' => Carbon::now(),
         ]);
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Host;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Collector;
@@ -93,7 +94,7 @@ class HostAccountController extends Controller
     public function destroy(Request $request, User $user)
     {
         // Protect superadmin from accidental deletion
-        if ($user->id === auth()->id() || ($user->role === 'host' && User::where('role', 'host')->count() <= 1)) {
+        if ($user->id === Auth::id() || ($user->role === 'host' && User::where('role', 'host')->count() <= 1)) {
             return back()->with('error', 'The active Host Superadmin account cannot be deleted.');
         }
 
