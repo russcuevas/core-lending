@@ -37,7 +37,7 @@
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="{{ asset('css/common.css') }}?v={{ file_exists(public_path('css/common.css')) ? filemtime(public_path('css/common.css')) : time() }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/common.css') }}">
     @stack('styles')
 </head>
 
@@ -255,6 +255,17 @@
             </header>
 
             <main class="content-body">
+                <!-- Live Running Date & Time Widget for All Roles (Host, Admin, Collector, Client) -->
+                <div class="dashboard-live-clock no-print" style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(9, 30, 58, 0.05); flex-wrap: wrap; gap: 10px;">
+                    <div class="live-clock-left" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: #091e3a;">
+                        <span class="live-pulse-dot" style="width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; display: inline-block; flex-shrink: 0;" title="Live System Time"></span>
+                        <span id="live_date_display">{{ \Carbon\Carbon::now()->format('l, F d, Y') }}</span>
+                    </div>
+                    <div class="live-clock-time" id="live_time_display" style="font-family: 'Outfit', -apple-system, sans-serif; font-size: 13.5px; font-weight: 700; color: #0077b6; background: #f0f9ff; border: 1px solid #bae6fd; padding: 4px 12px; border-radius: 6px; letter-spacing: 0.5px; font-variant-numeric: tabular-nums;">
+                        {{ \Carbon\Carbon::now()->format('h:i:s A') }}
+                    </div>
+                </div>
+
                 @yield('content')
             </main>
         </div>
@@ -264,7 +275,7 @@
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 
     <!-- Common Scripts -->
-    <script src="{{ asset('js/common.js') }}"></script>
+    <script src="{{ versioned_asset('js/common.js') }}"></script>
     @stack('scripts')
 </body>
 

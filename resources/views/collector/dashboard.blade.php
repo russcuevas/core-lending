@@ -4,7 +4,7 @@
 @section('page_title', 'Collector - Field Portal & Commission Wallet')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/collector.css') }}?v={{ file_exists(public_path('css/collector.css')) ? filemtime(public_path('css/collector.css')) : time() }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/collector.css') }}">
 @endpush
 
 @section('content')

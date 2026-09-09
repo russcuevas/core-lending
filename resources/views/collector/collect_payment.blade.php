@@ -4,8 +4,8 @@
 @section('page_title', 'Collector - Process Client Daily Payment')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/collector.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/collector.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/admin.css') }}">
 @endpush
 
 @section('content')
@@ -124,8 +124,8 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/collector.js') }}"></script>
-    <script src="{{ asset('js/admin.js') }}"></script>
+    <script src="{{ versioned_asset('js/collector.js') }}"></script>
+    <script src="{{ versioned_asset('js/admin.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             onPaymentAmountChange();

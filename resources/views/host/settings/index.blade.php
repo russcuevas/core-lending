@@ -4,7 +4,7 @@
 @section('page_title', 'Host Superadmin - Global System Settings & Rates')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/host.css') }}?v={{ file_exists(public_path('css/host.css')) ? filemtime(public_path('css/host.css')) : time() }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/host.css') }}">
 @endpush
 
 @section('content')

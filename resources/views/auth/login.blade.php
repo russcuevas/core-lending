@@ -10,8 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="{{ asset('css/common.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/common.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/auth.css') }}">
 
     @if(session('success'))
         <meta name="flash-success" content="{{ session('success') }}">
@@ -89,7 +89,7 @@
         </form>
     </div>
 
-    <script src="{{ asset('js/common.js') }}"></script>
-    <script src="{{ asset('js/auth.js') }}"></script>
+    <script src="{{ versioned_asset('js/common.js') }}"></script>
+    <script src="{{ versioned_asset('js/auth.js') }}"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 @section('page_title', 'Collector - Scan Client QR Code')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/collector.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/collector.css') }}">
 @endpush
 
 @section('content')
@@ -51,7 +51,7 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/collector.js') }}"></script>
+    <script src="{{ versioned_asset('js/collector.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             initQrScanner((qrToken) => {

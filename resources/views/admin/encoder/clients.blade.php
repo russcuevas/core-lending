@@ -4,7 +4,7 @@
 @section('page_title', 'Admin Encoder - Clients Directory')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/admin.css') }}">
 @endpush
 
 @section('content')

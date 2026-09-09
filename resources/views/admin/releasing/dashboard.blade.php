@@ -4,7 +4,7 @@
 @section('page_title', 'Admin Releasing Officer - Request & Disbursement Center')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/admin.css') }}">
 @endpush
 
 @section('content')
@@ -277,7 +277,7 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/admin.js') }}"></script>
+    <script src="{{ versioned_asset('js/admin.js') }}"></script>
     <script>
         function openReviewModal(actionUrl, actionType, userName, amount) {
             document.getElementById('reviewForm').action = actionUrl;

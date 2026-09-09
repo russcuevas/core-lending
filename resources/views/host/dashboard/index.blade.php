@@ -4,21 +4,10 @@
 @section('page_title', 'Host Superadmin Dashboard')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/host.css') }}?v={{ file_exists(public_path('css/host.css')) ? filemtime(public_path('css/host.css')) : time() }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/host.css') }}">
 @endpush
 
 @section('content')
-    <!-- Live Running Date & Time Widget -->
-    <div class="dashboard-live-clock" style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(9, 30, 58, 0.05); flex-wrap: wrap; gap: 10px;">
-        <div class="live-clock-left" style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: #091e3a;">
-            <span class="live-pulse-dot" style="width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; display: inline-block; flex-shrink: 0;" title="Live System Time"></span>
-            <span id="live_date_display">{{ \Carbon\Carbon::now()->format('l, F d, Y') }}</span>
-        </div>
-        <div class="live-clock-time" id="live_time_display" style="font-family: 'Outfit', -apple-system, sans-serif; font-size: 13.5px; font-weight: 700; color: #0077b6; background: #f0f9ff; border: 1px solid #bae6fd; padding: 4px 12px; border-radius: 6px; letter-spacing: 0.5px; font-variant-numeric: tabular-nums;">
-            {{ \Carbon\Carbon::now()->format('h:i:s A') }}
-        </div>
-    </div>
-
     <!-- Host Vault Hero Card -->
     <div class="vault-hero-card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
         <div>
@@ -346,7 +335,7 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/host.js') }}"></script>
+    <script src="{{ versioned_asset('js/host.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             initHostCharts({
@@ -388,20 +377,5 @@
             document.getElementById('edit_ledger_form').action = `/host/transactions/${id}`;
             openModal('editVaultLedgerModal');
         }
-
-        // Live Real-Time Running Clock
-        function updateHostLiveClock() {
-            const now = new Date();
-            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-
-            const dateElem = document.getElementById('live_date_display');
-            const timeElem = document.getElementById('live_time_display');
-
-            if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', dateOptions);
-            if (timeElem) timeElem.innerText = now.toLocaleTimeString('en-US', timeOptions);
-        }
-        setInterval(updateHostLiveClock, 1000);
-        updateHostLiveClock();
     </script>
 @endpush

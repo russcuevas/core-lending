@@ -4,7 +4,7 @@
 @section('page_title', 'Client Portal - My Lending Account')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/client.css') }}?v={{ file_exists(public_path('css/client.css')) ? filemtime(public_path('css/client.css')) : time() }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/client.css') }}">
 @endpush
 
 @section('content')
@@ -542,7 +542,7 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/client.js') }}"></script>
+    <script src="{{ versioned_asset('js/client.js') }}"></script>
     <script>
         const clientLoanRate = {{ (float)($loanInterestRate ?? 10) }};
         const clientLoanTerm = {{ (int)($loanTermDays ?? 60) }};

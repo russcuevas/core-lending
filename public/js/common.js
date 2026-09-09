@@ -166,4 +166,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (flashWarning && flashWarning.content) {
         showToast('warning', flashWarning.content);
     }
+
+    // Universal Real-Time Running Date & Time Clock
+    function updateGlobalLiveClock() {
+        const now = new Date();
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+
+        const dateElem = document.getElementById('live_date_display');
+        const timeElem = document.getElementById('live_time_display');
+
+        if (dateElem) dateElem.innerText = now.toLocaleDateString('en-US', dateOptions);
+        if (timeElem) timeElem.innerText = now.toLocaleTimeString('en-US', timeOptions);
+    }
+    setInterval(updateGlobalLiveClock, 1000);
+    updateGlobalLiveClock();
 });

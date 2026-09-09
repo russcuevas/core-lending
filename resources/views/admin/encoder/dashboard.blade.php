@@ -4,7 +4,7 @@
 @section('page_title', 'Admin Encoder - Dashboard')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ file_exists(public_path('css/admin.css')) ? filemtime(public_path('css/admin.css')) : time() }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/admin.css') }}">
 @endpush
 
 @section('content')
