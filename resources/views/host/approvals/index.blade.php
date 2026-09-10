@@ -57,6 +57,18 @@
                 <div class="approval-kpi-sub">Client details changes</div>
             </div>
         </div>
+
+        <div class="approval-kpi-card" onclick="switchApprovalTab('tab-turnovers')" style="position: relative;">
+            @if($unreadTurnoversCount > 0)
+                <span class="kpi-unread-pill" title="{{ $unreadTurnoversCount }} new unread cash turnovers">{{ $unreadTurnoversCount }}</span>
+            @endif
+            <div class="approval-kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #059669;">💵</div>
+            <div class="approval-kpi-info">
+                <div class="approval-kpi-title">Cash Turnovers</div>
+                <div class="approval-kpi-val">{{ $pendingTurnovers->count() }}</div>
+                <div class="approval-kpi-sub">Total ₱{{ number_format($pendingTurnovers->sum('amount'), 2) }}</div>
+            </div>
+        </div>
     </div>
 
     <!-- Approval Category Switcher Tabs & Mark All Read Toolbar -->
@@ -67,6 +79,13 @@
                 <span class="tab-badge">{{ $pendingLoans->count() }}</span>
                 @if($unreadLoansCount > 0)
                     <span class="tab-badge-new" id="badge-tab-loans">{{ $unreadLoansCount }} new</span>
+                @endif
+            </button>
+            <button type="button" class="approval-tab-btn" id="btn-tab-turnovers" onclick="switchApprovalTab('tab-turnovers')">
+                <span>💵 Cash Turnovers</span>
+                <span class="tab-badge">{{ $pendingTurnovers->count() }}</span>
+                @if($unreadTurnoversCount > 0)
+                    <span class="tab-badge-new" id="badge-tab-turnovers">{{ $unreadTurnoversCount }} new</span>
                 @endif
             </button>
             <button type="button" class="approval-tab-btn" id="btn-tab-wallet" onclick="switchApprovalTab('tab-wallet')">
@@ -473,6 +492,91 @@
         </div>
     </div>
 
+    <!-- TAB 5: Cash Turnovers from Admin Finance -->
+    <div class="approval-tab-pane" id="tab-turnovers">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">💵 Cash Turnovers from Admin Finance ({{ $pendingTurnovers->count() }})</h3>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
+                        Review and approve physical cash turnovers remitted by Admin Finance. Approving will automatically deposit the cash into the Host Vault Ledger.
+                    </p>
+                </div>
+                <span class="badge badge-emerald">Total Pending: ₱{{ number_format($pendingTurnovers->sum('amount'), 2) }}</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table data-table-enhanced">
+                    <thead>
+                        <tr>
+                            <th>Turnover Ref</th>
+                            <th>Turned Over By (Admin Finance)</th>
+                            <th>Amount</th>
+                            <th>Notes / Breakdown</th>
+                            <th>Submitted Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if(!$pendingTurnovers->isEmpty())
+                            @foreach($pendingTurnovers as $turnover)
+                                <tr id="row-turnover-{{ $turnover->id }}" class="{{ !$turnover->is_read ? 'unread-row' : '' }}">
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--brand-navy);">
+                                            #TO-{{ str_pad($turnover->id, 5, '0', STR_PAD_LEFT) }}
+                                            @if(!$turnover->is_read)
+                                                <span class="badge-new">NEW</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight: 600;">{{ $turnover->adminFinance->name ?? 'Admin Finance' }}</div>
+                                        <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $turnover->adminFinance->phone_number ?? '' }}</div>
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 15px; font-weight: 800; color: #059669;">₱{{ number_format($turnover->amount, 2) }}</span>
+                                    </td>
+                                    <td>
+                                        <div style="font-size: 12.5px; color: var(--text-primary);">{{ $turnover->notes ?? 'Cash turnover to Superadmin vault' }}</div>
+                                    </td>
+                                    <td>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">
+                                            {{ $turnover->created_at->format('M d, Y h:i A') }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: nowrap;">
+                                            <form action="{{ route('host.approvals.turnovers.approve', $turnover->id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Receive cash turnover of ₱{{ number_format($turnover->amount, 2) }} into Host Vault?')">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-emerald" style="padding: 4px 10px; font-weight: 700;">
+                                                    ✓ Receive & Add to Vault
+                                                </button>
+                                            </form>
+                                            <button type="button" class="btn btn-sm btn-rose" style="padding: 4px 10px;" onclick="openDeclineModal('{{ route('host.approvals.turnovers.decline', $turnover->id) }}', 'Cash Turnover #{{ $turnover->id }}')">
+                                                ✕ Decline
+                                            </button>
+                                            @if(!$turnover->is_read)
+                                                <button type="button" class="btn-read-check" onclick="markItemAsRead('turnover', {{ $turnover->id }}, 'row-turnover-{{ $turnover->id }}')" title="Mark as read">
+                                                    ✓
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td colspan="6" class="text-center" style="padding: 24px; color: var(--text-muted);">
+                                    ✓ No pending cash turnovers from Admin Finance.
+                                </td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Image Preview Modal -->
     <div class="modal-overlay" id="imagePreviewModal">
         <div class="modal-box" style="max-width: 600px;">
@@ -559,7 +663,7 @@
         }
 
         function getInitialApprovalTab() {
-            const validTabs = ['tab-loans', 'tab-wallet', 'tab-collectors', 'tab-updates', 'tab-all'];
+            const validTabs = ['tab-loans', 'tab-turnovers', 'tab-wallet', 'tab-collectors', 'tab-updates', 'tab-all'];
             const hash = window.location.hash ? window.location.hash.replace('#', '') : '';
             if (hash && validTabs.includes(hash)) {
                 return hash;
@@ -578,7 +682,7 @@
 
         window.addEventListener('hashchange', function() {
             const hash = window.location.hash.replace('#', '');
-            const validTabs = ['tab-loans', 'tab-wallet', 'tab-collectors', 'tab-updates', 'tab-all'];
+            const validTabs = ['tab-loans', 'tab-turnovers', 'tab-wallet', 'tab-collectors', 'tab-updates', 'tab-all'];
             if (hash && validTabs.includes(hash)) {
                 switchApprovalTab(hash, false);
             }

@@ -68,7 +68,8 @@
                         $navUnreadApprovals = \App\Models\Loan::where('status', 'pending_host_approval')->where('is_read', false)->count()
                             + \App\Models\WalletTransaction::where('status', 'pending_host_approval')->where('is_read', false)->count()
                             + \App\Models\User::where('role', 'collector')->where('status', 'pending')->where('is_read', false)->count()
-                            + \App\Models\ClientUpdateRequest::where('status', 'pending_host_approval')->where('is_read', false)->count();
+                            + \App\Models\ClientUpdateRequest::where('status', 'pending_host_approval')->where('is_read', false)->count()
+                            + \App\Models\CashTurnover::where('status', 'pending_host_approval')->where('is_read', false)->count();
                     @endphp
                     <div class="nav-label">Main Administration</div>
                     <a href="{{ route('host.dashboard') }}"
@@ -182,15 +183,21 @@
                         <span>Print Daily Payments</span>
                     </a>
                 @elseif($role === 'admin_releasing')
-                    <div class="nav-label">Disbursement Station</div>
+                    @php
+                        $pendingRemitCount = \App\Models\LoanPayment::where('status', 'processing')->count();
+                    @endphp
+                    <div class="nav-label">Finance & Disbursement</div>
                     <a href="{{ route('admin.releasing.dashboard') }}"
-                        class="nav-link {{ request()->routeIs('admin.releasing.dashboard') ? 'active' : '' }}">
+                        class="nav-link {{ request()->routeIs('admin.releasing.*') || request()->routeIs('admin.finance.*') ? 'active' : '' }}" style="display: flex; align-items: center;">
                         <svg width="18" height="18" fill="none" stroke="currentColor"
                             viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <span>Releasing Request Center</span>
+                        <span>Finance Operations Hub</span>
+                        @if($pendingRemitCount > 0)
+                            <span style="margin-left: auto; background: #059669; color: #ffffff; font-size: 10px; font-weight: 800; padding: 1.5px 6px; border-radius: 9999px; line-height: 1.2;" title="{{ $pendingRemitCount }} collections awaiting remittance">{{ $pendingRemitCount }}</span>
+                        @endif
                     </a>
                 @elseif($role === 'collector')
                     <div class="nav-label">Field Collections</div>
@@ -249,7 +256,7 @@
                         <div class="top-user-avatar">{{ substr(auth()->user()->name ?? 'U', 0, 1) }}</div>
                         <div class="top-user-info">
                             <div class="top-user-name">{{ auth()->user()->name ?? 'Guest' }}</div>
-                            <div class="top-user-role">{{ str_replace('_', ' ', auth()->user()->role ?? '') }}</div>
+                            <div class="top-user-role">{{ auth()->user()->role === 'admin_releasing' ? 'Admin Finance' : str_replace('_', ' ', auth()->user()->role ?? '') }}</div>
                         </div>
                         <form action="{{ route('logout') }}" method="POST" class="top-logout-form" style="margin:0; display:inline-flex;">
                             @csrf

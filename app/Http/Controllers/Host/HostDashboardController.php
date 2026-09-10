@@ -14,6 +14,7 @@ use App\Models\WalletTransaction;
 use App\Models\Expense;
 use App\Models\HostVaultLedger;
 use App\Models\ClientUpdateRequest;
+use App\Models\CashTurnover;
 use Carbon\Carbon;
 
 class HostDashboardController extends Controller
@@ -37,7 +38,11 @@ class HostDashboardController extends Controller
             ->whereDate('updated_at', $today)
             ->sum('amount');
 
-        $todayLoanCollections = LoanPayment::whereDate('payment_date', $today)->sum('amount_paid');
+        $todayPayments = LoanPayment::whereDate('payment_date', $today)->get();
+        $todayLoanCollections = $todayPayments->sum('amount_paid');
+        $todayLoanPremium = $todayPayments->sum('loan_premium_amount');
+        $todayInsurancePremium = $todayPayments->sum('insurance_premium_amount');
+
         $todaySavingsDeposits = SavingsAccount::whereDate('created_at', $today)->sum('deposit_amount');
         $todayExpenses = Expense::whereDate('date', $today)->sum('amount');
 
@@ -52,13 +57,34 @@ class HostDashboardController extends Controller
         $pendingWalletCount = WalletTransaction::where('status', 'pending_host_approval')->count();
         $pendingCollectorCount = User::where('role', 'collector')->where('status', 'pending')->count();
         $pendingClientUpdatesCount = ClientUpdateRequest::where('status', 'pending_host_approval')->count();
+        $pendingTurnoversCount = CashTurnover::where('status', 'pending_host_approval')->count();
 
-        $totalPendingApprovals = $pendingLoanCount + $pendingWalletCount + $pendingCollectorCount + $pendingClientUpdatesCount;
+        $totalPendingApprovals = $pendingLoanCount + $pendingWalletCount + $pendingCollectorCount + $pendingClientUpdatesCount + $pendingTurnoversCount;
 
-        // 4. Recent transactions
+        // 4. Daily Collections per Agent (Banggaan Table for Superadmin)
+        $collectors = Collector::with(['user', 'assignedClients.user'])->get();
+        $agentCollections = $collectors->map(function ($col) use ($today) {
+            $colPayments = LoanPayment::where('collector_id', $col->id)
+                ->whereDate('payment_date', $today)
+                ->get();
+
+            return (object)[
+                'collector' => $col,
+                'name' => $col->user->name ?? 'Collector',
+                'area' => $col->assigned_area ?? 'General Area',
+                'clients_collected_count' => $colPayments->count(),
+                'total_collected' => $colPayments->sum('amount_paid'),
+                'loan_premium' => $colPayments->sum('loan_premium_amount'),
+                'insurance_premium' => $colPayments->sum('insurance_premium_amount'),
+                'processing_amount' => $colPayments->where('status', 'processing')->sum('amount_paid'),
+                'remitted_amount' => $colPayments->where('status', 'paid')->sum('amount_paid'),
+            ];
+        });
+
+        // 5. Recent transactions & Turnovers
         $recentTransactions = HostVaultLedger::with('creator')->latest()->take(10)->get();
 
-        // 5. Weekly Chart data (last 7 days)
+        // 6. Weekly Chart data (last 7 days)
         $chartLabels = [];
         $chartCashIn = [];
         $chartCashOut = [];
@@ -86,6 +112,8 @@ class HostDashboardController extends Controller
             'todayCashIn',
             'todayCashOut',
             'todayLoanCollections',
+            'todayLoanPremium',
+            'todayInsurancePremium',
             'todaySavingsDeposits',
             'todayExpenses',
             'totalActiveLoans',
@@ -97,6 +125,8 @@ class HostDashboardController extends Controller
             'pendingWalletCount',
             'pendingCollectorCount',
             'pendingClientUpdatesCount',
+            'pendingTurnoversCount',
+            'agentCollections',
             'recentTransactions',
             'chartLabels',
             'chartCashIn',

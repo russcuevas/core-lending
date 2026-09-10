@@ -172,10 +172,12 @@ class ClientController extends Controller
 
         $termDays = (int)SystemSetting::get('loan_term_days', 60);
         $interestPercent = (float)SystemSetting::get('loan_interest_rate_percent', 10.00);
+        $insuranceDaily = (float)SystemSetting::get('loan_insurance_premium_daily', 5.00);
         $principal = (float)$request->amount;
         $interestTotal = $principal * ($interestPercent / 100);
         $totalPayable = $principal + $interestTotal;
-        $dailyInstallment = round($totalPayable / $termDays, 2);
+        $loanPremiumDaily = round($totalPayable / $termDays, 2);
+        $totalDailyPayable = $loanPremiumDaily + $insuranceDaily;
 
         $client->update(['status' => 'pending_host_approval']);
 
@@ -185,7 +187,10 @@ class ClientController extends Controller
             'principal_amount' => $principal,
             'interest_rate_percent' => $interestPercent,
             'total_payable' => $totalPayable,
-            'daily_installment' => $dailyInstallment,
+            'daily_installment' => $loanPremiumDaily,
+            'loan_premium_daily' => $loanPremiumDaily,
+            'insurance_premium_daily' => $insuranceDaily,
+            'total_daily_payable' => $totalDailyPayable,
             'term_days' => $termDays,
             'remaining_balance' => $totalPayable,
             'total_paid' => 0.00,

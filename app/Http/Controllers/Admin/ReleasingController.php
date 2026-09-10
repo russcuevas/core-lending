@@ -9,23 +9,29 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\WalletTransaction;
 use App\Models\Loan;
+use App\Models\LoanPayment;
+use App\Models\Collector;
 use App\Models\User;
 use App\Models\Client;
+use App\Models\CashTurnover;
 use App\Models\HostVaultLedger;
 use App\Models\SystemNotification;
+use App\Models\SystemSetting;
 use Carbon\Carbon;
 
 class ReleasingController extends Controller
 {
     public function dashboard()
     {
-        // 1. Pending incoming requests waiting for Releasing Officer review
+        $today = Carbon::today();
+
+        // 1. Pending incoming requests waiting for Finance Officer review
         $pendingReviews = WalletTransaction::with('user')
             ->where('status', 'pending_releasing_review')
             ->latest()
             ->get();
 
-        // 2. Approved by Host, ready for Releasing Officer to execute (PIN & Camera Photo Proof)
+        // 2. Approved by Host, ready for Finance Officer to execute (PIN & Camera Photo Proof)
         $approvedReadyToRelease = WalletTransaction::with('user')
             ->where('status', 'approved_by_host')
             ->latest()
@@ -37,15 +43,51 @@ class ReleasingController extends Controller
             ->latest()
             ->get();
 
-        // 4. Completed disbursements today
+        // 4. Pending Collector Remittances (Collections awaiting Admin Finance PIN verification)
+        $pendingRemittances = LoanPayment::where('status', 'processing')
+            ->with(['collector.user', 'client.user', 'loan'])
+            ->latest()
+            ->get();
+
+        $collectorsWithPendingRemittances = $pendingRemittances->groupBy('collector_id');
+
+        $totalPendingRemittanceAmount = $pendingRemittances->sum('amount_paid');
+        $totalRemittedToday = LoanPayment::where('status', 'paid')
+            ->whereDate('remitted_at', $today)
+            ->sum('amount_paid');
+
+        // Cash on Hand: Remitted Cash from Collections + Cash-In Received today - Cash-Out / Loans Released today
+        $todayCashInReceived = WalletTransaction::where('type', 'cash_in')
+            ->where('status', 'completed')
+            ->whereDate('updated_at', $today)
+            ->sum('amount');
+
+        $todayDisbursedOut = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
+            ->where('status', 'completed')
+            ->whereDate('updated_at', $today)
+            ->sum('amount') + Loan::where('status', 'active')->whereDate('release_date', $today)->sum('principal_amount');
+
+        $turnoversSubmittedToday = CashTurnover::whereDate('date', $today)->sum('total_amount');
+        $cashOnHand = max(0, ($totalRemittedToday + $todayCashInReceived) - ($todayDisbursedOut + $turnoversSubmittedToday));
+
+        // 5. Recent Cash Turnovers to Host
+        $recentTurnovers = CashTurnover::with(['admin', 'host'])->latest()->take(10)->get();
+
+        // 6. Completed disbursements today
         $completedToday = WalletTransaction::whereIn('status', ['completed'])
-            ->whereDate('updated_at', Carbon::today())
+            ->whereDate('updated_at', $today)
             ->count();
 
         return view('admin.releasing.dashboard', compact(
             'pendingReviews',
             'approvedReadyToRelease',
             'loansReadyToDisburse',
+            'pendingRemittances',
+            'collectorsWithPendingRemittances',
+            'totalPendingRemittanceAmount',
+            'totalRemittedToday',
+            'cashOnHand',
+            'recentTurnovers',
             'completedToday'
         ));
     }
@@ -268,5 +310,207 @@ class ReleasingController extends Controller
         );
 
         return back()->with('success', "Loan #{$loan->id} successfully released to {$clientUser->name}!");
+    }
+
+    public function receiveRemittance(Request $request)
+    {
+        $request->validate([
+            'admin_pin' => 'required|digits:4',
+            'collector_id' => 'required|exists:collectors,id',
+            'payment_ids' => 'nullable|array',
+            'payment_ids.*' => 'exists:loan_payments,id',
+        ]);
+
+        /** @var \App\Models\User $adminUser */
+        $adminUser = Auth::user();
+
+        // Verify Admin Finance PIN
+        $isPinValid = ($adminUser->pin_code === $request->admin_pin) || Hash::check($request->admin_pin, $adminUser->password);
+        if (!$isPinValid) {
+            return back()->with('error', 'Incorrect Admin Finance PIN code. Verification failed.');
+        }
+
+        $collector = Collector::with('user')->findOrFail($request->collector_id);
+
+        $query = LoanPayment::where('collector_id', $collector->id)
+            ->where('status', 'processing');
+
+        if ($request->filled('payment_ids')) {
+            $query->whereIn('id', $request->payment_ids);
+        }
+
+        $payments = $query->with(['loan.client.user', 'client.user'])->get();
+
+        if ($payments->isEmpty()) {
+            return back()->with('error', 'No pending processing payments found for this collector.');
+        }
+
+        $totalRemitted = 0.00;
+
+        foreach ($payments as $payment) {
+            $loan = $payment->loan;
+            $client = $payment->client;
+            $clientUser = $client->user;
+            $amountPaid = (float)$payment->amount_paid;
+            $totalRemitted += $amountPaid;
+
+            // Apply payment to loan balance & schedules
+            $newRemainingBalance = max(0, $loan->remaining_balance - $amountPaid);
+            $newTotalPaid = $loan->total_paid + $amountPaid;
+            $isFullyPaid = ($newRemainingBalance <= 0);
+
+            $remainingToDistribute = $amountPaid;
+            $unpaidSchedules = $loan->schedules()->where('status', '!=', 'paid')->orderBy('day_number', 'asc')->get();
+
+            foreach ($unpaidSchedules as $schedule) {
+                if ($remainingToDistribute <= 0 && !$isFullyPaid) break;
+
+                $neededForThisDay = $schedule->expected_amount - $schedule->paid_amount;
+                if ($remainingToDistribute >= $neededForThisDay || $isFullyPaid) {
+                    $actualApplied = min($remainingToDistribute, $neededForThisDay);
+                    $schedule->update([
+                        'paid_amount' => $schedule->expected_amount,
+                        'status' => 'paid',
+                        'paid_at' => Carbon::now(),
+                    ]);
+                    $remainingToDistribute = max(0, $remainingToDistribute - $actualApplied);
+                } else {
+                    $schedule->update([
+                        'paid_amount' => $schedule->paid_amount + $remainingToDistribute,
+                        'status' => 'partial',
+                        'paid_at' => Carbon::now(),
+                    ]);
+                    $remainingToDistribute = 0;
+                }
+            }
+
+            if ($isFullyPaid) {
+                $loan->schedules()->where('status', '!=', 'paid')->update([
+                    'status' => 'paid',
+                    'paid_at' => Carbon::now(),
+                ]);
+            }
+
+            $loan->update([
+                'remaining_balance' => $newRemainingBalance,
+                'total_paid' => $newTotalPaid,
+                'status' => $isFullyPaid ? 'fully_paid' : 'active',
+            ]);
+
+            // Update payment to 'paid' & stamped with Admin Finance PIN verification
+            $payment->update([
+                'status' => 'paid',
+                'remitted_at' => Carbon::now(),
+                'admin_pin_verified_by' => $adminUser->id,
+                'admin_pin_verified_at' => Carbon::now(),
+                'client_remaining_balance_after' => $newRemainingBalance,
+            ]);
+
+            // Update client last payment date
+            $client->update([
+                'last_payment_date' => Carbon::today()->format('Y-m-d'),
+                'consecutive_missed_days' => 0,
+                'status' => $isFullyPaid ? 'completed' : 'active',
+            ]);
+
+            // Host Vault Inflow Ledger
+            HostVaultLedger::logEntry(
+                'in',
+                'loan_repayment',
+                $amountPaid,
+                "Daily loan repayment verified & remitted for {$clientUser->name} (Collector: {$collector->user->name}, Verified by Finance Officer: {$adminUser->name})",
+                'LoanPayment',
+                $payment->id,
+                $adminUser->id
+            );
+
+            // Commission rule for collector if fully paid
+            if ($isFullyPaid && !$loan->collector_commission_paid) {
+                $bonusComm = (float)SystemSetting::get('collector_loan_commission_fixed', 300.00);
+                if ($bonusComm > 0) {
+                    $collector->increment('commission_balance', $bonusComm);
+                    $collector->increment('total_earned_commission', $bonusComm);
+                }
+                $loan->update(['collector_commission_paid' => true]);
+
+                SystemNotification::sendNotification(
+                    $collector->user_id,
+                    'collector',
+                    "₱" . number_format($bonusComm, 2) . " Fully-Paid Loan Commission Earned!",
+                    "Congratulations! Client {$clientUser->name} has fully paid their loan. ₱" . number_format($bonusComm, 2) . " commission credited to your balance.",
+                    'payment_received'
+                );
+            }
+
+            // Client notification: Paid status confirmed
+            SystemNotification::sendNotification(
+                $clientUser->id,
+                'client',
+                "Payment Confirmed & Verified (PAID)",
+                "Your daily payment of ₱" . number_format($amountPaid, 2) . " has been received at the office and officially verified as PAID. Remaining Balance: ₱" . number_format($newRemainingBalance, 2),
+                'payment_received',
+                '/client/dashboard'
+            );
+        }
+
+        // Notify Collector that remittance was accepted
+        SystemNotification::sendNotification(
+            $collector->user_id,
+            'collector',
+            "Remittance Confirmed by Finance (₱" . number_format($totalRemitted, 2) . ")",
+            "Finance Officer {$adminUser->name} verified and accepted your collection remittance of ₱" . number_format($totalRemitted, 2) . " (" . $payments->count() . " client payments).",
+            'payment_received',
+            '/collector/dashboard'
+        );
+
+        return back()->with('success', "✓ Remittance of ₱" . number_format($totalRemitted, 2) . " (" . $payments->count() . " collections from {$collector->user->name}) successfully verified and updated to PAID!");
+    }
+
+    public function submitCashTurnover(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'notes' => 'nullable|string',
+        ]);
+
+        $amount = (float)$request->amount;
+        $turnoverRef = 'TO-' . Carbon::today()->format('Ymd') . '-' . strtoupper(Str::random(6));
+
+        // Get recent un-turned-over remitted payments to compute breakdown
+        $unTurnedOverPayments = LoanPayment::where('status', 'paid')
+            ->whereNull('turnover_id')
+            ->get();
+
+        $loanPremiumSum = $unTurnedOverPayments->sum('loan_premium_amount');
+        $insurancePremiumSum = $unTurnedOverPayments->sum('insurance_premium_amount');
+
+        $turnover = CashTurnover::create([
+            'turnover_reference' => $turnoverRef,
+            'admin_id' => Auth::id(),
+            'total_amount' => $amount,
+            'loan_collection_amount' => $loanPremiumSum > 0 ? min($amount, $loanPremiumSum) : $amount,
+            'insurance_collection_amount' => $insurancePremiumSum > 0 ? min($amount, $insurancePremiumSum) : 0.00,
+            'date' => Carbon::today()->format('Y-m-d'),
+            'status' => 'pending_host_approval',
+            'admin_notes' => $request->notes ?? "Physical Cash Turnover from Finance Officer " . Auth::user()->name,
+            'is_read' => false,
+        ]);
+
+        // Link payments
+        if ($unTurnedOverPayments->isNotEmpty()) {
+            LoanPayment::whereIn('id', $unTurnedOverPayments->pluck('id'))->update(['turnover_id' => $turnover->id]);
+        }
+
+        // Notify Host
+        SystemNotification::sendNotification(
+            null,
+            'host',
+            "💵 Cash Turnover Submitted (₱" . number_format($amount, 2) . ")",
+            "Finance Officer " . Auth::user()->name . " turned over physical cash of ₱" . number_format($amount, 2) . " (Ref: {$turnoverRef}). Please count, acknowledge, and approve in Host Approvals.",
+            'approval_needed',
+            '/host/approvals#tab-turnovers'
+        );
+
+        return back()->with('success', "✓ Cash Turnover of ₱" . number_format($amount, 2) . " (Ref: {$turnoverRef}) submitted to Host Superadmin for approval!");
     }
 }

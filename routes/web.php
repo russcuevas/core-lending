@@ -43,6 +43,8 @@ Route::middleware(['auth', 'role:host'])->prefix('host')->name('host.')->group(f
     Route::post('/approvals/collectors/{user}/decline', [HostApprovalController::class, 'declineCollector'])->name('approvals.collectors.decline');
     Route::post('/approvals/client-updates/{updateRequest}/approve', [HostApprovalController::class, 'approveClientUpdate'])->name('approvals.client_updates.approve');
     Route::post('/approvals/client-updates/{updateRequest}/decline', [HostApprovalController::class, 'declineClientUpdate'])->name('approvals.client_updates.decline');
+    Route::post('/approvals/turnovers/{turnover}/approve', [HostApprovalController::class, 'approveCashTurnover'])->name('approvals.turnovers.approve');
+    Route::post('/approvals/turnovers/{turnover}/decline', [HostApprovalController::class, 'declineCashTurnover'])->name('approvals.turnovers.decline');
 
     // Accounts & Credentials
     Route::get('/accounts', [HostAccountController::class, 'index'])->name('accounts.index');
@@ -86,12 +88,21 @@ Route::middleware(['auth', 'role:admin_encoder,host'])->prefix('admin/encoder')-
     Route::get('/reports/daily-payments', [EncoderController::class, 'printDailyPayments'])->name('daily_payments');
 });
 
-// 3. ADMIN RELEASING OFFICER ROUTES
+// 3. ADMIN FINANCE / RELEASING OFFICER ROUTES
 Route::middleware(['auth', 'role:admin_releasing,host'])->prefix('admin/releasing')->name('admin.releasing.')->group(function () {
     Route::get('/dashboard', [ReleasingController::class, 'dashboard'])->name('dashboard');
     Route::post('/requests/{transaction}/review', [ReleasingController::class, 'submitReview'])->name('requests.review');
     Route::post('/requests/{transaction}/execute', [ReleasingController::class, 'executeDisbursement'])->name('requests.execute');
     Route::post('/loans/{loan}/disburse', [ReleasingController::class, 'executeLoanRelease'])->name('loans.disburse');
+    Route::post('/remittances/receive', [ReleasingController::class, 'receiveRemittance'])->name('remittances.receive');
+    Route::post('/turnover/submit', [ReleasingController::class, 'submitCashTurnover'])->name('turnover.submit');
+});
+
+// Alias prefix for admin/finance
+Route::middleware(['auth', 'role:admin_releasing,host'])->prefix('admin/finance')->name('admin.finance.')->group(function () {
+    Route::get('/dashboard', [ReleasingController::class, 'dashboard'])->name('dashboard');
+    Route::post('/remittances/receive', [ReleasingController::class, 'receiveRemittance'])->name('remittances.receive');
+    Route::post('/turnover/submit', [ReleasingController::class, 'submitCashTurnover'])->name('turnover.submit');
 });
 
 // 4. COLLECTOR ROUTES
@@ -100,6 +111,7 @@ Route::middleware(['auth', 'role:collector'])->prefix('collector')->name('collec
     Route::get('/scan', [CollectorController::class, 'scanQr'])->name('scan_qr');
     Route::get('/payments/collect', [CollectorController::class, 'collectPaymentForm'])->name('payments.collect_form');
     Route::post('/loans/{loan}/pay', [CollectorController::class, 'processPayment'])->name('payments.process');
+    Route::post('/payments/remit', [CollectorController::class, 'remitCollections'])->name('payments.remit');
     Route::post('/cashout', [CollectorController::class, 'requestCashout'])->name('cashout');
 });
 

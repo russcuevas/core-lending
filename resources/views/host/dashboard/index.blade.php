@@ -86,6 +86,27 @@
         </div>
     </div>
 
+    <!-- Daily Premium Inflow Breakdown -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 20px;">
+        <div style="background: #ffffff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6; border-radius: var(--radius-md); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm);">
+            <div>
+                <div style="font-size: 11.5px; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px;">Today Loan Principal Premium</div>
+                <div style="font-size: 20px; font-weight: 800; color: #1e3a8a; margin-top: 2px;">₱{{ number_format($todayLoanPremium, 2) }}</div>
+                <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Direct loan installment collections</div>
+            </div>
+            <div style="font-size: 24px; opacity: 0.85;">📈</div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #bbf7d0; border-left: 4px solid #10b981; border-radius: var(--radius-md); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm);">
+            <div>
+                <div style="font-size: 11.5px; font-weight: 700; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px;">Today Insurance Premium Inflow</div>
+                <div style="font-size: 20px; font-weight: 800; color: #047857; margin-top: 2px;">₱{{ number_format($todayInsurancePremium, 2) }}</div>
+                <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Daily insurance reserves collected</div>
+            </div>
+            <div style="font-size: 24px; opacity: 0.85;">🛡️</div>
+        </div>
+    </div>
+
     <!-- Pending Approvals Alert Banner -->
     @if($totalPendingApprovals > 0)
         <div style="background: var(--amber-light); border-left: 4px solid var(--amber); padding: 14px 16px; border-radius: var(--radius-md); margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -94,13 +115,89 @@
                 <div>
                     <strong style="color: #92400e; font-size: 13.5px;">{{ $totalPendingApprovals }} Pending Items Requiring Host Approval</strong>
                     <div style="font-size: 12px; color: #b45309;">
-                        Loans ({{ $pendingLoanCount }}), Cash Requests ({{ $pendingWalletCount }}), Collectors ({{ $pendingCollectorCount }}), Updates ({{ $pendingClientUpdatesCount }})
+                        Loans ({{ $pendingLoanCount }}), Turnovers ({{ $pendingTurnoversCount ?? 0 }}), Cash Requests ({{ $pendingWalletCount }}), Collectors ({{ $pendingCollectorCount }}), Updates ({{ $pendingClientUpdatesCount }})
                     </div>
                 </div>
             </div>
             <a href="{{ route('host.approvals.index') }}" class="btn btn-sm btn-amber">Review All &rarr;</a>
         </div>
     @endif
+
+    <!-- Daily Collection per Agent (Banggaan Table) -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h3 class="card-title">👥 Daily Collections per Agent (Banggaan View)</h3>
+                <p style="font-size: 12.5px; color: var(--text-secondary); margin: 2px 0 0 0;">
+                    Reconcile daily collections collected by each field agent vs. remittances received by Admin Finance.
+                </p>
+            </div>
+            <span class="badge badge-indigo">Agents Active: {{ count($agentCollections) }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table data-table-enhanced">
+                <thead>
+                    <tr>
+                        <th>Collector / Agent</th>
+                        <th>Area / Route</th>
+                        <th>Clients Collected</th>
+                        <th>Loan Premium</th>
+                        <th>Insurance Premium</th>
+                        <th>Total Collected</th>
+                        <th>Remittance Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if(!empty($agentCollections) && count($agentCollections) > 0)
+                        @foreach($agentCollections as $agent)
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 700; color: var(--brand-navy);">{{ $agent['collector_name'] }}</div>
+                                    <div style="font-size: 11.5px; color: var(--text-secondary);">📞 {{ $agent['phone'] ?? 'N/A' }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-slate" style="font-weight: 600;">{{ $agent['area'] ?? 'General Route' }}</span>
+                                </td>
+                                <td>
+                                    <strong style="color: var(--brand-navy);">{{ $agent['clients_collected_count'] }}</strong> clients
+                                </td>
+                                <td style="font-weight: 600; color: #1e40af;">
+                                    ₱{{ number_format($agent['loan_premium'], 2) }}
+                                </td>
+                                <td style="font-weight: 600; color: #059669;">
+                                    ₱{{ number_format($agent['insurance_premium'], 2) }}
+                                </td>
+                                <td>
+                                    <span style="font-size: 15px; font-weight: 800; color: var(--brand-navy);">
+                                        ₱{{ number_format($agent['total_collected'], 2) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($agent['status'] === 'remitted')
+                                        <span class="badge badge-emerald">✓ Fully Remitted (PIN Verified)</span>
+                                    @elseif($agent['status'] === 'partial_remitted')
+                                        <span class="badge badge-amber">⚡ Partially Remitted</span>
+                                    @elseif($agent['status'] === 'pending_remittance')
+                                        <span class="badge badge-amber" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">
+                                            ⏳ Processing (₱{{ number_format($agent['processing_amount'], 2) }} Pending Office Remittance)
+                                        </span>
+                                    @else
+                                        <span class="badge badge-slate">No Collections Today</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
+                        <tr>
+                            <td colspan="7" class="text-center" style="padding: 24px; color: var(--text-muted);">
+                                No agent collections recorded for today.
+                            </td>
+                        </tr>
+                    @endif
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <!-- Weekly Chart & Recent Ledger Grid -->
     <div class="host-grid-2-1">

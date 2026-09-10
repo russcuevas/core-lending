@@ -317,9 +317,9 @@
                     <div class="loan-kpi-val">₱{{ number_format($activeLoan->total_payable, 2) }}</div>
                 </div>
                 <div class="loan-kpi-card">
-                    <div class="loan-kpi-label">Daily Installment</div>
+                    <div class="loan-kpi-label">Daily Amount Payable</div>
                     <div class="loan-kpi-val" style="color: #d97706;">
-                        ₱{{ number_format($activeLoan->daily_installment, 2) }}</div>
+                        ₱{{ number_format($activeLoan->total_daily_payable ?? $activeLoan->daily_installment, 2) }}</div>
                 </div>
                 <div class="loan-kpi-card">
                     <div class="loan-kpi-label">Remaining Balance</div>
@@ -327,6 +327,39 @@
                         ₱{{ number_format($activeLoan->remaining_balance, 2) }}</div>
                 </div>
             </div>
+
+            <!-- Insurance Premium Breakdown Box -->
+            <div style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 6px;">
+                            <span>🛡️</span> Daily Payable Breakdown
+                        </div>
+                        <div style="font-size: 12.5px; color: #334155; margin-top: 4px;">
+                            <span>Loan Premium: <strong>₱{{ number_format($activeLoan->loan_premium_daily ?? ($activeLoan->daily_installment - ($activeLoan->insurance_premium_daily ?? 5)), 2) }}</strong></span>
+                            <span style="color: #64748b; font-weight: bold;">+</span>
+                            <span>Insurance Premium: <strong>₱{{ number_format($activeLoan->insurance_premium_daily ?? 5, 2) }}</strong></span>
+                            <span style="color: #64748b; font-weight: bold;">=</span>
+                            <span style="color: #059669; font-weight: 800;">Daily Total: ₱{{ number_format($activeLoan->total_daily_payable ?? $activeLoan->daily_installment, 2) }}</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 11.5px; background: #ffffff; padding: 5px 12px; border-radius: 6px; border: 1px solid #cbd5e1; color: #475569; font-weight: 600;">
+                        🕛 12:00 MN Auto-Wallet Deduction Active (When Balance Sufficient)
+                    </div>
+                </div>
+            </div>
+
+            @php
+                $pendingProcessingPayments = $paymentHistory->where('status', 'processing');
+            @endphp
+            @if ($pendingProcessingPayments->count() > 0)
+                <div style="background: #fefce8; border: 1px solid #fde047; border-left: 4px solid #eab308; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">⏳</span>
+                    <div style="font-size: 12.5px; color: #854d0e;">
+                        <strong>Processing Collection Payment:</strong> Your collector collected <strong>₱{{ number_format($pendingProcessingPayments->sum('amount_paid'), 2) }}</strong> today. Status will automatically update to <span class="badge badge-emerald" style="font-size: 10px;">✓ Paid</span> as soon as Admin Finance receives and verifies the remittance in the office.
+                    </div>
+                </div>
+            @endif
 
             <!-- Payment Schedule Table -->
             <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--text-primary);">

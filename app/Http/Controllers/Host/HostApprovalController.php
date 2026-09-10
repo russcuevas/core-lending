@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Models\ClientUpdateRequest;
+use App\Models\CashTurnover;
 use App\Models\HostVaultLedger;
 use App\Models\SystemNotification;
 use Carbon\Carbon;
@@ -46,21 +47,31 @@ class HostApprovalController extends Controller
             ->latest('id')
             ->get();
 
+        // 5. Pending Cash Turnovers from Admin Finance (Unread first, then latest)
+        $pendingTurnovers = CashTurnover::with('admin')
+            ->where('status', 'pending_host_approval')
+            ->orderBy('is_read', 'asc')
+            ->latest('id')
+            ->get();
+
         $unreadLoansCount = $pendingLoans->where('is_read', false)->count();
         $unreadWalletCount = $pendingWalletRequests->where('is_read', false)->count();
         $unreadCollectorsCount = $pendingCollectors->where('is_read', false)->count();
         $unreadUpdatesCount = $pendingClientUpdates->where('is_read', false)->count();
-        $totalUnreadCount = $unreadLoansCount + $unreadWalletCount + $unreadCollectorsCount + $unreadUpdatesCount;
+        $unreadTurnoversCount = $pendingTurnovers->where('is_read', false)->count();
+        $totalUnreadCount = $unreadLoansCount + $unreadWalletCount + $unreadCollectorsCount + $unreadUpdatesCount + $unreadTurnoversCount;
 
         return view('host.approvals.index', compact(
             'pendingLoans',
             'pendingWalletRequests',
             'pendingCollectors',
             'pendingClientUpdates',
+            'pendingTurnovers',
             'unreadLoansCount',
             'unreadWalletCount',
             'unreadCollectorsCount',
             'unreadUpdatesCount',
+            'unreadTurnoversCount',
             'totalUnreadCount'
         ));
     }
@@ -78,11 +89,14 @@ class HostApprovalController extends Controller
             User::where('id', $id)->update(['is_read' => true]);
         } elseif ($type === 'update' && $id) {
             ClientUpdateRequest::where('id', $id)->update(['is_read' => true]);
+        } elseif ($type === 'turnover' && $id) {
+            CashTurnover::where('id', $id)->update(['is_read' => true]);
         } elseif ($type === 'all') {
             Loan::where('status', 'pending_host_approval')->update(['is_read' => true]);
             WalletTransaction::where('status', 'pending_host_approval')->update(['is_read' => true]);
             User::where('role', 'collector')->where('status', 'pending')->update(['is_read' => true]);
             ClientUpdateRequest::where('status', 'pending_host_approval')->update(['is_read' => true]);
+            CashTurnover::where('status', 'pending_host_approval')->update(['is_read' => true]);
         }
 
         if ($request->ajax() || $request->wantsJson()) {
@@ -90,6 +104,68 @@ class HostApprovalController extends Controller
         }
 
         return back()->with('success', 'Requests marked as read.');
+    }
+
+    public function approveCashTurnover(Request $request, CashTurnover $turnover)
+    {
+        $turnover->update([
+            'status' => 'approved',
+            'is_read' => true,
+            'host_id' => Auth::id(),
+            'approved_at' => Carbon::now(),
+            'host_notes' => $request->notes ?? "Physical cash received and vault ledger updated.",
+        ]);
+
+        // Host Vault Inflow Ledger entry
+        HostVaultLedger::logEntry(
+            'in',
+            'cash_turnover',
+            $turnover->total_amount,
+            "Physical Cash Turnover received from Finance Officer {$turnover->admin->name} (Ref: {$turnover->turnover_reference})",
+            'CashTurnover',
+            $turnover->id,
+            Auth::id()
+        );
+
+        // Notify Finance Officer
+        SystemNotification::sendNotification(
+            $turnover->admin_id,
+            'admin_releasing',
+            'Cash Turnover Approved & Received',
+            "Host Superadmin officially received and acknowledged your cash turnover of ₱" . number_format($turnover->total_amount, 2) . " (Ref: {$turnover->turnover_reference}).",
+            'approval_notice',
+            '/admin/releasing/dashboard'
+        );
+
+        return redirect()->to(route('host.approvals.index') . '#tab-turnovers')->with('success', "✓ Cash Turnover #{$turnover->turnover_reference} (₱" . number_format($turnover->total_amount, 2) . ") approved and added to Host Vault balance!");
+    }
+
+    public function declineCashTurnover(Request $request, CashTurnover $turnover)
+    {
+        $request->validate(['reason' => 'required|string']);
+
+        $turnover->update([
+            'status' => 'declined',
+            'is_read' => true,
+            'host_id' => Auth::id(),
+            'approved_at' => Carbon::now(),
+            'host_notes' => $request->reason,
+        ]);
+
+        // Release payments back from turnover
+        $turnover->payments()->update(['turnover_id' => null]);
+
+        // Notify Finance Officer
+        SystemNotification::sendNotification(
+            $turnover->admin_id,
+            'admin_releasing',
+            'Cash Turnover Declined',
+            "Your cash turnover of ₱" . number_format($turnover->total_amount, 2) . " (Ref: {$turnover->turnover_reference}) was declined by Host: {$request->reason}",
+            'request_alert',
+            '/admin/releasing/dashboard'
+        );
+
+        return redirect()->to(route('host.approvals.index') . '#tab-turnovers')->with('success', "Cash Turnover #{$turnover->turnover_reference} was declined.");
     }
 
     public function approveLoan(Request $request, Loan $loan)

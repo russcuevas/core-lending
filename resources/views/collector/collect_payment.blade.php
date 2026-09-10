@@ -22,34 +22,45 @@
                 <span class="badge badge-emerald">Active Loan #{{ $loan->id }}</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; background: #f8fafc; padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; background: #f8fafc; padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;">
                 <div>
-                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Daily Installment Due</span>
-                    <span style="font-size: 16px; font-weight: 700; color: #d97706;" id="daily_installment_due" data-due="{{ $loan->daily_installment }}">
-                        ₱{{ number_format($loan->daily_installment, 2) }}
+                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Daily Loan Premium</span>
+                    <span style="font-size: 15px; font-weight: 700; color: #0f172a;">
+                        ₱{{ number_format($loanPremiumDaily, 2) }}
+                    </span>
+                </div>
+
+                <div>
+                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Daily Insurance Premium</span>
+                    <span style="font-size: 15px; font-weight: 700; color: #0284c7;">
+                        ₱{{ number_format($insuranceDaily, 2) }}
+                    </span>
+                </div>
+
+                <div>
+                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Total Daily Due</span>
+                    <span style="font-size: 16px; font-weight: 800; color: #d97706;" id="daily_installment_due" data-due="{{ $totalDailyPayable }}">
+                        ₱{{ number_format($totalDailyPayable, 2) }}
                     </span>
                 </div>
 
                 <div>
                     <span style="font-size: 11px; color: var(--text-secondary); display: block;">Remaining Loan Balance</span>
-                    <span style="font-size: 16px; font-weight: 700; color: #059669;" id="client_remaining_balance" data-balance="{{ $loan->remaining_balance }}">
+                    <span style="font-size: 15px; font-weight: 700; color: #059669;" id="client_remaining_balance" data-balance="{{ $loan->remaining_balance }}">
                         ₱{{ number_format($loan->remaining_balance, 2) }}
                     </span>
                 </div>
 
                 <div>
-                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Payment Progress</span>
-                    <span style="font-size: 16px; font-weight: 700;">
+                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Progress</span>
+                    <span style="font-size: 15px; font-weight: 700;">
                         {{ $paidDays }} / 60 Days
                     </span>
                 </div>
+            </div>
 
-                <div>
-                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Total Paid So Far</span>
-                    <span style="font-size: 16px; font-weight: 700; color: #0077b6;">
-                        ₱{{ number_format($loan->total_paid, 2) }}
-                    </span>
-                </div>
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 14px; font-size: 12px; color: #1e40af;">
+                💡 <strong>Breakdown:</strong> Loan Premium (₱{{ number_format($loanPremiumDaily, 2) }}) + Insurance Premium (₱{{ number_format($insuranceDaily, 2) }}) = <strong>₱{{ number_format($totalDailyPayable, 2) }}</strong> Total Daily Due
             </div>
 
             @php

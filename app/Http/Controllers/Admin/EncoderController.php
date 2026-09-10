@@ -112,10 +112,12 @@ class EncoderController extends Controller
         // 3. Calculate Loan Details (Enforced from Host Global Settings)
         $termDays = (int)SystemSetting::get('loan_term_days', 60);
         $interestPercent = (float)SystemSetting::get('loan_interest_rate_percent', 10.00);
+        $insuranceDaily = (float)SystemSetting::get('loan_insurance_premium_daily', 5.00);
         $principal = (float)$request->loan_amount;
         $interestTotal = $principal * ($interestPercent / 100);
         $totalPayable = $principal + $interestTotal;
-        $dailyInstallment = round($totalPayable / $termDays, 2);
+        $loanPremiumDaily = round($totalPayable / $termDays, 2);
+        $totalDailyPayable = $loanPremiumDaily + $insuranceDaily;
 
         $loan = Loan::create([
             'client_id' => $client->id,
@@ -123,7 +125,10 @@ class EncoderController extends Controller
             'principal_amount' => $principal,
             'interest_rate_percent' => $interestPercent,
             'total_payable' => $totalPayable,
-            'daily_installment' => $dailyInstallment,
+            'daily_installment' => $loanPremiumDaily,
+            'loan_premium_daily' => $loanPremiumDaily,
+            'insurance_premium_daily' => $insuranceDaily,
+            'total_daily_payable' => $totalDailyPayable,
             'term_days' => $termDays,
             'remaining_balance' => $totalPayable,
             'total_paid' => 0.00,
@@ -208,10 +213,12 @@ class EncoderController extends Controller
         // Calculate Loan Details strictly based on Host Global Settings
         $termDays = (int)SystemSetting::get('loan_term_days', 60);
         $interestPercent = (float)SystemSetting::get('loan_interest_rate_percent', 10.00);
+        $insuranceDaily = (float)SystemSetting::get('loan_insurance_premium_daily', 5.00);
         $principal = (float)$request->loan_amount;
         $interestTotal = $principal * ($interestPercent / 100);
         $totalPayable = $principal + $interestTotal;
-        $dailyInstallment = round($totalPayable / $termDays, 2);
+        $loanPremiumDaily = round($totalPayable / $termDays, 2);
+        $totalDailyPayable = $loanPremiumDaily + $insuranceDaily;
 
         // Update collector and client status
         $client->update([
@@ -225,7 +232,10 @@ class EncoderController extends Controller
             'principal_amount' => $principal,
             'interest_rate_percent' => $interestPercent,
             'total_payable' => $totalPayable,
-            'daily_installment' => $dailyInstallment,
+            'daily_installment' => $loanPremiumDaily,
+            'loan_premium_daily' => $loanPremiumDaily,
+            'insurance_premium_daily' => $insuranceDaily,
+            'total_daily_payable' => $totalDailyPayable,
             'term_days' => $termDays,
             'remaining_balance' => $totalPayable,
             'total_paid' => 0.00,
