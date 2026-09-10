@@ -14,7 +14,7 @@ function calculateLoanSchedule() {
     const principal = parseFloat(principalInput.value) || 0;
     const interestPercent = parseFloat(interestInput.value) || 0;
     const termDays = termDaysElem ? parseInt(termDaysElem.getAttribute('data-term-days')) || 60 : 60;
-    
+
     function setDisplay(elem, text) {
         if (!elem) return;
         if (elem.tagName === 'INPUT') {
@@ -147,34 +147,143 @@ async function toggleReleasingTorch() {
     }
 }
 
-// Burn official Core Lending timestamp watermark onto canvas
+// Burn official Core Lending timestamp watermark onto canvas (Mobile-responsive adaptive layout)
 function applyTimestampWatermark(ctx, width, height) {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const fullTimestamp = `${dateStr} • ${timeStr} | Core Lending Official Disbursement Proof`;
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
 
-    const barHeight = Math.max(50, Math.floor(height * 0.08));
+    // Adaptive resolution scaling (calibrated against 640px base width)
+    const scale = Math.max(0.75, Math.min(2.5, width / 640));
 
-    // Dark gradient overlay footer
-    ctx.fillStyle = 'rgba(9, 30, 58, 0.92)';
-    ctx.fillRect(0, height - barHeight, width, barHeight);
+    const badgeText = '✓ VERIFIED TRANSACTION PROOF';
+    const timeText = `${dateStr} • ${timeStr}`;
+    const brandText = 'Core Lending Official Proof';
+    const singleLineFullText = `${timeText}  |  ${brandText}`;
 
-    // Green top accent line
-    ctx.fillStyle = '#10b981';
-    ctx.fillRect(0, height - barHeight, width, 3);
+    const badgeFontSize = Math.max(11, Math.round(13 * scale));
+    const timeFontSize = Math.max(10, Math.round(12 * scale));
 
-    // Text details
-    const fontSize = Math.max(13, Math.floor(barHeight * 0.32));
-    ctx.font = `bold ${fontSize}px "Plus Jakarta Sans", -apple-system, sans-serif`;
-    ctx.fillStyle = '#10b981';
-    ctx.fillText('✓ VERIFIED TRANSACTION PROOF', 18, height - Math.floor(barHeight * 0.38));
+    const badgeFont = `700 ${badgeFontSize}px "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    const timeFont = `600 ${timeFontSize}px "Plus Jakarta Sans", "SF Pro Text", -apple-system, monospace`;
 
-    ctx.font = `${Math.max(11, fontSize - 2)}px monospace`;
-    ctx.fillStyle = '#ffffff';
-    const textWidth = ctx.measureText(fullTimestamp).width;
-    const xPos = Math.max(width - textWidth - 18, 18);
-    ctx.fillText(fullTimestamp, xPos, height - Math.floor(barHeight * 0.38));
+    // Measure text dimensions
+    ctx.save();
+    ctx.font = badgeFont;
+    const badgeWidth = ctx.measureText(badgeText).width;
+
+    ctx.font = timeFont;
+    const fullTextWidth = ctx.measureText(singleLineFullText).width;
+    const paddingX = Math.max(12, Math.round(16 * scale));
+
+    // Determine if layout should be stacked (mobile portrait / narrow widths)
+    const totalSingleLineWidth = badgeWidth + fullTextWidth + (paddingX * 3);
+    const isStacked = width < totalSingleLineWidth || width < 580;
+
+    let barHeight;
+    if (isStacked) {
+        barHeight = Math.max(56, Math.round(54 * scale));
+    } else {
+        barHeight = Math.max(44, Math.round(42 * scale));
+    }
+
+    const barY = height - barHeight;
+
+    // 1. Sleek semi-transparent dark gradient background bar
+    const grad = ctx.createLinearGradient(0, barY, 0, height);
+    grad.addColorStop(0, 'rgba(8, 20, 39, 0.94)');
+    grad.addColorStop(1, 'rgba(3, 10, 20, 0.98)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, barY, width, barHeight);
+
+    // 2. High-contrast gradient accent line (Emerald to Cyan)
+    const lineGrad = ctx.createLinearGradient(0, barY, width, barY);
+    lineGrad.addColorStop(0, '#10b981');
+    lineGrad.addColorStop(0.5, '#06b6d4');
+    lineGrad.addColorStop(1, '#10b981');
+    ctx.fillStyle = lineGrad;
+    ctx.fillRect(0, barY, width, Math.max(2.5, Math.round(3 * scale)));
+
+    // 3. Render watermark text
+    if (isStacked) {
+        // --- STACKED 2-ROW LAYOUT (Mobile Responsive) ---
+        const row1Y = barY + Math.round(barHeight * 0.40);
+        const row2Y = barY + Math.round(barHeight * 0.80);
+
+        // Row 1: Pill Badge
+        const pillHeight = Math.round(badgeFontSize * 1.5);
+        const pillWidth = Math.min(badgeWidth + Math.round(14 * scale), width - (paddingX * 2));
+        const pillY = row1Y - Math.round(badgeFontSize * 0.92);
+        const pillRadius = Math.round(4 * scale);
+
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+        ctx.lineWidth = Math.max(1, Math.round(1 * scale));
+
+        if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(paddingX, pillY, pillWidth, pillHeight, pillRadius);
+            ctx.fill();
+            ctx.stroke();
+        } else {
+            ctx.fillRect(paddingX, pillY, pillWidth, pillHeight);
+        }
+
+        ctx.font = badgeFont;
+        ctx.fillStyle = '#34d399';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(badgeText, paddingX + Math.round(7 * scale), row1Y);
+
+        // Row 2: Clean High-Contrast Timestamp & Branding
+        ctx.font = timeFont;
+        ctx.fillStyle = '#f8fafc';
+
+        let row2Text = `${timeText}  •  ${brandText}`;
+        if (ctx.measureText(row2Text).width > width - (paddingX * 2)) {
+            row2Text = `${timeText} • Core Lending`;
+        }
+        if (ctx.measureText(row2Text).width > width - (paddingX * 2)) {
+            row2Text = timeText;
+        }
+
+        ctx.fillText(row2Text, paddingX, row2Y);
+    } else {
+        // --- SINGLE-ROW LAYOUT (Desktop / Wide Screen) ---
+        const centerY = barY + Math.round(barHeight * 0.62);
+
+        // Left Pill Badge
+        const pillHeight = Math.round(badgeFontSize * 1.55);
+        const pillWidth = badgeWidth + Math.round(16 * scale);
+        const pillY = centerY - Math.round(badgeFontSize * 0.95);
+        const pillRadius = Math.round(4 * scale);
+
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+        ctx.lineWidth = Math.max(1, Math.round(1 * scale));
+
+        if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(paddingX, pillY, pillWidth, pillHeight, pillRadius);
+            ctx.fill();
+            ctx.stroke();
+        } else {
+            ctx.fillRect(paddingX, pillY, pillWidth, pillHeight);
+        }
+
+        ctx.font = badgeFont;
+        ctx.fillStyle = '#34d399';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(badgeText, paddingX + Math.round(8 * scale), centerY);
+
+        // Right Timestamp & Branding
+        ctx.font = timeFont;
+        ctx.fillStyle = '#f8fafc';
+        const rightTextWidth = ctx.measureText(singleLineFullText).width;
+        const rightX = width - rightTextWidth - paddingX;
+        ctx.fillText(singleLineFullText, rightX, centerY);
+    }
+
+    ctx.restore();
 }
 
 // Live Camera Snapshot Capture
@@ -222,9 +331,9 @@ function processUploadedProofImage(fileInput, canvasId, outputInputId, previewIm
     const file = fileInput.files[0];
     const reader = new FileReader();
 
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         const img = new Image();
-        img.onload = function() {
+        img.onload = function () {
             const canvas = document.getElementById(canvasId);
             const outputInput = document.getElementById(outputInputId);
             const previewImg = document.getElementById(previewImgId);
