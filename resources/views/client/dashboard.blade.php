@@ -240,17 +240,22 @@
     <!-- 5. Active Loan Section -->
     @if ($activeLoan && $activeLoan->status === 'active')
         @php
-            $insDaily = (float)($activeLoan->insurance_premium_daily ?? $loanInsurancePremium ?? 25.00);
+            $insDaily = (float) ($activeLoan->insurance_premium_daily ?? ($loanInsurancePremium ?? 25.0));
             $totalTermDays = $loanSchedules->count() > 0 ? $loanSchedules->count() : 60;
             $progressPercent = min(100, round(($paidDaysCount / $totalTermDays) * 100));
             $extendedDaysCount = max(0, $totalTermDays - 60);
             $totalInsuranceForTerm = $insDaily * $totalTermDays;
             $totalCombinedPayable = $activeLoan->total_payable + $totalInsuranceForTerm;
-            $loanDaily = (float)($activeLoan->loan_premium_daily ?? ($activeLoan->daily_installment - $insDaily > 0 ? $activeLoan->daily_installment - $insDaily : $activeLoan->daily_installment));
-            $totalDaily = (float)($activeLoan->total_daily_payable ?? ($loanDaily + $insDaily));
-            $totalCombinedPaid = (float)($activeLoan->total_paid ?? $paymentHistory->where('status', 'paid')->sum('amount_paid'));
+            $loanDaily =
+                (float) ($activeLoan->loan_premium_daily ??
+                    ($activeLoan->daily_installment - $insDaily > 0
+                        ? $activeLoan->daily_installment - $insDaily
+                        : $activeLoan->daily_installment));
+            $totalDaily = (float) ($activeLoan->total_daily_payable ?? $loanDaily + $insDaily);
+            $totalCombinedPaid =
+                (float) ($activeLoan->total_paid ?? $paymentHistory->where('status', 'paid')->sum('amount_paid'));
             $totalCombinedRemaining = max(0, $totalCombinedPayable - $totalCombinedPaid);
-            $paidInsuranceSum = (float)$paymentHistory->where('status', 'paid')->sum('insurance_premium_amount');
+            $paidInsuranceSum = (float) $paymentHistory->where('status', 'paid')->sum('insurance_premium_amount');
             $remainingInsurance = max(0, $totalInsuranceForTerm - $paidInsuranceSum);
             $remainingLoanPrincipalInterest = max(0, $totalCombinedRemaining - $remainingInsurance);
         @endphp
@@ -326,8 +331,10 @@
                     <div class="loan-kpi-label">Total Payable</div>
                     <div class="loan-kpi-val" style="color: #047857;">
                         ₱{{ number_format($totalCombinedPayable, 2) }}
-                        <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
-                            ₱{{ number_format($activeLoan->total_payable, 2) }} Loan + ₱{{ number_format($totalInsuranceForTerm, 2) }} Ins.
+                        <span
+                            style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
+                            ₱{{ number_format($activeLoan->total_payable, 2) }} Loan +
+                            ₱{{ number_format($totalInsuranceForTerm, 2) }} Ins.
                         </span>
                     </div>
                 </div>
@@ -335,7 +342,8 @@
                     <div class="loan-kpi-label">Daily Amount Payable</div>
                     <div class="loan-kpi-val" style="color: #d97706;">
                         ₱{{ number_format($totalDaily, 2) }}
-                        <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
+                        <span
+                            style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
                             ₱{{ number_format($loanDaily, 2) }} Loan + ₱{{ number_format($insDaily, 2) }} Ins.
                         </span>
                     </div>
@@ -344,33 +352,43 @@
                     <div class="loan-kpi-label">Remaining Balance</div>
                     <div class="loan-kpi-val" style="color: #059669;">
                         ₱{{ number_format($totalCombinedRemaining, 2) }}
-                        <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
-                            ₱{{ number_format($remainingLoanPrincipalInterest, 2) }} Loan + ₱{{ number_format($remainingInsurance, 2) }} Ins.
+                        <span
+                            style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
+                            ₱{{ number_format($remainingLoanPrincipalInterest, 2) }} Loan +
+                            ₱{{ number_format($remainingInsurance, 2) }} Ins.
                         </span>
                     </div>
                 </div>
             </div>
 
             <!-- Insurance Premium Breakdown Box -->
-            <div style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div
+                style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <div>
-                        <div style="font-size: 13px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 6px;">
+                        <div
+                            style="font-size: 13px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 6px;">
                             <span>🛡️</span> Daily Payable Breakdown & Micro-Insurance Protection
                         </div>
-                        <div style="font-size: 12.5px; color: #334155; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <div
+                            style="font-size: 12.5px; color: #334155; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                             <span>Loan Premium: <strong>₱{{ number_format($loanDaily, 2) }}</strong></span>
                             <span style="color: #64748b; font-weight: bold;">+</span>
-                            <span>Insurance Premium: <strong style="color: #0284c7;">₱{{ number_format($insDaily, 2) }}</strong></span>
+                            <span>Insurance Premium: <strong
+                                    style="color: #0284c7;">₱{{ number_format($insDaily, 2) }}</strong></span>
                             <span style="color: #64748b; font-weight: bold;">=</span>
-                            <span style="color: #059669; font-weight: 800;">Daily Total: ₱{{ number_format($totalDaily, 2) }}</span>
+                            <span style="color: #059669; font-weight: 800;">Daily Total:
+                                ₱{{ number_format($totalDaily, 2) }}</span>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <a href="{{ route('client.insurance') }}" class="btn btn-sm btn-outline" style="background: #ffffff; border-color: #0284c7; color: #0284c7; font-weight: 700; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
+                        <a href="{{ route('client.insurance') }}" class="btn btn-sm btn-outline"
+                            style="background: #ffffff; border-color: #0284c7; color: #0284c7; font-weight: 700; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
                             <span>🛡️ View Policy Details</span> &rarr;
                         </a>
-                        <div style="font-size: 11.5px; background: #ffffff; padding: 5px 12px; border-radius: 6px; border: 1px solid #cbd5e1; color: #475569; font-weight: 600;">
+                        <div
+                            style="font-size: 11.5px; background: #ffffff; padding: 5px 12px; border-radius: 6px; border: 1px solid #cbd5e1; color: #475569; font-weight: 600;">
                             🕛 12:00 MN Auto-Wallet Deduction Active
                         </div>
                     </div>
@@ -381,21 +399,27 @@
                 $pendingProcessingPayments = $paymentHistory->where('status', 'processing');
             @endphp
             @if ($pendingProcessingPayments->count() > 0)
-                <div style="background: #fefce8; border: 1px solid #fde047; border-left: 4px solid #eab308; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+                <div
+                    style="background: #fefce8; border: 1px solid #fde047; border-left: 4px solid #eab308; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 18px;">⏳</span>
                     <div style="font-size: 12.5px; color: #854d0e;">
-                        <strong>Processing Collection Payment:</strong> Your collector collected <strong>₱{{ number_format($pendingProcessingPayments->sum('amount_paid'), 2) }}</strong> today. Status will automatically update to <span class="badge badge-emerald" style="font-size: 10px;">✓ Paid</span> as soon as Admin Finance receives and verifies the remittance in the office.
+                        <strong>Processing Collection Payment:</strong> Your collector collected
+                        <strong>₱{{ number_format($pendingProcessingPayments->sum('amount_paid'), 2) }}</strong> today.
+                        Status will automatically update to <span class="badge badge-emerald" style="font-size: 10px;">✓
+                            Paid</span> as soon as Admin Finance receives and verifies the remittance in the office.
                     </div>
                 </div>
             @endif
 
             <!-- Payment Schedule Table -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
                 <h4 style="font-size: 14px; font-weight: 700; margin: 0; color: var(--text-primary);">
                     📅 {{ $totalTermDays }}-Day Payment Schedule & Breakdown
                 </h4>
                 <span style="font-size: 12px; color: var(--text-secondary);">
-                    Includes <strong>Loan Premium</strong> + <strong>Insurance Premium (₱{{ number_format($insDaily, 2) }}/day)</strong>
+                    Includes <strong>Loan Premium</strong> + <strong>Insurance Premium
+                        (₱{{ number_format($insDaily, 2) }}/day)</strong>
                 </span>
             </div>
             <div class="table-responsive"
@@ -421,8 +445,26 @@
                                     !\Carbon\Carbon::parse($schedule->due_date)->isToday();
                                 $isToday = \Carbon\Carbon::parse($schedule->due_date)->isToday();
                                 $isExtended = $schedule->day_number > 60;
-                                $dayLoanPremium = (float)($schedule->expected_amount > 0 ? $schedule->expected_amount : $loanDaily);
+                                $dayLoanPremium =
+                                    (float) ($schedule->expected_amount > 0 ? $schedule->expected_amount : $loanDaily);
                                 $dayTotalPayable = $dayLoanPremium + $insDaily;
+
+                                $isFullySettled =
+                                    $totalCombinedRemaining <= 0 ||
+                                    $activeLoan->remaining_balance <= 0 ||
+                                    $activeLoan->status === 'fully_paid';
+                                $isSchedulePaid =
+                                    $schedule->status === 'paid' ||
+                                    ($isFullySettled &&
+                                        ($schedule->paid_amount > 0 ||
+                                            $schedule->day_number == $activeLoan->term_days));
+
+                                $dayPaidAmount = 0;
+                                if ($isSchedulePaid) {
+                                    $dayPaidAmount = $dayTotalPayable;
+                                } elseif ($schedule->paid_amount > 0) {
+                                    $dayPaidAmount = $schedule->paid_amount + $insDaily;
+                                }
                             @endphp
                             <tr @if ($isExtended) style="background: rgba(245, 158, 11, 0.04);" @endif>
                                 <td>
@@ -441,26 +483,24 @@
                                 </td>
                                 <td>₱{{ number_format($dayLoanPremium, 2) }}</td>
                                 <td style="color: #0284c7; font-weight: 600;">₱{{ number_format($insDaily, 2) }}</td>
-                                <td style="font-weight: 700; color: #166534;">₱{{ number_format($dayTotalPayable, 2) }}</td>
-                                <td
-                                    style="font-weight: 700; color: {{ $schedule->paid_amount > 0 ? '#059669' : 'inherit' }};">
-                                    {{ $schedule->paid_amount > 0 ? '₱' . number_format($schedule->paid_amount, 2) : '-' }}
+                                <td style="font-weight: 700; color: #166534;">₱{{ number_format($dayTotalPayable, 2) }}
                                 </td>
-                                @php
-                                    $isFullySettled =
-                                        $totalCombinedRemaining <= 0 || $activeLoan->remaining_balance <= 0 || $activeLoan->status === 'fully_paid';
-                                    $isSchedulePaid =
-                                        $schedule->status === 'paid' ||
-                                        ($isFullySettled &&
-                                            ($schedule->paid_amount > 0 ||
-                                                $schedule->day_number == $activeLoan->term_days));
-                                @endphp
+                                <td style="font-weight: 700; color: {{ $dayPaidAmount > 0 ? '#059669' : 'inherit' }};">
+                                    @if ($dayPaidAmount > 0)
+                                        <div>₱{{ number_format($dayPaidAmount, 2) }}</div>
+                                        <div style="font-size: 9.5px; color: var(--text-muted); font-weight: normal;">
+                                            (₱{{ number_format($dayLoanPremium, 2) }} +
+                                            ₱{{ number_format($insDaily, 2) }})</div>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 <td>
                                     @if ($isSchedulePaid)
                                         <span class="badge badge-emerald">✓ Paid</span>
                                     @elseif($schedule->status === 'partial')
                                         <span class="badge badge-amber">Partial
-                                            (₱{{ number_format($schedule->paid_amount, 2) }})
+                                            (₱{{ number_format($dayPaidAmount, 2) }})
                                         </span>
                                     @elseif($isPastDue)
                                         <span class="badge badge-rose">⚠️ Missed</span>
@@ -525,7 +565,8 @@
             <div>
                 <h3 class="card-title">🐖 My Active Savings Funds</h3>
                 <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                    Fixed growth savings with daily interest automatically credited to your wallet, and full capital + final interest released on maturity.
+                    Fixed growth savings with daily interest automatically credited to your wallet, and full capital + final
+                    interest released on maturity.
                 </p>
             </div>
             <button type="button" class="btn btn-sm btn-emerald" onclick="openModal('addSavingsModal')">
@@ -542,9 +583,15 @@
             <div class="host-approval-grid">
                 @foreach ($savingsAccounts as $sav)
                     @php
-                        $remainingInterest = max(0, (float)$sav->total_expected_interest - (float)$sav->accumulated_interest_paid);
-                        $finalPayout = (float)$sav->deposit_amount + $remainingInterest;
-                        $progressPercent = $sav->lock_in_days > 0 ? min(100, round(($sav->days_credited / $sav->lock_in_days) * 100)) : 0;
+                        $remainingInterest = max(
+                            0,
+                            (float) $sav->total_expected_interest - (float) $sav->accumulated_interest_paid,
+                        );
+                        $finalPayout = (float) $sav->deposit_amount + $remainingInterest;
+                        $progressPercent =
+                            $sav->lock_in_days > 0
+                                ? min(100, round(($sav->days_credited / $sav->lock_in_days) * 100))
+                                : 0;
                     @endphp
                     <div class="approval-card" style="border-left-color: #059669;">
                         <div>
@@ -556,24 +603,33 @@
 
                             <!-- Progress Bar -->
                             <div style="margin: 10px 0 12px 0;">
-                                <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px;">
-                                    <span style="font-weight: 600; color: var(--text-secondary);">Daily Term Progress:</span>
-                                    <strong style="color: #059669;">Day {{ $sav->days_credited }} of {{ $sav->lock_in_days }} ({{ $progressPercent }}%)</strong>
+                                <div
+                                    style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px;">
+                                    <span style="font-weight: 600; color: var(--text-secondary);">Daily Term
+                                        Progress:</span>
+                                    <strong style="color: #059669;">Day {{ $sav->days_credited }} of
+                                        {{ $sav->lock_in_days }} ({{ $progressPercent }}%)</strong>
                                 </div>
-                                <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
-                                    <div style="width: {{ $progressPercent }}%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 999px; transition: width 0.3s ease;"></div>
+                                <div
+                                    style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                                    <div
+                                        style="width: {{ $progressPercent }}%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 999px; transition: width 0.3s ease;">
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="approval-meta-row">
                                 <span class="approval-meta-label">Daily Interest (Credited Daily)</span>
                                 <span class="approval-meta-val"
-                                    style="color: #059669; font-weight: 700;">+₱{{ number_format($sav->daily_interest_amount, 2) }} / day</span>
+                                    style="color: #059669; font-weight: 700;">+₱{{ number_format($sav->daily_interest_amount, 2) }}
+                                    / day</span>
                             </div>
                             <div class="approval-meta-row">
                                 <span class="approval-meta-label">Total Interest Received so far</span>
-                                <span
-                                    class="approval-meta-val" style="font-weight: 600;">₱{{ number_format($sav->accumulated_interest_paid, 2) }} <span style="font-weight: normal; color: var(--text-secondary);">/ ₱{{ number_format($sav->total_expected_interest, 2) }}</span></span>
+                                <span class="approval-meta-val"
+                                    style="font-weight: 600;">₱{{ number_format($sav->accumulated_interest_paid, 2) }}
+                                    <span style="font-weight: normal; color: var(--text-secondary);">/
+                                        ₱{{ number_format($sav->total_expected_interest, 2) }}</span></span>
                             </div>
                             <div class="approval-meta-row">
                                 <span class="approval-meta-label">Maturity Date</span>
@@ -584,7 +640,8 @@
                                 <span class="approval-meta-val">
                                     @if ($sav->status === 'matured')
                                         <span class="badge badge-emerald"
-                                            style="background: #059669; color: #fff; font-weight: 700;">✓ Matured & Paid</span>
+                                            style="background: #059669; color: #fff; font-weight: 700;">✓ Matured &
+                                            Paid</span>
                                     @else
                                         <span class="badge badge-emerald">{{ ucfirst($sav->status) }}</span>
                                     @endif
@@ -599,7 +656,8 @@
                                         <button type="submit" class="btn btn-sm btn-outline"
                                             style="width: 100%; font-size: 11.5px; border-color: #059669; color: #047857; display: flex; align-items: center; justify-content: center; gap: 4px;"
                                             title="Credit 1 day of daily interest to wallet balance">
-                                            <span>⚡ Test: Credit +1 Day Interest (+₱{{ number_format($sav->daily_interest_amount, 2) }})</span>
+                                            <span>⚡ Test: Credit +1 Day Interest
+                                                (+₱{{ number_format($sav->daily_interest_amount, 2) }})</span>
                                         </button>
                                     </form>
 
@@ -609,14 +667,17 @@
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-emerald"
                                             style="width: 100%; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(5,150,105,0.25);">
-                                            <span>⚡ Settle Maturity (Capital ₱{{ number_format($sav->deposit_amount, 2) }} + ₱{{ number_format($remainingInterest, 2) }} Interest)</span>
+                                            <span>⚡ Settle Maturity (Capital ₱{{ number_format($sav->deposit_amount, 2) }}
+                                                + ₱{{ number_format($remainingInterest, 2) }} Interest)</span>
                                         </button>
                                     </form>
                                 </div>
                             @else
                                 <div
                                     style="margin-top: 10px; background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.25); border-radius: 6px; padding: 8px 10px; font-size: 11.5px; color: #047857; font-weight: 600; text-align: center;">
-                                    ✓ Matured & Full Capital (+₱{{ number_format($sav->deposit_amount, 2) }}) and Total Interest (+₱{{ number_format($sav->total_expected_interest, 2) }}) Successfully Credited
+                                    ✓ Matured & Full Capital (+₱{{ number_format($sav->deposit_amount, 2) }}) and Total
+                                    Interest (+₱{{ number_format($sav->total_expected_interest, 2) }}) Successfully
+                                    Credited
                                 </div>
                             @endif
                         </div>
@@ -792,7 +853,9 @@
                         <h4 style="font-size: 14.5px; margin-bottom: 4px; font-weight: 700;">{{ $savingsLockInDays }}-Day
                             Fixed Lock-in Growth</h4>
                         <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                            Daily interest is automatically credited directly to your wallet every day (Days 1–{{ $savingsLockInDays - 1 }}). On Day {{ $savingsLockInDays }} (Maturity), your full Capital Deposit + final 1-day interest will be released!
+                            Daily interest is automatically credited directly to your wallet every day (Days
+                            1–{{ $savingsLockInDays - 1 }}). On Day {{ $savingsLockInDays }} (Maturity), your full
+                            Capital Deposit + final 1-day interest will be released!
                         </p>
                     </div>
 
@@ -819,7 +882,8 @@
                             <strong style="color: #059669;" id="preview_daily_interest">₱0.00 / day</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span style="color: var(--text-secondary);">Total {{ $savingsLockInDays }}-Day Interest:</span>
+                            <span style="color: var(--text-secondary);">Total {{ $savingsLockInDays }}-Day
+                                Interest:</span>
                             <strong id="preview_total_interest">₱0.00</strong>
                         </div>
                         <div
@@ -896,7 +960,8 @@
             <div class="modal-header">
                 <div>
                     <h3 class="modal-title">🔄 Apply for Loan Renewal (Re-Loan)</h3>
-                    <div style="font-size: 12px; color: var(--text-secondary);">Request a new loan cycle under verified terms.</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Request a new loan cycle under verified
+                        terms.</div>
                 </div>
                 <button type="button" class="modal-close" onclick="closeModal('applyRenewalModal')">&times;</button>
             </div>
@@ -905,11 +970,15 @@
                 <div class="modal-body">
                     <div
                         style="background: rgba(5, 150, 105, 0.08); border: 1px solid rgba(5, 150, 105, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                        <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 4px;">📌 Verified System Terms:</div>
-                        <div style="display: flex; gap: 16px; font-size: 12.5px; color: var(--text-primary); flex-wrap: wrap;">
+                        <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 4px;">📌 Verified
+                            System Terms:</div>
+                        <div
+                            style="display: flex; gap: 16px; font-size: 12.5px; color: var(--text-primary); flex-wrap: wrap;">
                             <div><strong>Interest:</strong> {{ $loanInterestRate ?? 10 }}%</div>
                             <div><strong>Term:</strong> {{ $loanTermDays ?? 60 }} Days (Daily)</div>
-                            <div><strong>Insurance:</strong> <span style="color: #0284c7; font-weight: 700;">₱{{ number_format($loanInsurancePremium ?? 25, 2) }} / day</span></div>
+                            <div><strong>Insurance:</strong> <span
+                                    style="color: #0284c7; font-weight: 700;">₱{{ number_format($loanInsurancePremium ?? 25, 2) }}
+                                    / day</span></div>
                         </div>
                     </div>
 
@@ -950,34 +1019,43 @@
                             Estimated Loan & Insurance Computation</div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
-                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Loan Interest ({{ $loanInterestRate ?? 10 }}%)</span>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Loan
+                                    Interest ({{ $loanInterestRate ?? 10 }}%)</span>
                                 <span style="font-size: 14px; font-weight: 700; color: #d97706;"
                                     id="client_renew_interest">₱0.00</span>
                             </div>
                             <div>
-                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Loan Principal+Int.</span>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Loan
+                                    Principal+Int.</span>
                                 <span style="font-size: 14px; font-weight: 800; color: #059669;"
                                     id="client_renew_payable">₱0.00</span>
                             </div>
                             <div>
-                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Daily Loan Amortization</span>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Daily Loan
+                                    Amortization</span>
                                 <span style="font-size: 13.5px; font-weight: 700; color: #334155;"
                                     id="client_renew_loan_daily">₱0.00 / day</span>
                             </div>
                             <div>
-                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Daily Insurance Premium</span>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Daily
+                                    Insurance Premium</span>
                                 <span style="font-size: 13.5px; font-weight: 700; color: #0284c7;"
-                                    id="client_renew_ins_daily">₱{{ number_format($loanInsurancePremium ?? 25, 2) }} / day</span>
+                                    id="client_renew_ins_daily">₱{{ number_format($loanInsurancePremium ?? 25, 2) }} /
+                                    day</span>
                             </div>
                             <div
                                 style="grid-column: span 2; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <div>
-                                    <span style="font-size: 12px; color: var(--text-secondary); display: block;">Total Daily Due:</span>
-                                    <strong style="font-size: 17px; color: #15803d;" id="client_renew_daily">₱0.00 / day</strong>
+                                    <span style="font-size: 12px; color: var(--text-secondary); display: block;">Total
+                                        Daily Due:</span>
+                                    <strong style="font-size: 17px; color: #15803d;" id="client_renew_daily">₱0.00 /
+                                        day</strong>
                                 </div>
                                 <div style="text-align: right;">
-                                    <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Combined Payable ({{ $loanTermDays ?? 60 }} Days):</span>
-                                    <strong style="font-size: 14px; color: #0f172a;" id="client_renew_total_combined">₱0.00</strong>
+                                    <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total
+                                        Combined Payable ({{ $loanTermDays ?? 60 }} Days):</span>
+                                    <strong style="font-size: 14px; color: #0f172a;"
+                                        id="client_renew_total_combined">₱0.00</strong>
                                 </div>
                             </div>
                         </div>
@@ -1008,7 +1086,7 @@
     <script>
         const clientLoanRate = {{ (float) ($loanInterestRate ?? 10) }};
         const clientLoanTerm = {{ (int) ($loanTermDays ?? 60) }};
-        const clientInsuranceDaily = {{ (float) ($loanInsurancePremium ?? 25.00) }};
+        const clientInsuranceDaily = {{ (float) ($loanInsurancePremium ?? 25.0) }};
 
         function setClientRenewAmount(val) {
             document.getElementById('client_renew_principal').value = val;

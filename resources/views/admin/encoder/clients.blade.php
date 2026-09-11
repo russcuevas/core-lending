@@ -75,7 +75,27 @@
                                     @endif
                                 </td>
                                 <td style="font-weight: 700; color: #059669;">
-                                    ₱{{ number_format($client->currentLoan->remaining_balance ?? 0, 2) }}
+                                    @if($client->currentLoan && $client->currentLoan->status === 'active')
+                                        @php
+                                            $cL = $client->currentLoan;
+                                            $cTermDays = $cL->schedules && $cL->schedules->count() > 0 ? $cL->schedules->count() : ($cL->term_days ?? 60);
+                                            $cInsDaily = (float)($cL->insurance_premium_daily > 0 ? $cL->insurance_premium_daily : 25.00);
+                                            $cTotIns = $cInsDaily * $cTermDays;
+                                            $cTotPayable = $cL->total_payable + $cTotIns;
+                                            $cCombinedRemaining = max(0, $cTotPayable - (float)$cL->total_paid);
+                                            $cPaidDays = $cL->days_paid_count;
+                                            $cRemainingIns = max(0, $cTotIns - ($cPaidDays * $cInsDaily));
+                                            $cRemainingLoan = max(0, $cCombinedRemaining - $cRemainingIns);
+                                        @endphp
+                                        <div>₱{{ number_format($cCombinedRemaining, 2) }}</div>
+                                        <div style="font-size: 10px; color: var(--text-secondary); font-weight: normal;">
+                                            ₱{{ number_format($cRemainingLoan, 2) }} Loan + ₱{{ number_format($cRemainingIns, 2) }} Ins
+                                        </div>
+                                    @elseif($client->currentLoan && in_array($client->currentLoan->status, ['completed', 'fully_paid']))
+                                        <span style="color: #059669;">₱0.00</span>
+                                    @else
+                                        <span style="color: var(--text-muted); font-weight: normal;">-</span>
+                                    @endif
                                 </td>
                                 <td>
                                     @php

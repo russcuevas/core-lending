@@ -532,7 +532,7 @@
                         Review and approve physical cash turnovers remitted by Admin Finance. Approving will automatically deposit the cash into the Host Vault Ledger.
                     </p>
                 </div>
-                <span class="badge badge-emerald">Total Pending: ₱{{ number_format($pendingTurnovers->sum('amount'), 2) }}</span>
+                <span class="badge badge-emerald">Total Pending: ₱{{ number_format($pendingTurnovers->sum('total_amount'), 2) }}</span>
             </div>
 
             <div class="table-responsive">
@@ -553,21 +553,26 @@
                                 <tr id="row-turnover-{{ $turnover->id }}" class="{{ !$turnover->is_read ? 'unread-row' : '' }}">
                                     <td>
                                         <div style="font-weight: 700; color: var(--brand-navy);">
-                                            #TO-{{ str_pad($turnover->id, 5, '0', STR_PAD_LEFT) }}
+                                            {{ $turnover->turnover_reference ?? ('#TO-' . str_pad($turnover->id, 5, '0', STR_PAD_LEFT)) }}
                                             @if(!$turnover->is_read)
                                                 <span class="badge-new">NEW</span>
                                             @endif
                                         </div>
                                     </td>
                                     <td>
-                                        <div style="font-weight: 600;">{{ $turnover->adminFinance->name ?? 'Admin Finance' }}</div>
-                                        <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $turnover->adminFinance->phone_number ?? '' }}</div>
+                                        <div style="font-weight: 600;">{{ $turnover->admin->name ?? 'Admin Finance' }}</div>
+                                        <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $turnover->admin->phone_number ?? '' }}</div>
                                     </td>
                                     <td>
-                                        <span style="font-size: 15px; font-weight: 800; color: #059669;">₱{{ number_format($turnover->amount, 2) }}</span>
+                                        <span style="font-size: 15px; font-weight: 800; color: #059669;">₱{{ number_format($turnover->total_amount, 2) }}</span>
                                     </td>
                                     <td>
-                                        <div style="font-size: 12.5px; color: var(--text-primary);">{{ $turnover->notes ?? 'Cash turnover to Superadmin vault' }}</div>
+                                        <div style="font-size: 12.5px; color: var(--text-primary);">{{ $turnover->admin_notes ?? 'Cash turnover to Superadmin vault' }}</div>
+                                        @if(($turnover->loan_collection_amount > 0) || ($turnover->insurance_collection_amount > 0))
+                                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                                                Loan: ₱{{ number_format($turnover->loan_collection_amount ?? 0, 2) }} | Ins: ₱{{ number_format($turnover->insurance_collection_amount ?? 0, 2) }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td>
                                         <div style="font-size: 12px; color: var(--text-secondary);">
@@ -576,13 +581,13 @@
                                     </td>
                                     <td>
                                         <div style="display: flex; gap: 6px; align-items: center; flex-wrap: nowrap;">
-                                            <form action="{{ route('host.approvals.turnovers.approve', $turnover->id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Receive cash turnover of ₱{{ number_format($turnover->amount, 2) }} into Host Vault?')">
+                                            <form action="{{ route('host.approvals.turnovers.approve', $turnover->id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Receive cash turnover of ₱{{ number_format($turnover->total_amount, 2) }} into Host Vault?')">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-emerald" style="padding: 4px 10px; font-weight: 700;">
                                                     ✓ Receive & Add to Vault
                                                 </button>
                                             </form>
-                                            <button type="button" class="btn btn-sm btn-rose" style="padding: 4px 10px;" onclick="openDeclineModal('{{ route('host.approvals.turnovers.decline', $turnover->id) }}', 'Cash Turnover #{{ $turnover->id }}')">
+                                            <button type="button" class="btn btn-sm btn-rose" style="padding: 4px 10px;" onclick="openDeclineModal('{{ route('host.approvals.turnovers.decline', $turnover->id) }}', 'Cash Turnover #{{ $turnover->turnover_reference ?? $turnover->id }}')">
                                                 ✕ Decline
                                             </button>
                                             @if(!$turnover->is_read)

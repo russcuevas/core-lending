@@ -46,6 +46,22 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: center;">
                         <!-- Payment Details Table -->
                         <div>
+                            @php
+                                $pRemBal = $payment->client_remaining_balance_after;
+                                $pRemLoan = 0;
+                                $pRemIns = 0;
+                                if ($payment->loan) {
+                                    $pL = $payment->loan;
+                                    $pTermDays = $pL->schedules ? ($pL->schedules->count() > 0 ? $pL->schedules->count() : ($pL->term_days ?? 60)) : 60;
+                                    $pInsDaily = (float)($pL->insurance_premium_daily > 0 ? $pL->insurance_premium_daily : 25.00);
+                                    $pTotIns = $pInsDaily * $pTermDays;
+                                    $pTotPayable = $pL->total_payable + $pTotIns;
+                                    $pRemBal = max(0, $pTotPayable - (float)$pL->total_paid);
+                                    $pPaidDays = $pL->days_paid_count;
+                                    $pRemIns = max(0, $pTotIns - ($pPaidDays * $pInsDaily));
+                                    $pRemLoan = max(0, $pRemBal - $pRemIns);
+                                }
+                            @endphp
                             <table style="width: 100%; font-size: 12.5px; border-collapse: collapse;">
                                 <tr>
                                     <td style="padding: 5px 0; color: var(--text-secondary);">Collector Assigned:</td>
@@ -55,12 +71,20 @@
                                     <td style="padding: 5px 0; color: var(--text-secondary);">Amount Paid:</td>
                                     <td style="padding: 5px 0; font-weight: 700; color: #059669; font-size: 15px;">
                                         ₱{{ number_format($payment->amount_paid, 2) }}
+                                        <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); margin-left: 6px;">
+                                            (₱{{ number_format($payment->loan_premium_amount > 0 ? $payment->loan_premium_amount : ($payment->amount_paid - ($payment->insurance_premium_amount ?? 25)), 2) }} Loan + ₱{{ number_format($payment->insurance_premium_amount ?? 25, 2) }} Ins)
+                                        </span>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 5px 0; color: var(--text-secondary);">Loan Remaining Balance:</td>
-                                    <td style="padding: 5px 0; font-weight: 700;">
-                                        ₱{{ number_format($payment->client_remaining_balance_after, 2) }}
+                                    <td style="padding: 5px 0; color: var(--text-secondary);">Remaining Balance:</td>
+                                    <td style="padding: 5px 0; font-weight: 700; color: #059669; font-size: 14.5px;">
+                                        ₱{{ number_format($pRemBal, 2) }}
+                                        @if($payment->loan)
+                                            <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); margin-left: 6px;">
+                                                (₱{{ number_format($pRemLoan, 2) }} Loan + ₱{{ number_format($pRemIns, 2) }} Ins)
+                                            </span>
+                                        @endif
                                     </td>
                                 </tr>
                                 <tr>

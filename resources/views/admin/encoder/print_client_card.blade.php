@@ -124,10 +124,10 @@
                                 <td style="padding: 3px 6px; color: #0284c7;">₱{{ number_format($insDaily, 2) }}</td>
                                 <td style="padding: 3px 6px; font-weight: 700; color: #099268;">₱{{ number_format($dayTotalDue, 2) }}</td>
                                 <td style="padding: 3px 6px;">
-                                    @if($sch->paid_amount > 0)
-                                        ₱{{ number_format($sch->paid_amount, 2) }}
-                                    @elseif($isSchedulePaid)
+                                    @if($isSchedulePaid)
                                         ₱{{ number_format($dayTotalDue, 2) }}
+                                    @elseif($sch->paid_amount > 0)
+                                        ₱{{ number_format($sch->paid_amount + $insDaily, 2) }}
                                     @else
                                         -
                                     @endif

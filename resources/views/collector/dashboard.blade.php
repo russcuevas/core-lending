@@ -299,9 +299,19 @@
                                     // Check if user has a pending wallet transaction (Cash-In, Cash-Out)
                                     $pendingWalletTx = $c->user && $c->user->walletTransactions ? $c->user->walletTransactions->whereIn('status', ['pending_releasing_review', 'pending_host_approval', 'approved_by_host'])->first() : null;
                                     
-                                    $insDaily = (float)($loan && $loan->insurance_premium_daily > 0 ? $loan->insurance_premium_daily : 5.00);
+                                    $termDays = $loan ? ($loan->schedules->count() > 0 ? $loan->schedules->count() : ($loan->term_days ?? 60)) : 60;
+                                    $insDaily = (float)($loan && $loan->insurance_premium_daily > 0 ? $loan->insurance_premium_daily : 25.00);
                                     $loanDaily = (float)($loan ? ($loan->loan_premium_daily > 0 ? $loan->loan_premium_daily : $loan->daily_installment) : 0);
-                                    $totDaily = $loanDaily + $insDaily;
+                                    $totDaily = (float)($loan && $loan->total_daily_payable > 0 ? $loan->total_daily_payable : ($loanDaily + $insDaily));
+
+                                    $totalInsuranceForTerm = $loan ? ($insDaily * $termDays) : 0;
+                                    $totalCombinedPayable = $loan ? ($loan->total_payable + $totalInsuranceForTerm) : 0;
+                                    $totalCombinedPaid = $loan ? (float)$loan->total_paid : 0;
+                                    $totalCombinedRemaining = max(0, $totalCombinedPayable - $totalCombinedPaid);
+
+                                    $paidDays = $loan ? $loan->days_paid_count : 0;
+                                    $remainingInsurance = max(0, $totalInsuranceForTerm - ($paidDays * $insDaily));
+                                    $remainingLoan = max(0, $totalCombinedRemaining - $remainingInsurance);
                                 @endphp
                                 <tr>
                                     <td>
@@ -318,7 +328,8 @@
                                     <td>{{ $c->user->phone_number }}</td>
                                     <td>
                                         @if($isActive)
-                                            <span class="badge badge-emerald">₱{{ number_format($loan->principal_amount, 2) }}</span>
+                                            <div style="font-weight: 700; color: var(--brand-navy);">₱{{ number_format($totalCombinedPayable, 2) }}</div>
+                                            <div style="font-size: 10px; color: var(--text-muted); font-weight: normal;">(₱{{ number_format($loan->principal_amount, 2) }} + Int + ₱{{ number_format($totalInsuranceForTerm, 2) }} Ins)</div>
                                         @elseif($isApprovedForRelease)
                                             <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 10.5px; font-weight: 700;">
                                                 📦 Ready for Release
@@ -341,7 +352,10 @@
                                     </td>
                                     <td style="font-weight: 700; color: #059669;">
                                         @if($isActive)
-                                            ₱{{ number_format($loan->remaining_balance, 2) }}
+                                            <div>₱{{ number_format($totalCombinedRemaining, 2) }}</div>
+                                            <div style="font-size: 10px; color: var(--text-secondary); font-weight: normal;">
+                                                ₱{{ number_format($remainingLoan, 2) }} Loan + ₱{{ number_format($remainingInsurance, 2) }} Ins
+                                            </div>
                                         @elseif($isCompleted)
                                             <span style="color: #059669;">₱0.00</span>
                                         @else
@@ -350,7 +364,7 @@
                                     </td>
                                     <td>
                                         @if($isActive)
-                                            <span style="font-weight: 600;">{{ $loan->days_paid_count }} / {{ $loan->term_days ?? 60 }}</span>
+                                            <span style="font-weight: 600;">{{ $loan->days_paid_count }} / {{ $termDays }}</span>
                                         @elseif($isCompleted)
                                             <span style="font-weight: 600; color: var(--text-secondary);">{{ $loan->term_days ?? 60 }} / {{ $loan->term_days ?? 60 }}</span>
                                         @else
@@ -438,7 +452,18 @@
                                     <td>
                                         <strong>{{ $p->client->user->name ?? 'N/A' }}</strong>
                                         <div style="font-size: 11px; color: var(--text-secondary);">
-                                            Loan #{{ $p->loan_id }} | Bal: ₱{{ number_format($p->client_remaining_balance_after, 2) }}
+                                            @if($p->loan)
+                                                @php
+                                                    $pTermDays = $p->loan->schedules ? ($p->loan->schedules->count() > 0 ? $p->loan->schedules->count() : ($p->loan->term_days ?? 60)) : 60;
+                                                    $pInsDaily = (float)($p->loan->insurance_premium_daily > 0 ? $p->loan->insurance_premium_daily : 25.00);
+                                                    $pTotIns = $pInsDaily * $pTermDays;
+                                                    $pTotPayable = $p->loan->total_payable + $pTotIns;
+                                                    $pRemBal = max(0, $pTotPayable - (float)$p->loan->total_paid);
+                                                @endphp
+                                                Loan #{{ $p->loan_id }} | Bal: ₱{{ number_format($pRemBal, 2) }}
+                                            @else
+                                                Loan #{{ $p->loan_id }} | Bal: ₱{{ number_format($p->client_remaining_balance_after, 2) }}
+                                            @endif
                                         </div>
                                     </td>
                                     <td>
@@ -502,7 +527,7 @@
                             <th>Date & Time</th>
                             <th>Client Name</th>
                             <th>Amount Paid</th>
-                            <th>Remaining Loan Balance</th>
+                            <th>Remaining Balance</th>
                             <th>Status & Verification</th>
                             <th>Proof Photo</th>
                         </tr>
@@ -510,11 +535,24 @@
                     <tbody>
                         @if(!$recentPayments->isEmpty())
                             @foreach($recentPayments as $p)
+                                @php
+                                    $pRemBal = $p->client_remaining_balance_after;
+                                    if ($p->loan) {
+                                        $pTermDays = $p->loan->schedules ? ($p->loan->schedules->count() > 0 ? $p->loan->schedules->count() : ($p->loan->term_days ?? 60)) : 60;
+                                        $pInsDaily = (float)($p->loan->insurance_premium_daily > 0 ? $p->loan->insurance_premium_daily : 25.00);
+                                        $pTotIns = $pInsDaily * $pTermDays;
+                                        $pTotPayable = $p->loan->total_payable + $pTotIns;
+                                        $pRemBal = max(0, $pTotPayable - (float)$p->loan->total_paid);
+                                    }
+                                @endphp
                                 <tr>
                                     <td>{{ $p->created_at->format('M d, Y h:i A') }}</td>
                                     <td><strong>{{ $p->client->user->name ?? 'N/A' }}</strong></td>
                                     <td style="font-weight: 700; color: #059669;">₱{{ number_format($p->amount_paid, 2) }}</td>
-                                    <td style="font-weight: 600;">₱{{ number_format($p->client_remaining_balance_after, 2) }}</td>
+                                    <td style="font-weight: 700; color: #059669;">
+                                        ₱{{ number_format($pRemBal, 2) }}
+                                        <div style="font-size: 10px; color: var(--text-muted); font-weight: normal;">(Principal+Int+Ins)</div>
+                                    </td>
                                     <td>
                                         @if($p->status === 'processing')
                                             <span class="badge badge-amber">⏳ Processing (Pending Remittance)</span>

@@ -16,7 +16,9 @@
                 <input type="date" name="end_date" class="form-control" value="{{ $endDate }}">
             </div>
             <button type="submit" class="btn btn-emerald">Generate Report</button>
-            <button type="button" class="btn btn-outline" onclick="window.print()">🖨 Print Report</button>
+            <a href="{{ route('host.reports.print', ['start_date' => $startDate, 'end_date' => $endDate]) }}" target="_blank" class="btn btn-outline" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <span>🖨</span> Print Clean Report
+            </a>
         </form>
     </div>
 

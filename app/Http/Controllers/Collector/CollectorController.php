@@ -57,7 +57,7 @@ class CollectorController extends Controller
             ->get();
 
         $recentPayments = LoanPayment::where('collector_id', $collector->id)
-            ->with(['client.user', 'loan', 'adminVerifier'])
+            ->with(['client.user', 'loan.schedules', 'adminVerifier'])
             ->latest()
             ->take(20)
             ->get();
@@ -65,7 +65,7 @@ class CollectorController extends Controller
         $remittanceHistory = LoanPayment::where('collector_id', $collector->id)
             ->where('status', 'paid')
             ->whereNotNull('remitted_at')
-            ->with(['client.user', 'loan', 'adminVerifier'])
+            ->with(['client.user', 'loan.schedules', 'adminVerifier'])
             ->latest('remitted_at')
             ->take(50)
             ->get();

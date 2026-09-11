@@ -22,6 +22,16 @@
                 <span class="badge badge-emerald">Active Loan #{{ $loan->id }}</span>
             </div>
 
+            @php
+                $termDays = $loan->schedules ? ($loan->schedules->count() > 0 ? $loan->schedules->count() : ($loan->term_days ?? 60)) : 60;
+                $totalInsuranceForTerm = $insuranceDaily * $termDays;
+                $totalCombinedPayable = $loan->total_payable + $totalInsuranceForTerm;
+                $totalCombinedPaid = (float)$loan->total_paid;
+                $totalCombinedRemaining = max(0, $totalCombinedPayable - $totalCombinedPaid);
+                $remainingInsurance = max(0, $totalInsuranceForTerm - ($paidDays * $insuranceDaily));
+                $remainingLoan = max(0, $totalCombinedRemaining - $remainingInsurance);
+            @endphp
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; background: #f8fafc; padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;">
                 <div>
                     <span style="font-size: 11px; color: var(--text-secondary); display: block;">Daily Loan Premium</span>
@@ -45,22 +55,25 @@
                 </div>
 
                 <div>
-                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Remaining Loan Balance</span>
-                    <span style="font-size: 15px; font-weight: 700; color: #059669;" id="client_remaining_balance" data-balance="{{ $loan->remaining_balance }}">
-                        ₱{{ number_format($loan->remaining_balance, 2) }}
+                    <span style="font-size: 11px; color: var(--text-secondary); display: block;">Remaining Balance</span>
+                    <span style="font-size: 15px; font-weight: 800; color: #059669;" id="client_remaining_balance" data-balance="{{ $totalCombinedRemaining }}">
+                        ₱{{ number_format($totalCombinedRemaining, 2) }}
                     </span>
+                    <div style="font-size: 9.5px; color: var(--text-secondary);">
+                        (₱{{ number_format($remainingLoan, 2) }} + ₱{{ number_format($remainingInsurance, 2) }} Ins)
+                    </div>
                 </div>
 
                 <div>
                     <span style="font-size: 11px; color: var(--text-secondary); display: block;">Progress</span>
                     <span style="font-size: 15px; font-weight: 700;">
-                        {{ $paidDays }} / 60 Days
+                        {{ $paidDays }} / {{ $termDays }} Days
                     </span>
                 </div>
             </div>
 
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 14px; font-size: 12px; color: #1e40af;">
-                💡 <strong>Breakdown:</strong> Loan Premium (₱{{ number_format($loanPremiumDaily, 2) }}) + Insurance Premium (₱{{ number_format($insuranceDaily, 2) }}) = <strong>₱{{ number_format($totalDailyPayable, 2) }}</strong> Total Daily Due
+                💡 <strong>Breakdown:</strong> Loan Premium (₱{{ number_format($loanPremiumDaily, 2) }}) + Insurance Premium (₱{{ number_format($insuranceDaily, 2) }}) = <strong>₱{{ number_format($totalDailyPayable, 2) }}</strong> Total Daily Due • Total Combined Payable: <strong>₱{{ number_format($totalCombinedPayable, 2) }}</strong>
             </div>
 
             @php
@@ -87,7 +100,7 @@
                     <label class="form-label" for="payment_amount" style="font-size: 13.5px; font-weight: 700;">
                         Enter Payment Amount Received (₱) *
                     </label>
-                    <input type="number" step="0.01" min="1" max="{{ $loan->remaining_balance }}" name="amount_paid" id="payment_amount" class="form-control" value="{{ $totalDailyPayable }}" required oninput="onPaymentAmountChange()" style="font-size: 17px; font-weight: 700; color: #059669;">
+                    <input type="number" step="0.01" min="1" max="{{ $totalCombinedRemaining }}" name="amount_paid" id="payment_amount" class="form-control" value="{{ $totalDailyPayable }}" required oninput="onPaymentAmountChange()" style="font-size: 17px; font-weight: 700; color: #059669;">
                     
                     <!-- Real-time calculation hint -->
                     <div id="payment_calculation_hint" style="margin-top: 6px; font-size: 12.5px;">

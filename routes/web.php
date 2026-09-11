@@ -60,6 +60,7 @@ Route::middleware(['auth', 'role:host'])->prefix('host')->name('host.')->group(f
     Route::post('/transactions/adjust-balance', [HostTransactionController::class, 'adjustBalance'])->name('transactions.adjust_balance');
     Route::put('/transactions/{ledger}', [HostTransactionController::class, 'update'])->name('transactions.update');
     Route::get('/reports', [HostReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/print', [HostReportController::class, 'print'])->name('reports.print');
 
     // System Settings & Rates
     Route::get('/settings', [HostSettingController::class, 'index'])->name('settings.index');

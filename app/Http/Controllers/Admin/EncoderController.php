@@ -187,7 +187,7 @@ class EncoderController extends Controller
 
     public function clientList(Request $request)
     {
-        $query = Client::with(['user', 'collector.user', 'currentLoan'])->latest();
+        $query = Client::with(['user', 'collector.user', 'currentLoan.schedules'])->latest();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -504,7 +504,7 @@ class EncoderController extends Controller
     {
         $date = $request->input('date', Carbon::today()->format('Y-m-d'));
 
-        $payments = LoanPayment::with(['client.user', 'collector.user', 'loan'])
+        $payments = LoanPayment::with(['client.user', 'collector.user', 'loan.schedules'])
             ->whereDate('payment_date', $date)
             ->latest()
             ->get();
