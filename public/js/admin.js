@@ -5,7 +5,11 @@ function calculateLoanSchedule() {
     const principalInput = document.getElementById('principal_amount');
     const interestInput = document.getElementById('interest_rate_percent');
     const termDaysElem = document.getElementById('loan_term_days_display');
+    const insuranceElem = document.getElementById('loan_insurance_premium_input') || document.getElementById('loan_insurance_premium_display');
     const totalPayableDisplay = document.getElementById('total_payable_display');
+    const loanPremiumDailyDisplay = document.getElementById('loan_premium_daily_display');
+    const insurancePremiumDisplay = document.getElementById('insurance_premium_display');
+    const totalDailyPayableDisplay = document.getElementById('total_daily_payable_display');
     const dailyInstallmentDisplay = document.getElementById('daily_installment_display');
     const schedulePreviewTable = document.getElementById('schedule_preview_body');
 
@@ -14,6 +18,7 @@ function calculateLoanSchedule() {
     const principal = parseFloat(principalInput.value) || 0;
     const interestPercent = parseFloat(interestInput.value) || 0;
     const termDays = termDaysElem ? parseInt(termDaysElem.getAttribute('data-term-days')) || 60 : 60;
+    const insuranceDaily = insuranceElem ? (parseFloat(insuranceElem.value || insuranceElem.getAttribute('data-insurance')) || 0) : 5.00;
 
     function setDisplay(elem, text) {
         if (!elem) return;
@@ -26,17 +31,24 @@ function calculateLoanSchedule() {
 
     if (principal <= 0) {
         setDisplay(totalPayableDisplay, '₱0.00');
+        setDisplay(loanPremiumDailyDisplay, '₱0.00 / day');
+        setDisplay(insurancePremiumDisplay, formatMoney(insuranceDaily) + ' / day');
+        setDisplay(totalDailyPayableDisplay, '₱0.00 / day');
         setDisplay(dailyInstallmentDisplay, '₱0.00 / day');
-        if (schedulePreviewTable) schedulePreviewTable.innerHTML = `<tr><td colspan="4" class="text-center">Enter loan amount to preview ${termDays}-day schedule</td></tr>`;
+        if (schedulePreviewTable) schedulePreviewTable.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 16px; color: var(--text-muted);">Enter loan amount to preview ${termDays}-day schedule</td></tr>`;
         return;
     }
 
     const interestAmount = principal * (interestPercent / 100);
     const totalPayable = principal + interestAmount;
-    const dailyInstallment = (totalPayable / termDays);
+    const loanPremiumDaily = Math.round((totalPayable / termDays) * 100) / 100;
+    const totalDailyPayable = Math.round((loanPremiumDaily + insuranceDaily) * 100) / 100;
 
     setDisplay(totalPayableDisplay, formatMoney(totalPayable));
-    setDisplay(dailyInstallmentDisplay, formatMoney(dailyInstallment) + (dailyInstallmentDisplay.tagName === 'INPUT' ? '' : ' / day'));
+    setDisplay(loanPremiumDailyDisplay, formatMoney(loanPremiumDaily) + ' / day');
+    setDisplay(insurancePremiumDisplay, formatMoney(insuranceDaily) + ' / day');
+    setDisplay(totalDailyPayableDisplay, formatMoney(totalDailyPayable) + ' / day');
+    setDisplay(dailyInstallmentDisplay, formatMoney(loanPremiumDaily) + (dailyInstallmentDisplay && dailyInstallmentDisplay.tagName === 'INPUT' ? '' : ' / day'));
 
     if (schedulePreviewTable) {
         let rows = '';
@@ -46,10 +58,17 @@ function calculateLoanSchedule() {
             dueDate.setDate(today.getDate() + i);
             let dateStr = dueDate.toISOString().split('T')[0];
 
+            let dayLoanAmort = (i === termDays) 
+                ? Math.round((totalPayable - (loanPremiumDaily * (termDays - 1))) * 100) / 100
+                : loanPremiumDaily;
+            let dayTotalPayable = Math.round((dayLoanAmort + insuranceDaily) * 100) / 100;
+
             rows += `<tr>
-                <td>Day ${i}</td>
+                <td style="font-weight: 600;">Day ${i}</td>
                 <td>${dateStr}</td>
-                <td>${formatMoney(dailyInstallment)}</td>
+                <td>${formatMoney(dayLoanAmort)}</td>
+                <td style="color: #0284c7;">${formatMoney(insuranceDaily)}</td>
+                <td style="font-weight: 700; color: #16a34a;">${formatMoney(dayTotalPayable)}</td>
                 <td><span class="badge badge-amber">Scheduled</span></td>
             </tr>`;
         }

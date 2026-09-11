@@ -51,8 +51,22 @@
                                 <td style="font-weight: 700;">
                                     ₱{{ number_format($client->currentLoan->principal_amount ?? 0, 2) }}
                                 </td>
-                                <td style="font-weight: 600; color: #d97706;">
-                                    ₱{{ number_format($client->currentLoan->daily_installment ?? 0, 2) }} / day
+                                <td>
+                                    @if($client->currentLoan)
+                                        @php
+                                            $cLoanDaily = (float)($client->currentLoan->loan_premium_daily > 0 ? $client->currentLoan->loan_premium_daily : $client->currentLoan->daily_installment);
+                                            $cInsDaily = (float)($client->currentLoan->insurance_premium_daily > 0 ? $client->currentLoan->insurance_premium_daily : 5.00);
+                                            $cTotalDaily = (float)($client->currentLoan->total_daily_payable > 0 ? $client->currentLoan->total_daily_payable : ($cLoanDaily + $cInsDaily));
+                                        @endphp
+                                        <div style="font-weight: 700; color: #16a34a;">
+                                            ₱{{ number_format($cTotalDaily, 2) }} / day
+                                        </div>
+                                        <div style="font-size: 10.5px; color: var(--text-secondary);">
+                                            ₱{{ number_format($cLoanDaily, 2) }} loan + ₱{{ number_format($cInsDaily, 2) }} ins.
+                                        </div>
+                                    @else
+                                        <span style="color: var(--text-muted);">-</span>
+                                    @endif
                                 </td>
                                 <td style="font-weight: 700; color: #059669;">
                                     ₱{{ number_format($client->currentLoan->remaining_balance ?? 0, 2) }}
@@ -61,13 +75,19 @@
                                     @php
                                         $cLoan = $client->currentLoan;
                                         $isLoanActive = $cLoan && $cLoan->status === 'active';
-                                        $isLoanPending = $cLoan && in_array($cLoan->status, ['pending_host_approval', 'approved_for_release', 'ready_for_release', 'pending_releasing_review']);
-                                        $isLoanCompleted = $cLoan && $cLoan->status === 'completed';
+                                        $isHostApproved = $cLoan && in_array($cLoan->status, ['approved_for_release', 'ready_for_release', 'releasing_in_process']);
+                                        $isPendingHost = $cLoan && in_array($cLoan->status, ['pending_host_approval', 'pending_releasing_review']);
+                                        $isLoanCompleted = $cLoan && in_array($cLoan->status, ['completed', 'fully_paid']);
+                                        $isLoanDeclined = $cLoan && in_array($cLoan->status, ['rejected', 'declined']);
                                     @endphp
                                     @if($isLoanActive)
                                         <span class="badge badge-emerald">Active Loan</span>
-                                    @elseif($isLoanPending)
+                                    @elseif($isHostApproved)
+                                        <span class="badge badge-emerald" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:700;">✓ Approved (For Release)</span>
+                                    @elseif($isPendingHost)
                                         <span class="badge badge-amber" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;">⏳ Pending Host</span>
+                                    @elseif($isLoanDeclined)
+                                        <span class="badge badge-rose" style="background:#ffe4e6; color:#be123c; border:1px solid #fecdd3;">✕ Declined by Host</span>
                                     @elseif($isLoanCompleted)
                                         <span class="badge badge-emerald" style="background:#d1fae5; color:#065f46; font-weight:600;">✓ Completed</span>
                                     @else
@@ -76,11 +96,13 @@
                                 </td>
                                 <td>
                                     <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                                        @if($isLoanCompleted || !$cLoan || in_array($cLoan->status, ['rejected', 'declined']))
+                                        @if($isLoanCompleted || !$cLoan || $isLoanDeclined)
                                             <button type="button" class="btn btn-sm btn-emerald" style="font-weight: 700; box-shadow: 0 2px 4px rgba(5,150,105,0.2);" onclick="openRenewModal('{{ $client->id }}', '{{ addslashes($client->user->name) }}', '{{ $client->collector_id }}')" title="Renew Loan for this client">
                                                 🔄 Renew Loan
                                             </button>
-                                        @elseif($isLoanPending)
+                                        @elseif($isHostApproved)
+                                            <span class="badge badge-indigo" style="font-size: 11px; padding: 4px 6px; background:#e0e7ff; color:#3730a3; border:1px solid #c7d2fe;">✓ Ready for Releasing</span>
+                                        @elseif($isPendingHost)
                                             <span class="badge badge-amber" style="font-size: 11px; padding: 4px 6px;">⏳ In Review</span>
                                         @endif
 
@@ -109,7 +131,7 @@
 
     <!-- Renew Loan Modal (Submits New Loan Application to Host for Approval) -->
     <div class="modal-overlay" id="renewLoanModal">
-        <div class="modal-box" style="max-width: 540px;">
+        <div class="modal-box" style="max-width: 560px;">
             <div class="modal-header">
                 <div>
                     <h3 class="modal-title" id="renewModalTitle">🔄 Loan Renewal / Re-Loan</h3>
@@ -122,15 +144,16 @@
                 <div class="modal-body">
                     <div style="background: rgba(5, 150, 105, 0.08); border: 1px solid rgba(5, 150, 105, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                         <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 4px;">📌 Host-Enforced Loan Terms:</div>
-                        <div style="display: flex; gap: 16px; font-size: 12.5px; color: var(--text-primary);">
+                        <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-primary); flex-wrap: wrap;">
                             <div><strong>Interest:</strong> {{ $defaultInterestRate ?? 10 }}%</div>
-                            <div><strong>Term:</strong> {{ $defaultTermDays ?? 60 }} Days (Daily)</div>
+                            <div><strong>Term:</strong> {{ $defaultTermDays ?? 60 }} Days</div>
+                            <div><strong>Daily Insurance Prem:</strong> ₱{{ number_format($defaultInsurancePremium ?? 5, 2) }} / day</div>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">New Principal Loan Amount (₱) <span style="color:red;">*</span></label>
-                        <input type="number" step="100" name="loan_amount" id="renew_principal" class="form-control @error('loan_amount') is-invalid @enderror" value="{{ old('loan_amount') }}" placeholder="Enter amount, e.g. 10000" required oninput="calculateRenewLoan()">
+                        <input type="number" step="100" name="loan_amount" id="renew_principal" class="form-control @error('loan_amount') is-invalid @enderror" value="{{ old('loan_amount') }}" placeholder="Enter amount, e.g. 5000" required oninput="calculateRenewLoan()">
                         @error('loan_amount')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -151,16 +174,20 @@
                         <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">Calculation Breakdown</div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
-                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Interest ({{ $defaultInterestRate ?? 10 }}%)</span>
-                                <span style="font-size: 14px; font-weight: 700; color: #d97706;" id="renew_interest_preview">₱0.00</span>
-                            </div>
-                            <div>
-                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Payable</span>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Loan Payable</span>
                                 <span style="font-size: 14px; font-weight: 800; color: #059669;" id="renew_payable_preview">₱0.00</span>
                             </div>
-                            <div style="grid-column: span 2; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px;">
-                                <span style="font-size: 12px; color: var(--text-secondary);">Daily Installment ({{ $defaultTermDays ?? 60 }} Days): </span>
-                                <strong style="font-size: 16px; color: #0284c7;" id="renew_daily_preview">₱0.00 / day</strong>
+                            <div>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Daily Loan Amortization</span>
+                                <span style="font-size: 14px; font-weight: 700; color: #d97706;" id="renew_loan_daily_preview">₱0.00 / day</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Daily Insurance Premium</span>
+                                <span style="font-size: 14px; font-weight: 700; color: #0284c7;" id="renew_ins_preview">₱{{ number_format($defaultInsurancePremium ?? 5, 2) }} / day</span>
+                            </div>
+                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 6px 10px;">
+                                <span style="font-size: 11.5px; color: #166534; font-weight: 600; display: block;">Total Daily Payable:</span>
+                                <strong style="font-size: 16px; color: #15803d;" id="renew_total_daily_preview">₱0.00 / day</strong>
                             </div>
                         </div>
                     </div>
@@ -264,6 +291,7 @@
     <script>
         const hostInterestRate = {{ (float)($defaultInterestRate ?? 10) }};
         const hostTermDays = {{ (int)($defaultTermDays ?? 60) }};
+        const hostInsuranceDaily = {{ (float)($defaultInsurancePremium ?? 5.00) }};
 
         function openRenewModal(clientId, name, collectorId) {
             document.getElementById('renewLoanForm').action = '/admin/encoder/clients/' + clientId + '/renew-loan';
@@ -283,11 +311,13 @@
             const principal = parseFloat(document.getElementById('renew_principal').value) || 0;
             const interest = principal * (hostInterestRate / 100);
             const totalPayable = principal + interest;
-            const daily = hostTermDays > 0 ? (totalPayable / hostTermDays) : 0;
+            const loanDaily = hostTermDays > 0 ? (totalPayable / hostTermDays) : 0;
+            const totalDaily = loanDaily > 0 ? (loanDaily + hostInsuranceDaily) : 0;
 
-            document.getElementById('renew_interest_preview').innerText = '₱' + interest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('renew_payable_preview').innerText = '₱' + totalPayable.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('renew_daily_preview').innerText = '₱' + daily.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / day';
+            document.getElementById('renew_loan_daily_preview').innerText = '₱' + loanDaily.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / day';
+            document.getElementById('renew_ins_preview').innerText = '₱' + hostInsuranceDaily.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / day';
+            document.getElementById('renew_total_daily_preview').innerText = '₱' + totalDaily.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / day';
         }
 
         function openUpdateModal(clientId, name, phone, address, collectorId) {

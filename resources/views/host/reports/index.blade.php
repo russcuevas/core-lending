@@ -45,7 +45,16 @@
             <div class="stat-info">
                 <div class="stat-label">Total Loan Collections</div>
                 <div class="stat-value">₱{{ number_format($loanCollectionsTotal, 2) }}</div>
-                <div class="stat-subtext">{{ $startDate }} to {{ $endDate }}</div>
+                <div class="stat-subtext">₱{{ number_format($loanPrincipalTotal, 2) }} Principal + ₱{{ number_format($insuranceTotal, 2) }} Ins.</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon emerald" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">🛡️</div>
+            <div class="stat-info">
+                <div class="stat-label">Total Insurance Premium</div>
+                <div class="stat-value" style="color: #0284c7;">₱{{ number_format($insuranceTotal, 2) }}</div>
+                <div class="stat-subtext">Reserves collected in period</div>
             </div>
         </div>
 
@@ -80,7 +89,9 @@
                         <th>Date</th>
                         <th>Client Name</th>
                         <th>Collector</th>
-                        <th>Amount Paid</th>
+                        <th>Loan Premium</th>
+                        <th>Insurance Premium</th>
+                        <th>Total Amount Paid</th>
                         <th>Loan Balance Remaining</th>
                         <th>PIN Verified</th>
                         <th>Proof Photo</th>
@@ -90,12 +101,28 @@
                     @if(!$payments->isEmpty())
                         @foreach($payments as $p)
                             <tr>
-                                <td>{{ $p->payment_date }}</td>
+                                <td>{{ \Carbon\Carbon::parse($p->payment_date)->format('M d, Y') }}</td>
                                 <td><strong>{{ $p->client->user->name ?? 'N/A' }}</strong></td>
-                                <td>{{ $p->collector->user->name ?? 'None' }}</td>
-                                <td style="font-weight: 700; color: #059669;">₱{{ number_format($p->amount_paid, 2) }}</td>
+                                <td>
+                                    <span class="badge badge-slate">{{ $p->collector->user->name ?? 'None' }}</span>
+                                </td>
+                                <td style="font-weight: 600; color: #1e40af;">
+                                    ₱{{ number_format($p->loan_premium_amount > 0 ? $p->loan_premium_amount : ($p->amount_paid - ($p->insurance_premium_amount ?? 5)), 2) }}
+                                </td>
+                                <td style="font-weight: 600; color: #0284c7;">
+                                    ₱{{ number_format($p->insurance_premium_amount ?? 5.00, 2) }}
+                                </td>
+                                <td style="font-weight: 700; color: #059669; font-size: 14.5px;">
+                                    ₱{{ number_format($p->amount_paid, 2) }}
+                                </td>
                                 <td style="font-weight: 600;">₱{{ number_format($p->client_remaining_balance_after, 2) }}</td>
-                                <td><span class="badge badge-emerald">✓ Verified</span></td>
+                                <td>
+                                    @if($p->client_pin_verified)
+                                        <span class="badge badge-emerald">✓ Verified (PIN)</span>
+                                    @else
+                                        <span class="badge badge-slate">Direct</span>
+                                    @endif
+                                </td>
                                 <td>
                                     @if($p->proof_image_path)
                                         <a href="{{ asset($p->proof_image_path) }}" target="_blank" class="btn btn-sm btn-outline">
@@ -109,7 +136,7 @@
                         @endforeach
                     @else
                         <tr>
-                            <td colspan="7" class="text-center" style="padding: 20px; color: var(--text-muted);">No payments found in this period.</td>
+                            <td colspan="9" class="text-center" style="padding: 20px; color: var(--text-muted);">No payments found in this period.</td>
                         </tr>
                     @endif
                 </tbody>

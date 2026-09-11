@@ -127,11 +127,11 @@
                     </div>
 
                     <!-- Row 1: Principal Input and Readonly Host Settings -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 14px;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label" for="principal_amount">Principal Loan Amount (₱) *</label>
                             <input type="number" step="0.01" name="loan_amount" id="principal_amount"
-                                class="form-control @error('loan_amount') is-invalid @enderror" placeholder="e.g. 20000" required oninput="calculateLoanSchedule()"
+                                class="form-control @error('loan_amount') is-invalid @enderror" placeholder="e.g. 5000" required oninput="calculateLoanSchedule()"
                                 value="{{ old('loan_amount') }}" style="font-size: 15px; font-weight: 600;">
                             @error('loan_amount')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -158,17 +158,36 @@
                             <input type="text" id="loan_term_days_display" data-term-days="{{ $defaultTermDays }}" class="form-control" value="{{ $defaultTermDays }} Days Fixed" readonly
                                 style="background: #f1f5f9; font-weight: 600; cursor: not-allowed;">
                         </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label class="form-label">Daily Insurance Prem.</label>
+                                <span style="font-size: 11px; color: var(--text-secondary);">Host Set</span>
+                            </div>
+                            <input type="text" id="loan_insurance_premium_display" data-insurance="{{ $defaultInsurancePremium }}" class="form-control" value="₱{{ number_format($defaultInsurancePremium, 2) }} / day" readonly
+                                style="background: #f1f5f9; font-weight: 600; cursor: not-allowed; color: #0284c7;">
+                            <input type="hidden" id="loan_insurance_premium_input" value="{{ $defaultInsurancePremium }}">
+                        </div>
                     </div>
 
                     <!-- Row 2: Live Computed Results in Highlighted Cards -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 12px 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 14px 16px;">
                         <div style="display: flex; flex-direction: column; justify-content: center;">
-                            <span style="font-size: 12px; color: var(--text-secondary); margin-bottom: 2px;">Total Payable Amount (Principal + {{ number_format($defaultInterestRate, 1) }}% Interest)</span>
-                            <span id="total_payable_display" style="font-size: 18px; font-weight: 700; color: #059669;">₱0.00</span>
+                            <span style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 2px;">Total Loan Payable</span>
+                            <span id="total_payable_display" style="font-size: 17px; font-weight: 700; color: #059669;">₱0.00</span>
                         </div>
-                        <div style="display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #e2e8f0; padding-left: 16px;">
-                            <span style="font-size: 12px; color: var(--text-secondary); margin-bottom: 2px;">Computed Daily Repayment ({{ $defaultTermDays }} Days)</span>
-                            <span id="daily_installment_display" style="font-size: 18px; font-weight: 700; color: var(--text-primary);">₱0.00 / day</span>
+                        <div style="display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #e2e8f0; padding-left: 12px;">
+                            <span style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 2px;">Daily Loan Installment</span>
+                            <span id="loan_premium_daily_display" style="font-size: 17px; font-weight: 700; color: #d97706;">₱0.00 / day</span>
+                            <input type="hidden" id="daily_installment_display" value="₱0.00 / day">
+                        </div>
+                        <div style="display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #e2e8f0; padding-left: 12px;">
+                            <span style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 2px;">Daily Insurance Premium</span>
+                            <span id="insurance_premium_display" style="font-size: 17px; font-weight: 700; color: #0284c7;">₱{{ number_format($defaultInsurancePremium, 2) }} / day</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #e2e8f0; padding-left: 12px; background: #f0fdf4; border-radius: 6px; padding: 6px 10px;">
+                            <span style="font-size: 11.5px; color: #166534; font-weight: 600; margin-bottom: 2px;">Total Daily Payable</span>
+                            <span id="total_daily_payable_display" style="font-size: 19px; font-weight: 800; color: #15803d;">₱0.00 / day</span>
                         </div>
                     </div>
 
@@ -192,13 +211,15 @@
                                 <tr>
                                     <th>Day #</th>
                                     <th>Scheduled Date</th>
-                                    <th>Expected Daily Amount</th>
+                                    <th>Daily Loan Amortization</th>
+                                    <th>Insurance Premium</th>
+                                    <th>Total Daily Payable</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="schedule_preview_body">
                                 <tr>
-                                    <td colspan="4" class="text-center"
+                                    <td colspan="6" class="text-center"
                                         style="padding: 16px; color: var(--text-muted);">
                                         Enter loan amount above to generate live {{ $defaultTermDays }}-day schedule preview.
                                     </td>

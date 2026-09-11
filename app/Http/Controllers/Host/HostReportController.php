@@ -31,7 +31,10 @@ class HostReportController extends Controller
             ->sum('amount');
 
         // Loan Collections
-        $loanCollectionsTotal = LoanPayment::whereBetween('payment_date', [$startDate, $endDate])->sum('amount_paid');
+        $loanPaymentsQuery = LoanPayment::whereBetween('payment_date', [$startDate, $endDate]);
+        $loanCollectionsTotal = (clone $loanPaymentsQuery)->sum('amount_paid');
+        $loanPrincipalTotal = (clone $loanPaymentsQuery)->sum('loan_premium_amount');
+        $insuranceTotal = (clone $loanPaymentsQuery)->sum('insurance_premium_amount');
 
         // Savings Deposits
         $savingsTotal = SavingsAccount::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])->sum('deposit_amount');
@@ -51,6 +54,8 @@ class HostReportController extends Controller
             'cashInTotal',
             'cashOutTotal',
             'loanCollectionsTotal',
+            'loanPrincipalTotal',
+            'insuranceTotal',
             'savingsTotal',
             'expensesTotal',
             'payments'

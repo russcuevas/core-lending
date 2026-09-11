@@ -87,11 +87,11 @@
                     <label class="form-label" for="payment_amount" style="font-size: 13.5px; font-weight: 700;">
                         Enter Payment Amount Received (₱) *
                     </label>
-                    <input type="number" step="0.01" min="1" max="{{ $loan->remaining_balance }}" name="amount_paid" id="payment_amount" class="form-control" value="{{ $loan->daily_installment }}" required oninput="onPaymentAmountChange()" style="font-size: 17px; font-weight: 700; color: #059669;">
+                    <input type="number" step="0.01" min="1" max="{{ $loan->remaining_balance }}" name="amount_paid" id="payment_amount" class="form-control" value="{{ $totalDailyPayable }}" required oninput="onPaymentAmountChange()" style="font-size: 17px; font-weight: 700; color: #059669;">
                     
                     <!-- Real-time calculation hint -->
                     <div id="payment_calculation_hint" style="margin-top: 6px; font-size: 12.5px;">
-                        <span style="color: #059669; font-weight: 600;">✓ Exact Daily Installment Met: ₱{{ number_format($loan->daily_installment, 2) }}</span>
+                        <span style="color: #059669; font-weight: 600;">✓ Exact Daily Installment Met: ₱{{ number_format($totalDailyPayable, 2) }}</span>
                     </div>
                 </div>
 

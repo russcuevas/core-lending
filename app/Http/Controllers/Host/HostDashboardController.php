@@ -68,16 +68,34 @@ class HostDashboardController extends Controller
                 ->whereDate('payment_date', $today)
                 ->get();
 
-            return (object)[
+            $totalCollected = (float) $colPayments->sum('amount_paid');
+            $processingAmount = (float) $colPayments->where('status', 'processing')->sum('amount_paid');
+            $remittedAmount = (float) $colPayments->whereIn('status', ['paid', 'remitted', 'completed'])->sum('amount_paid');
+
+            $status = 'no_collections';
+            if ($totalCollected > 0) {
+                if ($processingAmount > 0 && $remittedAmount > 0) {
+                    $status = 'partial_remitted';
+                } elseif ($processingAmount > 0) {
+                    $status = 'pending_remittance';
+                } else {
+                    $status = 'remitted';
+                }
+            }
+
+            return [
                 'collector' => $col,
+                'collector_name' => $col->user->name ?? 'Collector',
                 'name' => $col->user->name ?? 'Collector',
+                'phone' => $col->user->phone_number ?? 'N/A',
                 'area' => $col->assigned_area ?? 'General Area',
                 'clients_collected_count' => $colPayments->count(),
-                'total_collected' => $colPayments->sum('amount_paid'),
-                'loan_premium' => $colPayments->sum('loan_premium_amount'),
-                'insurance_premium' => $colPayments->sum('insurance_premium_amount'),
-                'processing_amount' => $colPayments->where('status', 'processing')->sum('amount_paid'),
-                'remitted_amount' => $colPayments->where('status', 'paid')->sum('amount_paid'),
+                'total_collected' => $totalCollected,
+                'loan_premium' => (float) $colPayments->sum('loan_premium_amount'),
+                'insurance_premium' => (float) $colPayments->sum('insurance_premium_amount'),
+                'processing_amount' => $processingAmount,
+                'remitted_amount' => $remittedAmount,
+                'status' => $status,
             ];
         });
 

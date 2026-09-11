@@ -26,6 +26,11 @@ class Collector extends Model
         return $this->hasMany(Client::class);
     }
 
+    public function assignedClients()
+    {
+        return $this->hasMany(Client::class);
+    }
+
     public function loans()
     {
         return $this->hasMany(Loan::class);

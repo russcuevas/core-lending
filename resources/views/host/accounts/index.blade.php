@@ -71,7 +71,7 @@
                                     @elseif($admin->role === 'admin_encoder')
                                         <span class="badge badge-emerald">Admin Encoder</span>
                                     @elseif($admin->role === 'admin_releasing')
-                                        <span class="badge badge-amber">Releasing Officer</span>
+                                        <span class="badge badge-amber">Admin Finance</span>
                                     @endif
                                 </td>
                                 <td>
@@ -257,7 +257,7 @@
                         <label class="form-label">Account Role</label>
                         <select name="role" class="form-select @error('role') is-invalid @enderror" required onchange="toggleAreaInput(this.value)">
                             <option value="admin_encoder" {{ old('role') == 'admin_encoder' ? 'selected' : '' }}>Admin Encoder</option>
-                            <option value="admin_releasing" {{ old('role') == 'admin_releasing' ? 'selected' : '' }}>Admin Releasing Officer</option>
+                            <option value="admin_releasing" {{ old('role') == 'admin_releasing' ? 'selected' : '' }}>Admin Finance</option>
                             <option value="collector" {{ old('role') == 'collector' ? 'selected' : '' }}>Field Collector</option>
                             <option value="host" {{ old('role') == 'host' ? 'selected' : '' }}>Host Superadmin</option>
                         </select>

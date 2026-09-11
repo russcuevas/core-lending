@@ -48,6 +48,7 @@ class EncoderController extends Controller
 
         $defaultInterestRate = SystemSetting::get('loan_interest_rate_percent', 10.00);
         $defaultTermDays = (int)SystemSetting::get('loan_term_days', 60);
+        $defaultInsurancePremium = (float)SystemSetting::get('loan_insurance_premium_daily', 5.00);
         $collectorLoanComm = SystemSetting::get('collector_loan_commission_fixed', 300.00);
         $collectorSavingsComm = SystemSetting::get('collector_savings_commission_percent', 5.00);
 
@@ -55,6 +56,7 @@ class EncoderController extends Controller
             'collectors',
             'defaultInterestRate',
             'defaultTermDays',
+            'defaultInsurancePremium',
             'collectorLoanComm',
             'collectorSavingsComm'
         ));
@@ -78,8 +80,12 @@ class EncoderController extends Controller
         $validIdPath = null;
         if ($request->hasFile('valid_id')) {
             $file = $request->file('valid_id');
+            $uploadDir = public_path('uploads/id_proofs');
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
             $filename = 'id_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/id_proofs'), $filename);
+            $file->move($uploadDir, $filename);
             $validIdPath = 'uploads/id_proofs/' . $filename;
         }
 
@@ -89,7 +95,7 @@ class EncoderController extends Controller
         $user = User::create([
             'name' => $request->name,
             'phone_number' => $request->phone_number,
-            'email' => $request->email,
+            'email' => $request->filled('email') ? $request->email : null,
             'password' => Hash::make($pinCode),
             'pin_code' => $pinCode,
             'role' => 'client',
@@ -142,8 +148,8 @@ class EncoderController extends Controller
         $today = Carbon::today();
         for ($day = 1; $day <= $termDays; $day++) {
             $expectedForDay = ($day === $termDays)
-                ? round($totalPayable - ($dailyInstallment * ($termDays - 1)), 2)
-                : $dailyInstallment;
+                ? round($totalPayable - ($loanPremiumDaily * ($termDays - 1)), 2)
+                : $loanPremiumDaily;
 
             LoanSchedule::create([
                 'loan_id' => $loan->id,
@@ -193,8 +199,9 @@ class EncoderController extends Controller
 
         $defaultInterestRate = SystemSetting::get('loan_interest_rate_percent', 10.00);
         $defaultTermDays = (int)SystemSetting::get('loan_term_days', 60);
+        $defaultInsurancePremium = (float)SystemSetting::get('loan_insurance_premium_daily', 5.00);
 
-        return view('admin.encoder.clients', compact('clients', 'collectors', 'defaultInterestRate', 'defaultTermDays'));
+        return view('admin.encoder.clients', compact('clients', 'collectors', 'defaultInterestRate', 'defaultTermDays', 'defaultInsurancePremium'));
     }
 
     public function renewLoan(Request $request, Client $client)
@@ -249,15 +256,15 @@ class EncoderController extends Controller
         // Generate Loan Payment Schedule
         for ($day = 1; $day <= $termDays; $day++) {
             $expectedForDay = ($day === $termDays)
-                ? round($totalPayable - ($dailyInstallment * ($termDays - 1)), 2)
-                : $dailyInstallment;
+                ? round($totalPayable - ($loanPremiumDaily * ($termDays - 1)), 2)
+                : $loanPremiumDaily;
 
             LoanSchedule::create([
                 'loan_id' => $loan->id,
                 'day_number' => $day,
                 'due_date' => null,
                 'expected_amount' => $expectedForDay,
-                'amount_paid' => 0.00,
+                'paid_amount' => 0.00,
                 'status' => 'unpaid',
             ]);
         }
@@ -339,8 +346,12 @@ class EncoderController extends Controller
         $receiptPath = null;
         if ($request->hasFile('receipt')) {
             $file = $request->file('receipt');
+            $uploadDir = public_path('uploads/expenses');
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
             $filename = 'exp_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/expenses'), $filename);
+            $file->move($uploadDir, $filename);
             $receiptPath = 'uploads/expenses/' . $filename;
         }
 
@@ -376,8 +387,12 @@ class EncoderController extends Controller
         $validIdPath = null;
         if ($request->hasFile('valid_id')) {
             $file = $request->file('valid_id');
+            $uploadDir = public_path('uploads/id_proofs');
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
             $filename = 'col_id_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/id_proofs'), $filename);
+            $file->move($uploadDir, $filename);
             $validIdPath = 'uploads/id_proofs/' . $filename;
         }
 

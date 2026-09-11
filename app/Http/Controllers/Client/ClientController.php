@@ -202,15 +202,15 @@ class ClientController extends Controller
 
         for ($day = 1; $day <= $termDays; $day++) {
             $expectedForDay = ($day === $termDays)
-                ? round($totalPayable - ($dailyInstallment * ($termDays - 1)), 2)
-                : $dailyInstallment;
+                ? round($totalPayable - ($loanPremiumDaily * ($termDays - 1)), 2)
+                : $loanPremiumDaily;
 
             LoanSchedule::create([
                 'loan_id' => $loan->id,
                 'day_number' => $day,
                 'due_date' => null,
                 'expected_amount' => $expectedForDay,
-                'amount_paid' => 0.00,
+                'paid_amount' => 0.00,
                 'status' => 'unpaid',
             ]);
         }

@@ -143,6 +143,7 @@
                             <th>Client Info</th>
                             <th>Principal</th>
                             <th>Loan Terms</th>
+                            <th>Insurance</th>
                             <th>Total Payable</th>
                             <th>Daily Installment</th>
                             <th>Assigned Collector</th>
@@ -175,10 +176,34 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge badge-indigo">{{ $loan->interest_rate_percent }}% • 60 Days</span>
+                                        <span class="badge badge-indigo">{{ $loan->interest_rate_percent }}% • {{ $loan->term_days ?? 60 }} Days</span>
+                                    </td>
+                                    <td>
+                                        @php
+                                            $insDaily = (float)($loan->insurance_premium_daily > 0 ? $loan->insurance_premium_daily : 5.00);
+                                            $insTotal = $insDaily * ($loan->term_days ?: 60);
+                                        @endphp
+                                        <div style="font-weight: 700; color: #0284c7;">
+                                            ₱{{ number_format($insDaily, 2) }}/day
+                                        </div>
+                                        <div style="font-size: 11px; color: var(--text-secondary);">
+                                            Total: ₱{{ number_format($insTotal, 2) }}
+                                        </div>
                                     </td>
                                     <td style="font-weight: 600;">₱{{ number_format($loan->total_payable, 2) }}</td>
-                                    <td style="font-weight: 700; color: #d97706;">₱{{ number_format($loan->daily_installment, 2) }}/day</td>
+                                    <td>
+                                        @php
+                                            $loanDaily = (float)($loan->loan_premium_daily > 0 ? $loan->loan_premium_daily : $loan->daily_installment);
+                                            $insDaily = (float)($loan->insurance_premium_daily > 0 ? $loan->insurance_premium_daily : 5.00);
+                                            $totalDaily = (float)($loan->total_daily_payable > 0 ? $loan->total_daily_payable : ($loanDaily + $insDaily));
+                                        @endphp
+                                        <div style="font-weight: 700; color: #d97706;">
+                                            ₱{{ number_format($totalDaily, 2) }}/day
+                                        </div>
+                                        <div style="font-size: 11px; color: var(--text-secondary);">
+                                            (₱{{ number_format($loanDaily, 2) }} + ₱{{ number_format($insDaily, 2) }} ins.)
+                                        </div>
+                                    </td>
                                     <td>
                                         <span class="badge badge-slate">{{ $loan->collector->user->name ?? 'Unassigned' }}</span>
                                     </td>
@@ -216,7 +241,7 @@
                             @endforeach
                         @else
                             <tr>
-                                <td colspan="9" class="text-center" style="padding: 24px; color: var(--text-muted);">
+                                <td colspan="10" class="text-center" style="padding: 24px; color: var(--text-muted);">
                                     ✓ No pending loan applications waiting for approval.
                                 </td>
                             </tr>
