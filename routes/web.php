@@ -78,6 +78,7 @@ Route::middleware(['auth', 'role:admin_encoder,host'])->prefix('admin/encoder')-
 
     // Expenses
     Route::get('/expenses', [EncoderController::class, 'expensesIndex'])->name('expenses.index');
+    Route::get('/expenses/print', [EncoderController::class, 'printExpenses'])->name('expenses.print');
     Route::post('/expenses', [EncoderController::class, 'storeExpense'])->name('expenses.store');
 
     // Collectors Registration

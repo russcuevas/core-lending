@@ -14,6 +14,7 @@ use App\Models\Loan;
 use App\Models\LoanSchedule;
 use App\Models\LoanPayment;
 use App\Models\Expense;
+use App\Models\HostVaultLedger;
 use App\Models\ClientUpdateRequest;
 use App\Models\SystemNotification;
 use App\Models\SystemSetting;
@@ -339,8 +340,49 @@ class EncoderController extends Controller
 
     public function expensesIndex()
     {
+        $today = Carbon::today();
         $expenses = Expense::with('user')->latest()->paginate(20);
-        return view('admin.encoder.expenses', compact('expenses'));
+        $expensesToday = Expense::whereDate('date', $today)->sum('amount');
+        $expensesMonth = Expense::whereMonth('date', $today->month)->whereYear('date', $today->year)->sum('amount');
+        $expensesTotal = Expense::sum('amount');
+        $expensesCount = Expense::count();
+
+        return view('admin.encoder.expenses', compact(
+            'expenses',
+            'expensesToday',
+            'expensesMonth',
+            'expensesTotal',
+            'expensesCount'
+        ));
+    }
+
+    public function printExpenses(Request $request)
+    {
+        $query = Expense::with('user')->orderBy('date', 'desc');
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('date', '<=', $request->end_date);
+        }
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        $expenses = $query->get();
+        $totalAmount = $expenses->sum('amount');
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+        $selectedCategory = $request->category;
+
+        return view('admin.encoder.print_expenses', compact(
+            'expenses',
+            'totalAmount',
+            'startDate',
+            'endDate',
+            'selectedCategory'
+        ));
     }
 
     public function storeExpense(Request $request)
@@ -365,16 +407,37 @@ class EncoderController extends Controller
             $receiptPath = 'uploads/expenses/' . $filename;
         }
 
-        Expense::create([
+        $expense = Expense::create([
             'user_id' => Auth::id(),
             'date' => $request->date,
             'particulars' => $request->particulars,
-            'amount' => $request->amount,
+            'amount' => (float)$request->amount,
             'category' => $request->category,
             'receipt_image_path' => $receiptPath,
         ]);
 
-        return back()->with('success', 'Expense recorded successfully!');
+        // Deduct from Host Vault & record entry in HostVaultLedger
+        HostVaultLedger::logEntry(
+            'out',
+            'expense',
+            (float)$expense->amount,
+            "Operating Expense: {$expense->particulars} (Category: {$expense->category}, Encoded by: " . Auth::user()->name . ")",
+            'Expense',
+            $expense->id,
+            Auth::id()
+        );
+
+        // Notify Host Superadmin
+        SystemNotification::sendNotification(
+            null,
+            'host',
+            "🧾 Operating Expense Recorded (₱" . number_format($expense->amount, 2) . ")",
+            "Admin Encoder " . Auth::user()->name . " logged an operating expense: {$expense->particulars} (₱" . number_format($expense->amount, 2) . "). Deducted from Host Vault balance.",
+            'vault_alert',
+            '/host/transactions'
+        );
+
+        return back()->with('success', '✓ Expense of ₱' . number_format($expense->amount, 2) . ' recorded successfully and deducted from Host Vault balance!');
     }
 
     public function createCollector()

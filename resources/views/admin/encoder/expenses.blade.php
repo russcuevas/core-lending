@@ -5,10 +5,45 @@
 
 @section('content')
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
-        <p style="color: var(--text-secondary); margin: 0; font-size: 13px;">Record and track daily operational expenditures with receipt proof.</p>
-        <button type="button" class="btn btn-emerald" onclick="openModal('addExpenseModal')">
-            + Record New Expense
-        </button>
+        <div>
+            <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0;">Operational Expenses Tracker</h2>
+            <p style="color: var(--text-secondary); margin: 2px 0 0 0; font-size: 12.5px;">Record and track daily operational expenditures. All expenses are deducted from Host Vault liquidity with verified receipt proof.</p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="{{ route('admin.encoder.expenses.print') }}" target="_blank" class="btn btn-outline" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <span>🖨</span> Print Expenses Sheet
+            </a>
+            <button type="button" class="btn btn-emerald" onclick="openModal('addExpenseModal')" style="font-weight: 700;">
+                + Record New Expense
+            </button>
+        </div>
+    </div>
+
+    <!-- Expenses KPI Summary Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+        <div style="background: #ffffff; border: 1px solid var(--border-color); border-left: 4px solid #e11d48; border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Expenses Today</div>
+            <div style="font-size: 22px; font-weight: 800; color: #e11d48; margin-top: 2px;">₱{{ number_format($expensesToday ?? 0, 2) }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Today's operational outflows</div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid var(--border-color); border-left: 4px solid #d97706; border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Expenses This Month</div>
+            <div style="font-size: 22px; font-weight: 800; color: #d97706; margin-top: 2px;">₱{{ number_format($expensesMonth ?? 0, 2) }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Current month expenditures</div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid var(--border-color); border-left: 4px solid #0284c7; border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total Expenses (All Time)</div>
+            <div style="font-size: 22px; font-weight: 800; color: #0284c7; margin-top: 2px;">₱{{ number_format($expensesTotal ?? 0, 2) }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Cumulative recorded expenses</div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid var(--border-color); border-left: 4px solid #7c3aed; border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size: 11.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total Records</div>
+            <div style="font-size: 22px; font-weight: 800; color: #7c3aed; margin-top: 2px;">{{ $expensesCount ?? $expenses->total() }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Logged expense items</div>
+        </div>
     </div>
 
     <!-- Expenses Table -->

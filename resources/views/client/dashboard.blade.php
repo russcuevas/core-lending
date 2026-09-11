@@ -248,6 +248,11 @@
             $totalCombinedPayable = $activeLoan->total_payable + $totalInsuranceForTerm;
             $loanDaily = (float)($activeLoan->loan_premium_daily ?? ($activeLoan->daily_installment - $insDaily > 0 ? $activeLoan->daily_installment - $insDaily : $activeLoan->daily_installment));
             $totalDaily = (float)($activeLoan->total_daily_payable ?? ($loanDaily + $insDaily));
+            $totalCombinedPaid = (float)($activeLoan->total_paid ?? $paymentHistory->where('status', 'paid')->sum('amount_paid'));
+            $totalCombinedRemaining = max(0, $totalCombinedPayable - $totalCombinedPaid);
+            $paidInsuranceSum = (float)$paymentHistory->where('status', 'paid')->sum('insurance_premium_amount');
+            $remainingInsurance = max(0, $totalInsuranceForTerm - $paidInsuranceSum);
+            $remainingLoanPrincipalInterest = max(0, $totalCombinedRemaining - $remainingInsurance);
         @endphp
 
         <!-- Delinquency Alerts if any -->
@@ -338,7 +343,10 @@
                 <div class="loan-kpi-card">
                     <div class="loan-kpi-label">Remaining Balance</div>
                     <div class="loan-kpi-val" style="color: #059669;">
-                        ₱{{ number_format($activeLoan->remaining_balance, 2) }}
+                        ₱{{ number_format($totalCombinedRemaining, 2) }}
+                        <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
+                            ₱{{ number_format($remainingLoanPrincipalInterest, 2) }} Loan + ₱{{ number_format($remainingInsurance, 2) }} Ins.
+                        </span>
                     </div>
                 </div>
             </div>
@@ -440,7 +448,7 @@
                                 </td>
                                 @php
                                     $isFullySettled =
-                                        $activeLoan->remaining_balance <= 0 || $activeLoan->status === 'fully_paid';
+                                        $totalCombinedRemaining <= 0 || $activeLoan->remaining_balance <= 0 || $activeLoan->status === 'fully_paid';
                                     $isSchedulePaid =
                                         $schedule->status === 'paid' ||
                                         ($isFullySettled &&
