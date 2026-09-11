@@ -54,6 +54,15 @@ class DatabaseSeeder extends Seeder
         );
 
         SystemSetting::set(
+            'loan_insurance_premium_daily',
+            '5.00',
+            'float',
+            'loan',
+            'Default Insurance Premium (₱)',
+            'Standard daily insurance premium added to client daily installment.'
+        );
+
+        SystemSetting::set(
             'savings_interest_rate_percent',
             '10.00',
             'float',

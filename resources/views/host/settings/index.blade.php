@@ -49,15 +49,29 @@
                     <div class="form-hint">Daily installment cycle length (standard: 60 days).</div>
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">Default Insurance Premium (₱) *</label>
+                    <input type="number" step="0.01" min="0" name="loan_insurance_premium_daily" id="setting_insurance_premium" class="form-control" value="{{ old('loan_insurance_premium_daily', $loanInsurance) }}" required oninput="updateLivePreview()">
+                    <div class="form-hint">Fixed daily insurance contribution added to client daily payable (e.g. ₱5.00).</div>
+                </div>
+
                 <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; font-size: 12px;">
                     <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Sample ₱10,000 Loan Preview:</div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
                         <span style="color: var(--text-secondary);">Total Payable:</span>
                         <strong style="color: #059669;" id="preview_loan_total">₱11,000.00</strong>
                     </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="color: var(--text-secondary);">Daily Installment:</span>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                        <span style="color: var(--text-secondary);">Daily Loan Principal & Int.:</span>
                         <strong style="color: #d97706;" id="preview_loan_daily">₱183.33 / day</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                        <span style="color: var(--text-secondary);">Daily Insurance Premium:</span>
+                        <strong style="color: #0284c7;" id="preview_insurance_daily">₱5.00 / day</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 4px; margin-top: 4px;">
+                        <span style="color: var(--text-primary); font-weight: 600;">Total Daily Payable:</span>
+                        <strong style="color: #16a34a;" id="preview_total_daily">₱188.33 / day</strong>
                     </div>
                 </div>
             </div>
@@ -150,12 +164,16 @@
         function updateLivePreview() {
             const loanRate = parseFloat(document.getElementById('setting_loan_interest').value) || 0;
             const loanDays = parseInt(document.getElementById('setting_loan_term').value) || 60;
+            const insuranceDaily = parseFloat(document.getElementById('setting_insurance_premium').value) || 0;
             const samplePrincipal = 10000;
             const loanTotal = samplePrincipal * (1 + (loanRate / 100));
             const loanDaily = loanDays > 0 ? loanTotal / loanDays : 0;
+            const totalDaily = loanDaily + insuranceDaily;
 
             document.getElementById('preview_loan_total').innerText = '₱' + loanTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('preview_loan_daily').innerText = '₱' + loanDaily.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' / day';
+            document.getElementById('preview_insurance_daily').innerText = '₱' + insuranceDaily.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' / day';
+            document.getElementById('preview_total_daily').innerText = '₱' + totalDaily.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' / day';
 
             const savRate = parseFloat(document.getElementById('setting_savings_interest').value) || 0;
             const savDays = parseInt(document.getElementById('setting_savings_lock_in').value) || 60;
