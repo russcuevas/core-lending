@@ -59,6 +59,26 @@
 @endpush
 
 @section('content')
+    <!-- Action Bar & Change PIN -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0;">Admin Finance Operations Hub</h2>
+            <div style="font-size: 12.5px; color: var(--text-secondary);">Manage collector remittances, physical cash on hand, and loan releasing operations.</div>
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline" onclick="openModal('changePinModal')" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <span>🔐</span> Change Security PIN
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden Form for SweetAlert Direct Cash Turnover Submission -->
+    <form id="cashTurnoverDirectForm" action="{{ route('admin.releasing.turnover.submit') }}" method="POST" style="display: none;">
+        @csrf
+        <input type="hidden" name="amount" id="directTurnoverAmount">
+        <input type="hidden" name="notes" id="directTurnoverNotes">
+    </form>
+
     <!-- Top Financial KPI Summary Cards -->
     <div class="finance-kpi-grid">
         <div class="finance-kpi-card" style="border-left: 4px solid #059669;">
@@ -66,22 +86,28 @@
             <div class="finance-kpi-val" style="color: #059669;">₱{{ number_format($cashOnHand, 2) }}</div>
             <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Available for turnover to Host</div>
             <div style="margin-top: 10px;">
-                <button type="button" class="btn btn-sm btn-emerald" onclick="openModal('cashTurnoverModal')" style="font-weight: 700; width: 100%;">
+                <button type="button" class="btn btn-sm btn-emerald" onclick="promptCashTurnover({{ (float)$cashOnHand }})" style="font-weight: 700; width: 100%;">
                     💵 Turn Over Cash to Host
                 </button>
             </div>
+        </div>
+
+        <div class="finance-kpi-card" style="border-left: 4px solid #0284c7;">
+            <div class="finance-kpi-label">Total Remitted Today</div>
+            <div class="finance-kpi-val" style="color: #0284c7;">₱{{ number_format($totalRemittedToday, 2) }}</div>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Verified collections received today</div>
+        </div>
+
+        <div class="finance-kpi-card" style="border-left: 4px solid #0f766e;">
+            <div class="finance-kpi-label">Total Remitted (All Time)</div>
+            <div class="finance-kpi-val" style="color: #0f766e;">₱{{ number_format($totalRemittedAllTime, 2) }}</div>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Cumulative collections received</div>
         </div>
 
         <div class="finance-kpi-card" style="border-left: 4px solid #d97706;">
             <div class="finance-kpi-label">Pending Collector Remittances</div>
             <div class="finance-kpi-val" style="color: #d97706;">₱{{ number_format($totalPendingRemittanceAmount, 2) }}</div>
             <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">{{ $pendingRemittances->count() }} field collections awaiting PIN</div>
-        </div>
-
-        <div class="finance-kpi-card" style="border-left: 4px solid #0284c7;">
-            <div class="finance-kpi-label">Total Remitted Today</div>
-            <div class="finance-kpi-val" style="color: #0284c7;">₱{{ number_format($totalRemittedToday, 2) }}</div>
-            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Verified collections received</div>
         </div>
 
         <div class="finance-kpi-card" style="border-left: 4px solid #7c3aed;">
@@ -561,11 +587,165 @@
             </form>
         </div>
     </div>
+    <!-- CHANGE ADMIN FINANCE SECURITY PIN MODAL -->
+    <div class="modal-overlay" id="changePinModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">🔐 Change Admin Finance Security PIN</h3>
+                <button type="button" class="modal-close" onclick="closeModal('changePinModal')">&times;</button>
+            </div>
+            <form action="{{ route('admin.releasing.change_pin') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px;">
+                        Enter your current 4-digit PIN and your new 4-digit PIN to update your Admin Finance verification credentials.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Current 4-Digit PIN *</label>
+                        <input type="password" name="current_pin"
+                            class="form-control @error('current_pin') is-invalid @enderror" maxlength="4"
+                            pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required
+                            autocomplete="current-password" style="letter-spacing: 8px; font-size: 20px; text-align: center;">
+                        @error('current_pin')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">New 4-Digit PIN *</label>
+                        <input type="password" name="new_pin" class="form-control @error('new_pin') is-invalid @enderror"
+                            maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required
+                            autocomplete="new-password" style="letter-spacing: 8px; font-size: 20px; text-align: center;">
+                        <div class="form-hint" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Must be exactly 4 numeric digits.</div>
+                        @error('new_pin')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm New PIN *</label>
+                        <input type="password" name="new_pin_confirmation"
+                            class="form-control @error('new_pin_confirmation') is-invalid @enderror" maxlength="4"
+                            pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required
+                            autocomplete="new-password" style="letter-spacing: 8px; font-size: 20px; text-align: center;">
+                        @error('new_pin_confirmation')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('changePinModal')">Cancel</button>
+                    <button type="submit" class="btn btn-emerald" style="font-weight: 700;">Update Security PIN</button>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
     <script src="{{ versioned_asset('js/admin.js') }}"></script>
     <script>
+        function promptCashTurnover(availableCash) {
+            if (availableCash <= 0) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'No Cash on Hand',
+                        text: 'You currently have ₱0.00 remitted cash on hand available for turnover.',
+                        confirmButtonColor: '#059669'
+                    });
+                } else {
+                    alert('You currently have ₱0.00 remitted cash on hand available for turnover.');
+                }
+                return;
+            }
+
+            if (typeof Swal !== 'undefined') {
+                const formattedAvailable = parseFloat(availableCash).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+
+                Swal.fire({
+                    title: '💵 Turn Over Cash to Host',
+                    html: `
+                        <div style="text-align: left; margin-bottom: 8px;">
+                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 14px; border-radius: 8px; margin-bottom: 14px;">
+                                <div style="font-size: 12px; color: #166534; font-weight: 600;">Available Remitted Cash on Hand:</div>
+                                <div style="font-size: 22px; font-weight: 800; color: #15803d;">₱${formattedAvailable}</div>
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                                    Amount to Turn Over (₱) *
+                                </label>
+                                <input id="swal_turnover_amount" type="number" step="0.01" min="1" max="${availableCash}" value="${availableCash}" class="swal2-input" style="width: 100%; margin: 0; box-sizing: border-box; font-size: 18px; font-weight: 700; color: #059669;" placeholder="0.00" oninput="updateRemainingPreview(${availableCash})">
+                            </div>
+                            <div style="font-size: 12.5px; color: #475569; margin-bottom: 12px; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px dashed #cbd5e1;">
+                                Remaining Cash on Hand after turnover: <strong id="swal_remaining_display" style="color: #0284c7;">₱0.00</strong>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 4px;">
+                                    Turnover Notes / Remarks (Optional)
+                                </label>
+                                <textarea id="swal_turnover_notes" class="swal2-textarea" style="width: 100%; margin: 0; box-sizing: border-box; font-size: 13px; min-height: 60px;" placeholder="e.g. Daily collection turnover from collectors"></textarea>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Submit Turnover to Host',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#059669',
+                    cancelButtonColor: '#94a3b8',
+                    didOpen: () => {
+                        updateRemainingPreview(availableCash);
+                        const input = document.getElementById('swal_turnover_amount');
+                        if (input) {
+                            input.focus();
+                            input.select();
+                        }
+                    },
+                    preConfirm: () => {
+                        const amountInput = document.getElementById('swal_turnover_amount');
+                        const notesInput = document.getElementById('swal_turnover_notes');
+                        const amount = parseFloat(amountInput.value);
+                        const notes = notesInput ? notesInput.value : '';
+
+                        if (isNaN(amount) || amount <= 0) {
+                            Swal.showValidationMessage('Please enter a valid turnover amount greater than ₱0.00');
+                            return false;
+                        }
+                        if (amount > availableCash) {
+                            Swal.showValidationMessage(`Amount cannot exceed available cash on hand (₱${formattedAvailable})`);
+                            return false;
+                        }
+                        return { amount: amount, notes: notes };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const directForm = document.getElementById('cashTurnoverDirectForm');
+                        document.getElementById('directTurnoverAmount').value = result.value.amount;
+                        document.getElementById('directTurnoverNotes').value = result.value.notes;
+                        directForm.submit();
+                    }
+                });
+            } else {
+                openModal('cashTurnoverModal');
+            }
+        }
+
+        function updateRemainingPreview(availableCash) {
+            const input = document.getElementById('swal_turnover_amount');
+            const remainingDisplay = document.getElementById('swal_remaining_display');
+            if (!input || !remainingDisplay) return;
+            const val = parseFloat(input.value) || 0;
+            const remaining = Math.max(0, availableCash - val);
+            remainingDisplay.innerText = '₱' + remaining.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (val > availableCash) {
+                remainingDisplay.style.color = '#dc2626';
+                remainingDisplay.innerText = 'Exceeds cash on hand!';
+            } else {
+                remainingDisplay.style.color = '#0284c7';
+            }
+        }
+
         function openReceiveRemittanceModal(collectorId, collectorName, amount, count) {
             document.getElementById('remittanceCollectorId').value = collectorId;
             document.getElementById('remitCollectorName').innerText = '🛵 ' + collectorName;

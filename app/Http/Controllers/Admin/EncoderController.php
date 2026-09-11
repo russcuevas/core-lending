@@ -26,7 +26,7 @@ class EncoderController extends Controller
         $totalClientsEncoded = Client::count();
         $pendingHostApprovals = Loan::where('status', 'pending_host_approval')->count();
         $recentClients = Client::with(['user', 'collector.user', 'currentLoan'])->latest()->take(10)->get();
-        $collectors = Collector::with('user')->whereHas('user', function($q) {
+        $collectors = Collector::with('user')->whereHas('user', function ($q) {
             $q->where('status', 'active');
         })->get();
         $expensesToday = Expense::whereDate('date', Carbon::today())->sum('amount');
@@ -42,7 +42,7 @@ class EncoderController extends Controller
 
     public function createClient()
     {
-        $collectors = Collector::with('user')->whereHas('user', function($q) {
+        $collectors = Collector::with('user')->whereHas('user', function ($q) {
             $q->where('status', 'active');
         })->get();
 
@@ -91,7 +91,7 @@ class EncoderController extends Controller
             $validIdPath = 'uploads/id_proofs/' . $filename;
         }
 
-        $pinCode = $request->pin_code ?? '1234';
+        $pinCode = $request->filled('pin_code') ? $request->pin_code : '1234';
 
         // 1. Create User account for client
         $user = User::create([
@@ -190,14 +190,14 @@ class EncoderController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('user', function($q) use ($search) {
+            $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('phone_number', 'like', "%{$search}%");
+                    ->orWhere('phone_number', 'like', "%{$search}%");
             });
         }
 
         $clients = $query->paginate(20);
-        $collectors = Collector::with('user')->whereHas('user', function($q) {
+        $collectors = Collector::with('user')->whereHas('user', function ($q) {
             $q->where('status', 'active');
         })->get();
 

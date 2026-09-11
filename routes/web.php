@@ -96,6 +96,7 @@ Route::middleware(['auth', 'role:admin_releasing,host'])->prefix('admin/releasin
     Route::post('/loans/{loan}/disburse', [ReleasingController::class, 'executeLoanRelease'])->name('loans.disburse');
     Route::post('/remittances/receive', [ReleasingController::class, 'receiveRemittance'])->name('remittances.receive');
     Route::post('/turnover/submit', [ReleasingController::class, 'submitCashTurnover'])->name('turnover.submit');
+    Route::post('/change-pin', [ReleasingController::class, 'changePin'])->name('change_pin');
 });
 
 // Alias prefix for admin/finance
@@ -103,6 +104,7 @@ Route::middleware(['auth', 'role:admin_releasing,host'])->prefix('admin/finance'
     Route::get('/dashboard', [ReleasingController::class, 'dashboard'])->name('dashboard');
     Route::post('/remittances/receive', [ReleasingController::class, 'receiveRemittance'])->name('remittances.receive');
     Route::post('/turnover/submit', [ReleasingController::class, 'submitCashTurnover'])->name('turnover.submit');
+    Route::post('/change-pin', [ReleasingController::class, 'changePin'])->name('change_pin');
 });
 
 // 4. COLLECTOR ROUTES

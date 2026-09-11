@@ -54,7 +54,7 @@
                             <th>Email / Username</th>
                             <th>Contact Number</th>
                             <th>Role</th>
-                            <th>Security PIN</th>
+                            <th>Security PIN (Finance Only)</th>
                             <th>Status</th>
                             <th>Created Date</th>
                             <th style="text-align: right;">Actions</th>
@@ -76,12 +76,16 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($admin->pin_code)
-                                        <span style="font-family: monospace; font-weight: 700; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #0369a1;">
-                                            {{ $admin->pin_code }}
-                                        </span>
+                                    @if($admin->role === 'admin_releasing')
+                                        @if($admin->pin_code)
+                                            <span style="font-family: monospace; font-weight: 700; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 4px; color: #065f46;">
+                                                {{ $admin->pin_code }}
+                                            </span>
+                                        @else
+                                            <span style="font-family: monospace; font-weight: 700; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #0369a1;">1234 (Def.)</span>
+                                        @endif
                                     @else
-                                        <span style="color: var(--text-muted); font-size: 11px;">1234 (Def.)</span>
+                                        <span style="color: var(--text-muted); font-size: 11px;">-</span>
                                     @endif
                                 </td>
                                 <td>
@@ -92,9 +96,11 @@
                                 <td>{{ $admin->created_at->format('M d, Y') }}</td>
                                 <td style="text-align: right;">
                                     <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
-                                        <button type="button" class="btn btn-sm btn-outline" style="border-color: #0284c7; color: #0284c7;" onclick="openResetPinModal('{{ $admin->id }}', '{{ $admin->name }}', 'staff')">
-                                            🔐 PIN
-                                        </button>
+                                        @if($admin->role === 'admin_releasing')
+                                            <button type="button" class="btn btn-sm btn-outline" style="border-color: #0284c7; color: #0284c7;" onclick="openResetPinModal('{{ $admin->id }}', '{{ $admin->name }}', 'staff')">
+                                                🔐 PIN
+                                            </button>
+                                        @endif
                                         <button type="button" class="btn btn-sm btn-outline" onclick="openResetPasswordModal('{{ $admin->id }}', '{{ $admin->name }}', 'staff')">
                                             Password
                                         </button>
@@ -268,7 +274,7 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="form-label">Account Role</label>
-                        <select name="role" class="form-select @error('role') is-invalid @enderror" required onchange="toggleAreaInput(this.value)">
+                        <select name="role" id="staffRoleSelect" class="form-select @error('role') is-invalid @enderror" required onchange="toggleRoleInputs(this.value)">
                             <option value="admin_encoder" {{ old('role') == 'admin_encoder' ? 'selected' : '' }}>Admin Encoder</option>
                             <option value="admin_releasing" {{ old('role') == 'admin_releasing' ? 'selected' : '' }}>Admin Finance</option>
                             <option value="collector" {{ old('role') == 'collector' ? 'selected' : '' }}>Field Collector</option>
@@ -319,13 +325,14 @@
                         @enderror
                     </div>
 
-                    <div class="form-group">
+                    <!-- 4-Digit PIN Code (Only visible and applicable for Admin Finance) -->
+                    <div class="form-group" id="financePinGroup" style="{{ old('role') == 'admin_releasing' ? 'display: block;' : 'display: none;' }}">
                         <label class="form-label" style="display: flex; justify-content: space-between;">
-                            <span>4-Digit Security PIN Code *</span>
-                            <span style="font-size: 11px; color: #059669; font-weight: 700;">Used for Remittance & Releasing</span>
+                            <span>4-Digit Security PIN Code (Optional)</span>
+                            <span style="font-size: 11px; color: #059669; font-weight: 700;">Admin Finance Only</span>
                         </label>
-                        <input type="text" name="pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code', '1234') }}" placeholder="1234" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" required style="letter-spacing: 4px; font-weight: 700; font-size: 16px;">
-                        <div class="form-hint">Admin Finance will input this PIN to receive collector remittances and authorize loan releases. Default is 1234.</div>
+                        <input type="text" name="pin_code" id="staff_pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code') }}" placeholder="Default: 1234" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" style="letter-spacing: 4px; font-weight: 700; font-size: 16px;">
+                        <div class="form-hint">Optional: If left blank, defaults to 1234. Gagamitin ito ng Admin Finance upang i-verify ang collector remittances at loan releases.</div>
                         @error('pin_code')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -430,15 +437,24 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', checkHashAndSwitch);
+        document.addEventListener('DOMContentLoaded', function() {
+            checkHashAndSwitch();
+            const roleSelect = document.getElementById('staffRoleSelect');
+            if (roleSelect) {
+                toggleRoleInputs(roleSelect.value);
+            }
+        });
         window.addEventListener('hashchange', checkHashAndSwitch);
 
-        function toggleAreaInput(role) {
-            const group = document.getElementById('assignedAreaGroup');
-            if (role === 'collector') {
-                group.style.display = 'block';
-            } else {
-                group.style.display = 'none';
+        function toggleRoleInputs(role) {
+            const areaGroup = document.getElementById('assignedAreaGroup');
+            const pinGroup = document.getElementById('financePinGroup');
+            
+            if (areaGroup) {
+                areaGroup.style.display = (role === 'collector') ? 'block' : 'none';
+            }
+            if (pinGroup) {
+                pinGroup.style.display = (role === 'admin_releasing') ? 'block' : 'none';
             }
         }
 

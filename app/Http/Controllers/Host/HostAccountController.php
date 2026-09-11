@@ -33,7 +33,11 @@ class HostAccountController extends Controller
             'assigned_area' => 'nullable|string',
         ]);
 
-        $pinCode = $request->pin_code ?? '1234';
+        // Only Admin Finance (admin_releasing) uses a PIN code; other staff roles do not require/have a PIN.
+        $pinCode = null;
+        if ($request->role === 'admin_releasing') {
+            $pinCode = $request->filled('pin_code') ? $request->pin_code : '1234';
+        }
 
         $user = User::create([
             'name' => $request->name,

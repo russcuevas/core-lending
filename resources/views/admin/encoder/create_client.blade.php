@@ -55,15 +55,15 @@
                         @enderror
                     </div>
 
-                    <!-- Default PIN Code -->
+                    <!-- Security PIN Code (Optional) -->
                     <div class="form-group">
-                        <label class="form-label" for="pin_code">Default PIN Code *</label>
-                        <input type="text" name="pin_code" id="pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code', '1234') }}"
-                            maxlength="4" required style="font-weight: 700; letter-spacing: 2px;">
+                        <label class="form-label" for="pin_code">Security PIN Code (Optional)</label>
+                        <input type="text" name="pin_code" id="pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code') }}"
+                            placeholder="Default: 1234" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" style="font-weight: 700; letter-spacing: 2px;">
                         @error('pin_code')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <div class="form-hint">Default is 1234. Client can reset via Email.</div>
+                        <div class="form-hint">Optional: If left blank, defaults to 1234. Gagamitin ito ng client sa pag-login at pag-claim.</div>
                     </div>
                 </div>
 

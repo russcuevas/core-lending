@@ -56,19 +56,11 @@ class ReleasingController extends Controller
             ->whereDate('remitted_at', $today)
             ->sum('amount_paid');
 
-        // Cash on Hand: Remitted Cash from Collections + Cash-In Received today - Cash-Out / Loans Released today
-        $todayCashInReceived = WalletTransaction::where('type', 'cash_in')
-            ->where('status', 'completed')
-            ->whereDate('updated_at', $today)
-            ->sum('amount');
+        $totalRemittedAllTime = LoanPayment::where('status', 'paid')->sum('amount_paid');
 
-        $todayDisbursedOut = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
-            ->where('status', 'completed')
-            ->whereDate('updated_at', $today)
-            ->sum('amount') + Loan::where('status', 'active')->whereDate('release_date', $today)->sum('principal_amount');
-
-        $turnoversSubmittedToday = CashTurnover::whereDate('date', $today)->sum('total_amount');
-        $cashOnHand = max(0, ($totalRemittedToday + $todayCashInReceived) - ($todayDisbursedOut + $turnoversSubmittedToday));
+        // Cash on Hand: All Remitted Collections minus All Cash Turned Over to Host (excluding declined turnovers)
+        $totalTurnedOver = CashTurnover::where('status', '!=', 'declined')->sum('total_amount');
+        $cashOnHand = max(0, $totalRemittedAllTime - $totalTurnedOver);
 
         // 5. Recent Cash Turnovers to Host
         $recentTurnovers = CashTurnover::with(['admin', 'host'])->latest()->take(10)->get();
@@ -86,6 +78,7 @@ class ReleasingController extends Controller
             'collectorsWithPendingRemittances',
             'totalPendingRemittanceAmount',
             'totalRemittedToday',
+            'totalRemittedAllTime',
             'cashOnHand',
             'recentTurnovers',
             'completedToday'
@@ -468,15 +461,21 @@ class ReleasingController extends Controller
 
     public function submitCashTurnover(Request $request)
     {
+        $totalRemittedAllTime = LoanPayment::where('status', 'paid')->sum('amount_paid');
+        $totalTurnedOver = CashTurnover::where('status', '!=', 'declined')->sum('total_amount');
+        $availableCashOnHand = max(0, $totalRemittedAllTime - $totalTurnedOver);
+
         $request->validate([
-            'amount' => 'required|numeric|min:1',
+            'amount' => 'required|numeric|min:1|max:' . max(1, $availableCashOnHand),
             'notes' => 'nullable|string',
+        ], [
+            'amount.max' => 'Turnover amount cannot exceed available Remitted Cash on Hand (₱' . number_format($availableCashOnHand, 2) . ').',
         ]);
 
         $amount = (float)$request->amount;
         $turnoverRef = 'TO-' . Carbon::today()->format('Ymd') . '-' . strtoupper(Str::random(6));
 
-        // Get recent un-turned-over remitted payments to compute breakdown
+        // Get un-turned-over remitted payments to compute breakdown
         $unTurnedOverPayments = LoanPayment::where('status', 'paid')
             ->whereNull('turnover_id')
             ->get();
@@ -492,13 +491,16 @@ class ReleasingController extends Controller
             'insurance_collection_amount' => $insurancePremiumSum > 0 ? min($amount, $insurancePremiumSum) : 0.00,
             'date' => Carbon::today()->format('Y-m-d'),
             'status' => 'pending_host_approval',
-            'admin_notes' => $request->notes ?? "Physical Cash Turnover from Finance Officer " . Auth::user()->name,
+            'admin_notes' => $request->notes ?? ("Physical Cash Turnover from Finance Officer " . Auth::user()->name),
             'is_read' => false,
         ]);
 
-        // Link payments
-        if ($unTurnedOverPayments->isNotEmpty()) {
-            LoanPayment::whereIn('id', $unTurnedOverPayments->pluck('id'))->update(['turnover_id' => $turnover->id]);
+        // Link un-turned-over payments up to the turned over amount
+        $accumulated = 0;
+        foreach ($unTurnedOverPayments as $payment) {
+            if ($accumulated >= $amount) break;
+            $payment->update(['turnover_id' => $turnover->id]);
+            $accumulated += (float)$payment->amount_paid;
         }
 
         // Notify Host
@@ -512,5 +514,37 @@ class ReleasingController extends Controller
         );
 
         return back()->with('success', "✓ Cash Turnover of ₱" . number_format($amount, 2) . " (Ref: {$turnoverRef}) submitted to Host Superadmin for approval!");
+    }
+
+    public function changePin(Request $request)
+    {
+        $request->validate([
+            'current_pin' => 'required|digits:4',
+            'new_pin' => 'required|digits:4|different:current_pin',
+            'new_pin_confirmation' => 'required|same:new_pin',
+        ], [
+            'current_pin.required' => 'Please enter your current 4-digit PIN.',
+            'current_pin.digits' => 'Current PIN must be exactly 4 digits.',
+            'new_pin.required' => 'Please enter your new 4-digit PIN.',
+            'new_pin.digits' => 'New PIN must be exactly 4 digits.',
+            'new_pin.different' => 'New PIN must be different from your current PIN.',
+            'new_pin_confirmation.same' => 'PIN confirmation does not match the new PIN.',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $isPinValid = ($user->pin_code === $request->current_pin) || Hash::check($request->current_pin, $user->password);
+
+        if (!$isPinValid) {
+            return back()->with('error', 'Incorrect current PIN code entered.');
+        }
+
+        $user->update([
+            'pin_code' => $request->new_pin,
+            'password' => Hash::make($request->new_pin),
+        ]);
+
+        return back()->with('success', 'Your Admin Finance 4-digit security PIN has been updated successfully!');
     }
 }
