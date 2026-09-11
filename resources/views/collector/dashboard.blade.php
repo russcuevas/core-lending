@@ -124,6 +124,10 @@
             <span>👥 Assigned Clients</span>
             <span class="badge badge-slate" style="font-size: 11px;">{{ $assignedClients->count() }}</span>
         </button>
+        <button type="button" class="collector-tab-btn" id="btn-col-tab-remit-history" onclick="switchCollectorTab('col-tab-remit-history')">
+            <span>💼 Remittance History & Receipts</span>
+            <span class="badge badge-emerald" style="font-size: 11px; font-weight: 700; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">{{ $remittanceHistory->count() }}</span>
+        </button>
         <button type="button" class="collector-tab-btn" id="btn-col-tab-history" onclick="switchCollectorTab('col-tab-history')">
             <span>📜 Recent Collection Records</span>
         </button>
@@ -178,7 +182,7 @@
                 <div>
                     <h3 class="card-title">📥 Payments Collected Today ({{ $todayCollections->count() }})</h3>
                     <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                        Payments remain in <strong>Processing</strong> status until remitted at the office with Admin Finance PIN verification.
+                        Payments remain in <strong>Processing</strong> status until remitted to the duty Admin Finance officer with PIN verification.
                     </p>
                 </div>
             </div>
@@ -191,7 +195,7 @@
                             <th>Total Amount Paid</th>
                             <th>Loan Premium</th>
                             <th>Insurance Premium</th>
-                            <th>Status</th>
+                            <th>Status & Verification</th>
                             <th>Proof Photo</th>
                         </tr>
                     </thead>
@@ -226,6 +230,16 @@
                                             <span class="badge badge-emerald" style="font-weight: 700; font-size: 11px; padding: 4px 8px;">
                                                 ✓ Remitted & Verified (PAID)
                                             </span>
+                                            @if($tc->adminVerifier)
+                                                <div style="font-size: 11px; color: #065f46; margin-top: 3px; font-weight: 600;">
+                                                    👤 Verified by: {{ $tc->adminVerifier->name }}
+                                                </div>
+                                            @endif
+                                            @if($tc->remitted_at)
+                                                <div style="font-size: 10.5px; color: var(--text-muted);">
+                                                    ⏰ {{ $tc->remitted_at->format('h:i A') }}
+                                                </div>
+                                            @endif
                                         @endif
                                     </td>
                                     <td>
@@ -382,7 +396,100 @@
         </div>
     </div>
 
-    <!-- TAB 3: RECENT COLLECTION RECORDS -->
+    <!-- TAB 3: REMITTANCE HISTORY & OFFICIAL PROOF -->
+    <div class="collector-tab-pane" id="col-tab-remit-history">
+        <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h3 class="card-title">💼 Remittance History & Verified Proof of Turnover</h3>
+                    <p style="font-size: 12.5px; color: var(--text-secondary); margin: 2px 0 0 0;">
+                        Ito ang iyong opisyal na rekord at patunay na na-remit mo na ang nakolektang pera. Naka-log dito ang eksaktong petsa, oras, at kung sinong duty Finance Officer ang tumanggap at nag-PIN verify ng remittance.
+                    </p>
+                </div>
+                <div style="font-size: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 6px 12px; border-radius: var(--radius-md); font-weight: 600;">
+                    ✓ Total Remittances Logged: <strong>{{ $remittanceHistory->count() }}</strong>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table data-table-enhanced">
+                    <thead>
+                        <tr>
+                            <th>Remittance Date & Time</th>
+                            <th>Client & Account</th>
+                            <th>Total Amount Remitted</th>
+                            <th>Breakdown (Loan + Ins)</th>
+                            <th>Duty Finance Officer (Nag-Collect)</th>
+                            <th>Remittance Status</th>
+                            <th>Proof / Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if(!$remittanceHistory->isEmpty())
+                            @foreach($remittanceHistory as $p)
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--text-primary);">
+                                            {{ $p->remitted_at ? $p->remitted_at->format('M d, Y') : $p->created_at->format('M d, Y') }}
+                                        </div>
+                                        <div style="font-size: 11.5px; color: var(--text-muted);">
+                                            ⏰ {{ $p->remitted_at ? $p->remitted_at->format('h:i:s A') : $p->created_at->format('h:i:s A') }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong>{{ $p->client->user->name ?? 'N/A' }}</strong>
+                                        <div style="font-size: 11px; color: var(--text-secondary);">
+                                            Loan #{{ $p->loan_id }} | Bal: ₱{{ number_format($p->client_remaining_balance_after, 2) }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span style="font-weight: 800; color: #059669; font-size: 15px;">
+                                            ₱{{ number_format($p->amount_paid, 2) }}
+                                        </span>
+                                    </td>
+                                    <td style="font-size: 12px;">
+                                        <div>Loan: <strong>₱{{ number_format($p->loan_premium_amount > 0 ? $p->loan_premium_amount : $p->amount_paid, 2) }}</strong></div>
+                                        <div style="color: #0284c7;">Ins: <strong>₱{{ number_format($p->insurance_premium_amount, 2) }}</strong></div>
+                                    </td>
+                                    <td>
+                                        @if($p->adminVerifier)
+                                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 4px 10px; border-radius: 6px; display: inline-block;">
+                                                <div style="font-weight: 700; font-size: 12.5px;">👤 {{ $p->adminVerifier->name }}</div>
+                                                <div style="font-size: 10px; opacity: 0.85;">Admin Finance (Duty)</div>
+                                            </div>
+                                        @else
+                                            <span class="badge badge-slate" style="font-size: 11px;">Admin Finance</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-emerald" style="font-weight: 700; font-size: 11px; padding: 4px 8px; border-radius: 6px;">
+                                            ✓ PIN Verified & Remitted
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if($p->proof_image_path)
+                                            <a href="{{ asset($p->proof_image_path) }}" target="_blank" class="btn btn-sm btn-outline" style="font-size: 11.5px; padding: 3px 8px;">
+                                                📷 View Proof
+                                            </a>
+                                        @else
+                                            <span style="color: var(--text-muted); font-size: 11px;">E-Receipt Logged</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td colspan="7" class="text-center" style="padding: 30px; color: var(--text-muted);">
+                                    Wala pang na-remit na koleksyon. Ang lahat ng na-turn over at na-PIN verify ng Admin Finance ay lalabas dito bilang iyong patunay.
+                                </td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: RECENT COLLECTION RECORDS -->
     <div class="collector-tab-pane" id="col-tab-history">
         <div class="card">
             <div class="card-header">
@@ -465,14 +572,14 @@
                             🔒 Admin Finance 4-Digit Security PIN *
                         </label>
                         <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-                            Ask Admin Finance Officer to enter their PIN code to receive and confirm this cash remittance.
+                            Ipa-input sa naka-duty na <strong>Admin Finance Officer</strong> ang kanilang Security PIN. Ang kanilang pangalan at oras ng pag-remit ay awtomatikong mai-save bilang iyong opisyal na patunay.
                         </p>
                         <input type="password" name="admin_pin" maxlength="4" inputmode="numeric" class="form-control" placeholder="••••" required style="letter-spacing: 12px; font-size: 26px; text-align: center; max-width: 220px; font-weight: 800; margin: 0 auto;">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('remitCollectionModal')">Cancel</button>
-                    <button type="submit" class="btn btn-emerald" style="font-weight: 700;">✓ Confirm & Receive Remittance</button>
+                    <button type="submit" class="btn btn-emerald" style="font-weight: 700;">✓ Confirm & Turn Over Remittance</button>
                 </div>
             </form>
         </div>

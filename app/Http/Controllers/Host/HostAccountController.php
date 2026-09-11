@@ -27,16 +27,20 @@ class HostAccountController extends Controller
             'email' => 'required|email|unique:users,email',
             'phone_number' => 'nullable|string|unique:users,phone_number',
             'password' => 'required|string|min:6',
+            'pin_code' => 'nullable|digits:4',
             'role' => 'required|in:admin_encoder,admin_releasing,collector,host',
             'address' => 'nullable|string',
             'assigned_area' => 'nullable|string',
         ]);
+
+        $pinCode = $request->pin_code ?? '1234';
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone_number' => $request->phone_number,
             'password' => Hash::make($request->password),
+            'pin_code' => $pinCode,
             'role' => $request->role,
             'address' => $request->address,
             'status' => 'active',

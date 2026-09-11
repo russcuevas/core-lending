@@ -54,6 +54,7 @@
                             <th>Email / Username</th>
                             <th>Contact Number</th>
                             <th>Role</th>
+                            <th>Security PIN</th>
                             <th>Status</th>
                             <th>Created Date</th>
                             <th style="text-align: right;">Actions</th>
@@ -75,15 +76,27 @@
                                     @endif
                                 </td>
                                 <td>
+                                    @if($admin->pin_code)
+                                        <span style="font-family: monospace; font-weight: 700; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #0369a1;">
+                                            {{ $admin->pin_code }}
+                                        </span>
+                                    @else
+                                        <span style="color: var(--text-muted); font-size: 11px;">1234 (Def.)</span>
+                                    @endif
+                                </td>
+                                <td>
                                     <span class="badge {{ $admin->status === 'active' ? 'badge-emerald' : 'badge-rose' }}">
                                         {{ ucfirst($admin->status) }}
                                     </span>
                                 </td>
                                 <td>{{ $admin->created_at->format('M d, Y') }}</td>
                                 <td style="text-align: right;">
-                                    <div style="display: inline-flex; gap: 6px;">
+                                    <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="border-color: #0284c7; color: #0284c7;" onclick="openResetPinModal('{{ $admin->id }}', '{{ $admin->name }}', 'staff')">
+                                            🔐 PIN
+                                        </button>
                                         <button type="button" class="btn btn-sm btn-outline" onclick="openResetPasswordModal('{{ $admin->id }}', '{{ $admin->name }}', 'staff')">
-                                            Reset Password
+                                            Password
                                         </button>
                                         @if($admin->id !== auth()->id())
                                             <form action="{{ route('host.accounts.toggle_status', $admin->id) }}" method="POST" style="display:inline;">
@@ -299,9 +312,21 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Initial Password</label>
+                        <label class="form-label">Initial Password *</label>
                         <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••" required>
                         @error('password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" style="display: flex; justify-content: space-between;">
+                            <span>4-Digit Security PIN Code *</span>
+                            <span style="font-size: 11px; color: #059669; font-weight: 700;">Used for Remittance & Releasing</span>
+                        </label>
+                        <input type="text" name="pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code', '1234') }}" placeholder="1234" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" required style="letter-spacing: 4px; font-weight: 700; font-size: 16px;">
+                        <div class="form-hint">Admin Finance will input this PIN to receive collector remittances and authorize loan releases. Default is 1234.</div>
+                        @error('pin_code')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
