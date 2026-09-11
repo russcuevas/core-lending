@@ -70,6 +70,7 @@ class ClientController extends Controller
 
         $loanInterestRate = (float)SystemSetting::get('loan_interest_rate_percent', 10.00);
         $loanTermDays = (int)SystemSetting::get('loan_term_days', 60);
+        $loanInsurancePremium = (float)($activeLoan->insurance_premium_daily ?? SystemSetting::get('loan_insurance_premium_daily', 25.00));
 
         return view('client.dashboard', compact(
             'client',
@@ -86,8 +87,36 @@ class ClientController extends Controller
             'savingsInterestRate',
             'savingsLockInDays',
             'loanInterestRate',
-            'loanTermDays'
+            'loanTermDays',
+            'loanInsurancePremium'
         ));
+    }
+
+    public function insurancePolicy()
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $client = $user->client ?? Client::firstOrCreate([
+            'user_id' => $user->id,
+            'qr_code_token' => 'CLIENT-QR-' . strtoupper(substr(md5($user->id . $user->phone_number), 0, 10)),
+        ]);
+
+        $activeLoan = $client->currentLoan;
+        $insurancePremiumDaily = (float)($activeLoan->insurance_premium_daily ?? SystemSetting::get('loan_insurance_premium_daily', 25.00));
+        
+        $isCoveredToday = false;
+        $coveredDaysCount = 0;
+        if ($activeLoan && $activeLoan->status === 'active') {
+            $coveredDaysCount = $activeLoan->schedules()->where('status', 'paid')->count();
+            $todaySchedule = $activeLoan->schedules()->where('due_date', Carbon::today()->toDateString())->first();
+            if ($todaySchedule && $todaySchedule->status === 'paid') {
+                $isCoveredToday = true;
+            } elseif ($activeLoan->remaining_balance <= 0) {
+                $isCoveredToday = true;
+            }
+        }
+
+        return view('client.insurance', compact('client', 'activeLoan', 'insurancePremiumDaily', 'isCoveredToday', 'coveredDaysCount'));
     }
 
     public function requestCashIn(Request $request)

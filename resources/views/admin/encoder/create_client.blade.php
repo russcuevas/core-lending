@@ -77,6 +77,41 @@
                     @enderror
                 </div>
 
+                <!-- Designated Micro-Insurance Beneficiary Information -->
+                <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 16px 18px; margin: 18px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 6px;">
+                        <h4 style="font-size: 14px; font-weight: 700; color: #065f46; margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <span>🛡️</span> Designated Insurance Beneficiary Details
+                        </h4>
+                        <span class="badge badge-emerald" style="font-size: 11px; padding: 3px 8px;">
+                            ₱15,000 Micro-Insurance Safety Net
+                        </span>
+                    </div>
+                    <div class="form-row-2" style="margin-bottom: 0;">
+                        <!-- Beneficiary Full Name -->
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="beneficiary_name" style="color: #065f46; font-weight: 600;">Beneficiary Full Name *</label>
+                            <input type="text" name="beneficiary_name" id="beneficiary_name" class="form-control @error('beneficiary_name') is-invalid @enderror"
+                                placeholder="e.g. Maria Santos Dela Cruz (Spouse / Child)" required value="{{ old('beneficiary_name') }}" style="background: #ffffff;">
+                            @error('beneficiary_name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="form-hint">Designated recipient of the ₱15,000 lump-sum death benefit.</div>
+                        </div>
+
+                        <!-- Beneficiary Contact Number -->
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="beneficiary_phone" style="color: #065f46; font-weight: 600;">Beneficiary Contact Number (CP #) *</label>
+                            <input type="text" name="beneficiary_phone" id="beneficiary_phone" class="form-control @error('beneficiary_phone') is-invalid @enderror"
+                                placeholder="09181234567" required value="{{ old('beneficiary_phone') }}" style="background: #ffffff;">
+                            @error('beneficiary_phone')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="form-hint">Contact number of designated beneficiary for claim releases.</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Assigned Collector -->
                 <div class="form-group">
                     <label class="form-label" for="collector_id">Assigned Field Collector (Who Referred / Collects)

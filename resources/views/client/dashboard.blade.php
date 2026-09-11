@@ -240,9 +240,14 @@
     <!-- 5. Active Loan Section -->
     @if ($activeLoan && $activeLoan->status === 'active')
         @php
+            $insDaily = (float)($activeLoan->insurance_premium_daily ?? $loanInsurancePremium ?? 25.00);
             $totalTermDays = $loanSchedules->count() > 0 ? $loanSchedules->count() : 60;
             $progressPercent = min(100, round(($paidDaysCount / $totalTermDays) * 100));
             $extendedDaysCount = max(0, $totalTermDays - 60);
+            $totalInsuranceForTerm = $insDaily * $totalTermDays;
+            $totalCombinedPayable = $activeLoan->total_payable + $totalInsuranceForTerm;
+            $loanDaily = (float)($activeLoan->loan_premium_daily ?? ($activeLoan->daily_installment - $insDaily > 0 ? $activeLoan->daily_installment - $insDaily : $activeLoan->daily_installment));
+            $totalDaily = (float)($activeLoan->total_daily_payable ?? ($loanDaily + $insDaily));
         @endphp
 
         <!-- Delinquency Alerts if any -->
@@ -255,7 +260,7 @@
                         Daily Payments</strong>
                     <p style="margin: 2px 0 0 0; font-size: 12px; color: #be123c; line-height: 1.4;">
                         You have {{ $missedPastDuesCount }} missed daily installment(s) totaling
-                        <strong>₱{{ number_format($missedPastDuesCount * $activeLoan->daily_installment, 2) }}</strong>.
+                        <strong>₱{{ number_format($missedPastDuesCount * $totalDaily, 2) }}</strong>.
                         Extension days (Day 61+) were automatically added to your repayment schedule. Please coordinate with
                         your collector.
                     </p>
@@ -314,37 +319,52 @@
                 </div>
                 <div class="loan-kpi-card">
                     <div class="loan-kpi-label">Total Payable</div>
-                    <div class="loan-kpi-val">₱{{ number_format($activeLoan->total_payable, 2) }}</div>
+                    <div class="loan-kpi-val" style="color: #047857;">
+                        ₱{{ number_format($totalCombinedPayable, 2) }}
+                        <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
+                            ₱{{ number_format($activeLoan->total_payable, 2) }} Loan + ₱{{ number_format($totalInsuranceForTerm, 2) }} Ins.
+                        </span>
+                    </div>
                 </div>
                 <div class="loan-kpi-card">
                     <div class="loan-kpi-label">Daily Amount Payable</div>
                     <div class="loan-kpi-val" style="color: #d97706;">
-                        ₱{{ number_format($activeLoan->total_daily_payable ?? $activeLoan->daily_installment, 2) }}</div>
+                        ₱{{ number_format($totalDaily, 2) }}
+                        <span style="font-size: 11px; font-weight: normal; color: var(--text-secondary); display: block; margin-top: 2px;">
+                            ₱{{ number_format($loanDaily, 2) }} Loan + ₱{{ number_format($insDaily, 2) }} Ins.
+                        </span>
+                    </div>
                 </div>
                 <div class="loan-kpi-card">
                     <div class="loan-kpi-label">Remaining Balance</div>
                     <div class="loan-kpi-val" style="color: #059669;">
-                        ₱{{ number_format($activeLoan->remaining_balance, 2) }}</div>
+                        ₱{{ number_format($activeLoan->remaining_balance, 2) }}
+                    </div>
                 </div>
             </div>
 
             <!-- Insurance Premium Breakdown Box -->
             <div style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <div>
                         <div style="font-size: 13px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 6px;">
-                            <span>🛡️</span> Daily Payable Breakdown
+                            <span>🛡️</span> Daily Payable Breakdown & Micro-Insurance Protection
                         </div>
-                        <div style="font-size: 12.5px; color: #334155; margin-top: 4px;">
-                            <span>Loan Premium: <strong>₱{{ number_format($activeLoan->loan_premium_daily ?? ($activeLoan->daily_installment - ($activeLoan->insurance_premium_daily ?? 5)), 2) }}</strong></span>
+                        <div style="font-size: 12.5px; color: #334155; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span>Loan Premium: <strong>₱{{ number_format($loanDaily, 2) }}</strong></span>
                             <span style="color: #64748b; font-weight: bold;">+</span>
-                            <span>Insurance Premium: <strong>₱{{ number_format($activeLoan->insurance_premium_daily ?? 5, 2) }}</strong></span>
+                            <span>Insurance Premium: <strong style="color: #0284c7;">₱{{ number_format($insDaily, 2) }}</strong></span>
                             <span style="color: #64748b; font-weight: bold;">=</span>
-                            <span style="color: #059669; font-weight: 800;">Daily Total: ₱{{ number_format($activeLoan->total_daily_payable ?? $activeLoan->daily_installment, 2) }}</span>
+                            <span style="color: #059669; font-weight: 800;">Daily Total: ₱{{ number_format($totalDaily, 2) }}</span>
                         </div>
                     </div>
-                    <div style="font-size: 11.5px; background: #ffffff; padding: 5px 12px; border-radius: 6px; border: 1px solid #cbd5e1; color: #475569; font-weight: 600;">
-                        🕛 12:00 MN Auto-Wallet Deduction Active (When Balance Sufficient)
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <a href="{{ route('client.insurance') }}" class="btn btn-sm btn-outline" style="background: #ffffff; border-color: #0284c7; color: #0284c7; font-weight: 700; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
+                            <span>🛡️ View Policy Details</span> &rarr;
+                        </a>
+                        <div style="font-size: 11.5px; background: #ffffff; padding: 5px 12px; border-radius: 6px; border: 1px solid #cbd5e1; color: #475569; font-weight: 600;">
+                            🕛 12:00 MN Auto-Wallet Deduction Active
+                        </div>
                     </div>
                 </div>
             </div>
@@ -362,9 +382,14 @@
             @endif
 
             <!-- Payment Schedule Table -->
-            <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--text-primary);">
-                📅 {{ $totalTermDays }}-Day Payment Schedule & History
-            </h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                <h4 style="font-size: 14px; font-weight: 700; margin: 0; color: var(--text-primary);">
+                    📅 {{ $totalTermDays }}-Day Payment Schedule & Breakdown
+                </h4>
+                <span style="font-size: 12px; color: var(--text-secondary);">
+                    Includes <strong>Loan Premium</strong> + <strong>Insurance Premium (₱{{ number_format($insDaily, 2) }}/day)</strong>
+                </span>
+            </div>
             <div class="table-responsive"
                 style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
                 <table class="data-table">
@@ -372,7 +397,9 @@
                         <tr>
                             <th>Day #</th>
                             <th>Due Date</th>
-                            <th>Expected Amount</th>
+                            <th>Loan Premium</th>
+                            <th>Insurance Premium</th>
+                            <th>Total Payable</th>
                             <th>Amount Paid</th>
                             <th>Status</th>
                             <th>Paid Date</th>
@@ -386,6 +413,8 @@
                                     !\Carbon\Carbon::parse($schedule->due_date)->isToday();
                                 $isToday = \Carbon\Carbon::parse($schedule->due_date)->isToday();
                                 $isExtended = $schedule->day_number > 60;
+                                $dayLoanPremium = (float)($schedule->expected_amount > 0 ? $schedule->expected_amount : $loanDaily);
+                                $dayTotalPayable = $dayLoanPremium + $insDaily;
                             @endphp
                             <tr @if ($isExtended) style="background: rgba(245, 158, 11, 0.04);" @endif>
                                 <td>
@@ -402,7 +431,9 @@
                                             style="font-size: 9.5px; padding: 1px 4px; margin-left: 2px;">Today</span>
                                     @endif
                                 </td>
-                                <td>₱{{ number_format($schedule->expected_amount, 2) }}</td>
+                                <td>₱{{ number_format($dayLoanPremium, 2) }}</td>
+                                <td style="color: #0284c7; font-weight: 600;">₱{{ number_format($insDaily, 2) }}</td>
+                                <td style="font-weight: 700; color: #166534;">₱{{ number_format($dayTotalPayable, 2) }}</td>
                                 <td
                                     style="font-weight: 700; color: {{ $schedule->paid_amount > 0 ? '#059669' : 'inherit' }};">
                                     {{ $schedule->paid_amount > 0 ? '₱' . number_format($schedule->paid_amount, 2) : '-' }}
@@ -853,12 +884,11 @@
 
     <!-- Apply for Loan Renewal Modal -->
     <div class="modal-overlay" id="applyRenewalModal">
-        <div class="modal-box" style="max-width: 500px;">
+        <div class="modal-box" style="max-width: 520px;">
             <div class="modal-header">
                 <div>
                     <h3 class="modal-title">🔄 Apply for Loan Renewal (Re-Loan)</h3>
-                    <div style="font-size: 12px; color: var(--text-secondary);">Request a new loan cycle under verified
-                        terms.</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Request a new loan cycle under verified terms.</div>
                 </div>
                 <button type="button" class="modal-close" onclick="closeModal('applyRenewalModal')">&times;</button>
             </div>
@@ -867,11 +897,11 @@
                 <div class="modal-body">
                     <div
                         style="background: rgba(5, 150, 105, 0.08); border: 1px solid rgba(5, 150, 105, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                        <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 4px;">📌 Verified
-                            System Terms:</div>
-                        <div style="display: flex; gap: 16px; font-size: 12.5px; color: var(--text-primary);">
+                        <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 4px;">📌 Verified System Terms:</div>
+                        <div style="display: flex; gap: 16px; font-size: 12.5px; color: var(--text-primary); flex-wrap: wrap;">
                             <div><strong>Interest:</strong> {{ $loanInterestRate ?? 10 }}%</div>
                             <div><strong>Term:</strong> {{ $loanTermDays ?? 60 }} Days (Daily)</div>
+                            <div><strong>Insurance:</strong> <span style="color: #0284c7; font-weight: 700;">₱{{ number_format($loanInsurancePremium ?? 25, 2) }} / day</span></div>
                         </div>
                     </div>
 
@@ -909,25 +939,38 @@
                         style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
                         <div
                             style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
-                            Estimated Computation</div>
+                            Estimated Loan & Insurance Computation</div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
-                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total
-                                    Interest ({{ $loanInterestRate ?? 10 }}%)</span>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Loan Interest ({{ $loanInterestRate ?? 10 }}%)</span>
                                 <span style="font-size: 14px; font-weight: 700; color: #d97706;"
                                     id="client_renew_interest">₱0.00</span>
                             </div>
                             <div>
-                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total
-                                    Payable</span>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Loan Principal+Int.</span>
                                 <span style="font-size: 14px; font-weight: 800; color: #059669;"
                                     id="client_renew_payable">₱0.00</span>
                             </div>
+                            <div>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Daily Loan Amortization</span>
+                                <span style="font-size: 13.5px; font-weight: 700; color: #334155;"
+                                    id="client_renew_loan_daily">₱0.00 / day</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Daily Insurance Premium</span>
+                                <span style="font-size: 13.5px; font-weight: 700; color: #0284c7;"
+                                    id="client_renew_ins_daily">₱{{ number_format($loanInsurancePremium ?? 25, 2) }} / day</span>
+                            </div>
                             <div
-                                style="grid-column: span 2; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px;">
-                                <span style="font-size: 12px; color: var(--text-secondary);">Daily Installment: </span>
-                                <strong style="font-size: 16px; color: #0284c7;" id="client_renew_daily">₱0.00 /
-                                    day</strong>
+                                style="grid-column: span 2; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                                <div>
+                                    <span style="font-size: 12px; color: var(--text-secondary); display: block;">Total Daily Due:</span>
+                                    <strong style="font-size: 17px; color: #15803d;" id="client_renew_daily">₱0.00 / day</strong>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="font-size: 11.5px; color: var(--text-secondary); display: block;">Total Combined Payable ({{ $loanTermDays ?? 60 }} Days):</span>
+                                    <strong style="font-size: 14px; color: #0f172a;" id="client_renew_total_combined">₱0.00</strong>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -957,6 +1000,7 @@
     <script>
         const clientLoanRate = {{ (float) ($loanInterestRate ?? 10) }};
         const clientLoanTerm = {{ (int) ($loanTermDays ?? 60) }};
+        const clientInsuranceDaily = {{ (float) ($loanInsurancePremium ?? 25.00) }};
 
         function setClientRenewAmount(val) {
             document.getElementById('client_renew_principal').value = val;
@@ -966,21 +1010,32 @@
         function calculateClientRenewLoan() {
             const principal = parseFloat(document.getElementById('client_renew_principal').value) || 0;
             const interest = principal * (clientLoanRate / 100);
-            const total = principal + interest;
-            const daily = clientLoanTerm > 0 ? (total / clientLoanTerm) : 0;
+            const loanTotal = principal + interest;
+            const loanDaily = clientLoanTerm > 0 ? (loanTotal / clientLoanTerm) : 0;
+            const totalDaily = loanDaily > 0 ? (loanDaily + clientInsuranceDaily) : 0;
+            const totalInsurance = clientInsuranceDaily * clientLoanTerm;
+            const totalCombined = loanTotal > 0 ? (loanTotal + totalInsurance) : 0;
 
             document.getElementById('client_renew_interest').innerText = '₱' + interest.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
-            document.getElementById('client_renew_payable').innerText = '₱' + total.toLocaleString('en-US', {
+            document.getElementById('client_renew_payable').innerText = '₱' + loanTotal.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
-            document.getElementById('client_renew_daily').innerText = '₱' + daily.toLocaleString('en-US', {
+            document.getElementById('client_renew_loan_daily').innerText = '₱' + loanDaily.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }) + ' / day';
+            document.getElementById('client_renew_daily').innerText = '₱' + totalDaily.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + ' / day';
+            document.getElementById('client_renew_total_combined').innerText = '₱' + totalCombined.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
         }
     </script>
 @endpush

@@ -32,6 +32,11 @@
                 <div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 3px;">
                     <strong>Address:</strong> {{ $client->user->address }}
                 </div>
+                @if($client->beneficiary_name)
+                    <div style="font-size: 12.5px; color: #0369a1; margin-bottom: 3px;">
+                        <strong>Insurance Beneficiary:</strong> {{ $client->beneficiary_name }} ({{ $client->beneficiary_phone ?? 'N/A' }})
+                    </div>
+                @endif
                 <div style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 3px;">
                     <strong>Assigned Collector:</strong> {{ $client->collector->user->name ?? 'None' }} ({{ $client->collector->assigned_area ?? 'General' }})
                 </div>

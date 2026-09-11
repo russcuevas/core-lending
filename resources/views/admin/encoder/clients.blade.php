@@ -45,6 +45,12 @@
                                 <td>
                                     <strong>{{ $client->user->name }}</strong>
                                     <div style="font-size: 11.5px; color: var(--text-secondary);">{{ $client->user->address }}</div>
+                                    @if($client->beneficiary_name)
+                                        <div style="font-size: 11px; color: #0369a1; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                                            <span>🛡️</span>
+                                            <span>Beneficiary: <strong>{{ $client->beneficiary_name }}</strong> ({{ $client->beneficiary_phone ?? 'No CP' }})</span>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>{{ $client->user->phone_number }}</td>
                                 <td>{{ $client->collector->user->name ?? 'None' }}</td>
@@ -109,7 +115,7 @@
                                         <a href="{{ route('admin.encoder.print_qr', $client->id) }}" class="btn btn-sm btn-outline" target="_blank" title="Print QR & Schedule">
                                             🖨 QR Card
                                         </a>
-                                        <button type="button" class="btn btn-sm btn-outline" onclick="openUpdateModal('{{ $client->id }}', '{{ addslashes($client->user->name) }}', '{{ $client->user->phone_number }}', '{{ addslashes($client->user->address) }}', '{{ $client->collector_id }}')">
+                                        <button type="button" class="btn btn-sm btn-outline" onclick="openUpdateModal('{{ $client->id }}', '{{ addslashes($client->user->name) }}', '{{ $client->user->phone_number }}', '{{ addslashes($client->user->address) }}', '{{ $client->collector_id }}', '{{ addslashes($client->beneficiary_name ?? '') }}', '{{ addslashes($client->beneficiary_phone ?? '') }}')">
                                             ✏ Edit
                                         </button>
                                     </div>
@@ -271,8 +277,24 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">Beneficiary Full Name</label>
+                        <input type="text" name="beneficiary_name" id="modal_beneficiary_name" class="form-control @error('beneficiary_name') is-invalid @enderror" placeholder="e.g. Maria Santos Dela Cruz">
+                        @error('beneficiary_name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Beneficiary Contact Number (CP #)</label>
+                        <input type="text" name="beneficiary_phone" id="modal_beneficiary_phone" class="form-control @error('beneficiary_phone') is-invalid @enderror" placeholder="09181234567">
+                        @error('beneficiary_phone')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">Reason for Update Request</label>
-                        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="2" placeholder="e.g. Client changed SIM card or moved to new address">{{ old('notes') }}</textarea>
+                        <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="2" placeholder="e.g. Client changed SIM card, address, or designated beneficiary">{{ old('notes') }}</textarea>
                         @error('notes')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -320,13 +342,15 @@
             document.getElementById('renew_total_daily_preview').innerText = '₱' + totalDaily.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / day';
         }
 
-        function openUpdateModal(clientId, name, phone, address, collectorId) {
+        function openUpdateModal(clientId, name, phone, address, collectorId, beneficiaryName = '', beneficiaryPhone = '') {
             document.getElementById('updateClientForm').action = '/admin/encoder/clients/' + clientId + '/update-request';
             document.getElementById('updateModalTitle').innerText = 'Request Update for ' + name;
             document.getElementById('modal_name').value = name;
             document.getElementById('modal_phone').value = phone;
             document.getElementById('modal_address').value = address;
             document.getElementById('modal_collector').value = collectorId;
+            document.getElementById('modal_beneficiary_name').value = beneficiaryName || '';
+            document.getElementById('modal_beneficiary_phone').value = beneficiaryPhone || '';
             openModal('updateClientModal');
         }
     </script>

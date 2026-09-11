@@ -298,8 +298,18 @@ class HostApprovalController extends Controller
             'address' => $newData['address'] ?? $client->user->address,
         ]);
 
+        $clientUpdates = [];
         if (isset($newData['collector_id'])) {
-            $client->update(['collector_id' => $newData['collector_id']]);
+            $clientUpdates['collector_id'] = $newData['collector_id'];
+        }
+        if (array_key_exists('beneficiary_name', $newData)) {
+            $clientUpdates['beneficiary_name'] = $newData['beneficiary_name'];
+        }
+        if (array_key_exists('beneficiary_phone', $newData)) {
+            $clientUpdates['beneficiary_phone'] = $newData['beneficiary_phone'];
+        }
+        if (!empty($clientUpdates)) {
+            $client->update($clientUpdates);
         }
 
         $updateRequest->update([

@@ -15,6 +15,8 @@ class Client extends Model
         'qr_code_token',
         'qr_code_path',
         'wallet_balance',
+        'beneficiary_name',
+        'beneficiary_phone',
         'current_loan_id',
         'status',
         'last_payment_date',

@@ -69,6 +69,8 @@ class EncoderController extends Controller
             'phone_number' => 'required|string|unique:users,phone_number',
             'email' => 'nullable|email|unique:users,email',
             'address' => 'required|string',
+            'beneficiary_name' => 'required|string|max:255',
+            'beneficiary_phone' => 'required|string|max:50',
             'valid_id' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
             'loan_amount' => 'required|numeric|min:500',
             'interest_rate_percent' => 'nullable|numeric|min:0',
@@ -112,6 +114,8 @@ class EncoderController extends Controller
             'collector_id' => $request->collector_id,
             'qr_code_token' => $qrToken,
             'wallet_balance' => 0.00,
+            'beneficiary_name' => $request->beneficiary_name,
+            'beneficiary_phone' => $request->beneficiary_phone,
             'status' => 'pending_host_approval',
         ]);
 
@@ -288,6 +292,8 @@ class EncoderController extends Controller
             'name' => 'required|string',
             'phone_number' => 'required|string',
             'address' => 'required|string',
+            'beneficiary_name' => 'nullable|string|max:255',
+            'beneficiary_phone' => 'nullable|string|max:50',
             'collector_id' => 'required|exists:collectors,id',
             'notes' => 'nullable|string',
         ]);
@@ -296,6 +302,8 @@ class EncoderController extends Controller
             'name' => $client->user->name,
             'phone_number' => $client->user->phone_number,
             'address' => $client->user->address,
+            'beneficiary_name' => $client->beneficiary_name,
+            'beneficiary_phone' => $client->beneficiary_phone,
             'collector_id' => $client->collector_id,
         ];
 
@@ -303,6 +311,8 @@ class EncoderController extends Controller
             'name' => $request->name,
             'phone_number' => $request->phone_number,
             'address' => $request->address,
+            'beneficiary_name' => $request->beneficiary_name,
+            'beneficiary_phone' => $request->beneficiary_phone,
             'collector_id' => $request->collector_id,
         ];
 

@@ -169,6 +169,11 @@
                                         <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">
                                             📞 {{ $loan->client->user->phone_number ?? 'N/A' }}
                                         </div>
+                                        @if($loan->client && $loan->client->beneficiary_name)
+                                            <div style="font-size: 11px; color: #0369a1; margin-top: 2px;">
+                                                🛡️ Beneficiary: <strong>{{ $loan->client->beneficiary_name }}</strong> ({{ $loan->client->beneficiary_phone ?? 'N/A' }})
+                                            </div>
+                                        @endif
                                     </td>
                                     <td>
                                         <span style="font-weight: 800; color: #059669; font-size: 14px;">

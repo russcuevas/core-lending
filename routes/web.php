@@ -118,6 +118,7 @@ Route::middleware(['auth', 'role:collector'])->prefix('collector')->name('collec
 // 5. CLIENT ROUTES
 Route::middleware(['auth', 'role:client'])->prefix('client')->name('client.')->group(function () {
     Route::get('/dashboard', [ClientController::class, 'dashboard'])->name('dashboard');
+    Route::get('/insurance-policy', [ClientController::class, 'insurancePolicy'])->name('insurance');
     Route::post('/cash-in', [ClientController::class, 'requestCashIn'])->name('cash_in');
     Route::post('/cash-out', [ClientController::class, 'requestCashOut'])->name('cash_out');
     Route::post('/request-renewal', [ClientController::class, 'requestRenewal'])->name('request_renewal');
