@@ -43,7 +43,7 @@ class HostReportController extends Controller
         $expensesTotal = Expense::whereBetween('date', [$startDate, $endDate])->sum('amount');
 
         // Payments Breakdown
-        $payments = LoanPayment::with(['client.user', 'collector.user', 'loan'])
+        $payments = LoanPayment::with(['client.user', 'collector.user', 'loan.schedules'])
             ->whereBetween('payment_date', [$startDate, $endDate])
             ->latest()
             ->paginate(30);
@@ -93,7 +93,7 @@ class HostReportController extends Controller
         $expensesTotal = $expenses->sum('amount');
 
         // All Payments in Period
-        $payments = LoanPayment::with(['client.user', 'collector.user', 'loan'])
+        $payments = LoanPayment::with(['client.user', 'collector.user', 'loan.schedules'])
             ->whereBetween('payment_date', [$startDate, $endDate])
             ->orderBy('payment_date', 'asc')
             ->get();

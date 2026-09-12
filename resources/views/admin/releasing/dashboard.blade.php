@@ -249,14 +249,24 @@
                         </div>
                     </div>
 
+                    @php
+                        $rInsDaily = (float)($loan->insurance_premium_daily > 0 ? $loan->insurance_premium_daily : 25.00);
+                        $rTermDays = $loan->schedules && $loan->schedules->count() > 0 ? $loan->schedules->count() : ($loan->term_days ?? 60);
+                        $rTotIns = $rInsDaily * $rTermDays;
+                        $rTotPayable = $loan->total_payable + $rTotIns;
+                        $rLoanDaily = (float)($loan->loan_premium_daily > 0 ? $loan->loan_premium_daily : $loan->daily_installment);
+                        $rTotDaily = (float)($loan->total_daily_payable > 0 ? $loan->total_daily_payable : ($rLoanDaily + $rInsDaily));
+                    @endphp
                     <div class="request-meta-grid">
                         <div class="request-item">
                             <span class="request-label">Total Payable:</span>
-                            <span class="request-value">₱{{ number_format($loan->total_payable, 2) }} (60 Days)</span>
+                            <span class="request-value">₱{{ number_format($rTotPayable, 2) }} ({{ $rTermDays }} Days)</span>
+                            <div style="font-size: 10px; color: var(--text-muted);">₱{{ number_format($loan->total_payable, 2) }} + ₱{{ number_format($rTotIns, 2) }} ins</div>
                         </div>
                         <div class="request-item">
                             <span class="request-label">Daily Installment:</span>
-                            <span class="request-value">₱{{ number_format($loan->daily_installment, 2) }} / day</span>
+                            <span class="request-value" style="color: #15803d; font-weight: 700;">₱{{ number_format($rTotDaily, 2) }} / day</span>
+                            <div style="font-size: 10px; color: var(--text-muted);">(₱{{ number_format($rLoanDaily, 2) }} + ₱{{ number_format($rInsDaily, 2) }} ins)</div>
                         </div>
                         <div class="request-item">
                             <span class="request-label">Host Approver:</span>

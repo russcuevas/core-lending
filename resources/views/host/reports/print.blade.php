@@ -314,6 +314,17 @@
             </thead>
             <tbody>
                 @forelse($payments as $idx => $p)
+                    @php
+                        $pRemBal = $p->client_remaining_balance_after ?? 0;
+                        if ($p->loan) {
+                            $pL = $p->loan;
+                            $pTermDays = $pL->schedules ? ($pL->schedules->count() > 0 ? $pL->schedules->count() : ($pL->term_days ?? 60)) : 60;
+                            $pInsDaily = (float)($pL->insurance_premium_daily > 0 ? $pL->insurance_premium_daily : 25.00);
+                            $pTotIns = $pInsDaily * $pTermDays;
+                            $pTotPayable = $pL->total_payable + $pTotIns;
+                            $pRemBal = max(0, $pTotPayable - (float)$pL->total_paid);
+                        }
+                    @endphp
                     <tr>
                         <td class="text-center">{{ $idx + 1 }}</td>
                         <td>{{ \Carbon\Carbon::parse($p->payment_date)->format('Y-m-d') }}</td>
@@ -322,7 +333,7 @@
                         <td class="text-right">₱{{ number_format($p->loan_premium_amount > 0 ? $p->loan_premium_amount : ($p->amount_paid - ($p->insurance_premium_amount ?? 0)), 2) }}</td>
                         <td class="text-right">₱{{ number_format($p->insurance_premium_amount ?? 0, 2) }}</td>
                         <td class="text-right" style="font-weight: bold;">₱{{ number_format($p->amount_paid, 2) }}</td>
-                        <td class="text-right">₱{{ number_format($p->client_remaining_balance_after ?? 0, 2) }}</td>
+                        <td class="text-right">₱{{ number_format($pRemBal, 2) }}</td>
                         <td class="text-center">{{ strtoupper($p->status) }}</td>
                     </tr>
                 @empty

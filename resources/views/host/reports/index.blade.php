@@ -117,7 +117,21 @@
                                 <td style="font-weight: 700; color: #059669; font-size: 14.5px;">
                                     ₱{{ number_format($p->amount_paid, 2) }}
                                 </td>
-                                <td style="font-weight: 600;">₱{{ number_format($p->client_remaining_balance_after, 2) }}</td>
+                                @php
+                                    $pRemBal = $p->client_remaining_balance_after;
+                                    if ($p->loan) {
+                                        $pL = $p->loan;
+                                        $pTermDays = $pL->schedules ? ($pL->schedules->count() > 0 ? $pL->schedules->count() : ($pL->term_days ?? 60)) : 60;
+                                        $pInsDaily = (float)($pL->insurance_premium_daily > 0 ? $pL->insurance_premium_daily : 25.00);
+                                        $pTotIns = $pInsDaily * $pTermDays;
+                                        $pTotPayable = $pL->total_payable + $pTotIns;
+                                        $pRemBal = max(0, $pTotPayable - (float)$pL->total_paid);
+                                    }
+                                @endphp
+                                <td style="font-weight: 700; color: #059669;">
+                                    ₱{{ number_format($pRemBal, 2) }}
+                                    <div style="font-size: 10px; color: var(--text-muted); font-weight: normal;">(Principal+Int+Ins)</div>
+                                </td>
                                 <td>
                                     @if($p->client_pin_verified)
                                         <span class="badge badge-emerald">✓ Verified (PIN)</span>

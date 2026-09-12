@@ -195,7 +195,12 @@
                                             Total: ₱{{ number_format($insTotal, 2) }}
                                         </div>
                                     </td>
-                                    <td style="font-weight: 600;">₱{{ number_format($loan->total_payable, 2) }}</td>
+                                    <td>
+                                        <div style="font-weight: 700; color: #047857;">₱{{ number_format($loan->total_payable + $insTotal, 2) }}</div>
+                                        <div style="font-size: 10.5px; color: var(--text-secondary);">
+                                            ₱{{ number_format($loan->total_payable, 2) }} + ₱{{ number_format($insTotal, 2) }} ins
+                                        </div>
+                                    </td>
                                     <td>
                                         @php
                                             $loanDaily = (float)($loan->loan_premium_daily > 0 ? $loan->loan_premium_daily : $loan->daily_installment);
