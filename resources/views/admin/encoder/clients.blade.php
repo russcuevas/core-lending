@@ -81,11 +81,10 @@
                                             $cTermDays = $cL->schedules && $cL->schedules->count() > 0 ? $cL->schedules->count() : ($cL->term_days ?? 60);
                                             $cInsDaily = (float)($cL->insurance_premium_daily > 0 ? $cL->insurance_premium_daily : 25.00);
                                             $cTotIns = $cInsDaily * $cTermDays;
-                                            $cTotPayable = $cL->total_payable + $cTotIns;
-                                            $cCombinedRemaining = max(0, $cTotPayable - (float)$cL->total_paid);
                                             $cPaidDays = $cL->days_paid_count;
                                             $cRemainingIns = max(0, $cTotIns - ($cPaidDays * $cInsDaily));
-                                            $cRemainingLoan = max(0, $cCombinedRemaining - $cRemainingIns);
+                                            $cRemainingLoan = (float)$cL->remaining_balance;
+                                            $cCombinedRemaining = max(0, $cRemainingLoan + $cRemainingIns);
                                         @endphp
                                         <div>₱{{ number_format($cCombinedRemaining, 2) }}</div>
                                         <div style="font-size: 10px; color: var(--text-secondary); font-weight: normal;">

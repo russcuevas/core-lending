@@ -55,11 +55,10 @@
                                     $pTermDays = $pL->schedules ? ($pL->schedules->count() > 0 ? $pL->schedules->count() : ($pL->term_days ?? 60)) : 60;
                                     $pInsDaily = (float)($pL->insurance_premium_daily > 0 ? $pL->insurance_premium_daily : 25.00);
                                     $pTotIns = $pInsDaily * $pTermDays;
-                                    $pTotPayable = $pL->total_payable + $pTotIns;
-                                    $pRemBal = max(0, $pTotPayable - (float)$pL->total_paid);
                                     $pPaidDays = $pL->days_paid_count;
                                     $pRemIns = max(0, $pTotIns - ($pPaidDays * $pInsDaily));
-                                    $pRemLoan = max(0, $pRemBal - $pRemIns);
+                                    $pRemLoan = (float)$pL->remaining_balance;
+                                    $pRemBal = max(0, $pRemLoan + $pRemIns);
                                 }
                             @endphp
                             <table style="width: 100%; font-size: 12.5px; border-collapse: collapse;">

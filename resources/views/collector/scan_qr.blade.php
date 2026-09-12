@@ -86,8 +86,9 @@
                                 $termDays = $l ? ($l->term_days ?? 60) : 60;
                                 $insDaily = $l ? (float)($l->insurance_premium_daily > 0 ? $l->insurance_premium_daily : 25.00) : 0;
                                 $totIns = $insDaily * $termDays;
-                                $totPayable = $l ? ($l->total_payable + $totIns) : 0;
-                                $combinedBal = $l ? max(0, $totPayable - (float)$l->total_paid) : 0;
+                                $paidDays = $l ? $l->days_paid_count : 0;
+                                $remIns = max(0, $totIns - ($paidDays * $insDaily));
+                                $combinedBal = $l ? max(0, (float)$l->remaining_balance + $remIns) : 0;
                             @endphp
                             <option value="{{ $c->id }}" {{ $hasPending ? 'disabled' : '' }} data-text="{{ strtolower($c->user->name . ' ' . $c->user->phone_number) }}">
                                 {{ $c->user->name }} ({{ $c->user->phone_number }}) • Bal: ₱{{ number_format($combinedBal, 2) }} {{ $hasPending ? '• 🔒 (Pending Approval)' : '' }}

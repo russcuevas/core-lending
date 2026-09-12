@@ -145,64 +145,23 @@
             padding: 16px;
             margin-top: 14px;
         }
-        .coverage-status-strip {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #ffffff;
-            border: 1px solid var(--border-color, #e2e8f0);
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 14px;
-        }
     </style>
 @endpush
 
 @section('content')
     <!-- 1. Hero Policy Banner -->
     <div class="policy-hero-card">
-        <div class="policy-badge">
-            <span>🛡️ Community Micro-Insurance Protection</span>
-        </div>
-        <h1 class="policy-hero-title">COMMUNITY MICRO-INSURANCE POLICY</h1>
-        <p class="policy-hero-subtitle">
-            Guaranteed Financial Safety Net for Active Community Members
-        </p>
-    </div>
-
-    <!-- 2. Real-Time Coverage Status Strip -->
-    <div class="coverage-status-strip">
-        <div style="display: flex; align-items: center; gap: 14px;">
-            <div style="font-size: 28px;">
-                @if ($isCoveredToday)
-                    <span>🛡️</span>
-                @else
-                    <span>⏳</span>
-                @endif
-            </div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
             <div>
-                <div style="font-size: 11.5px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
-                    Today's Coverage Status ({{ \Carbon\Carbon::today()->format('M d, Y') }})
+                <div class="policy-badge">
+                    <span>🛡️ Community Micro-Insurance Protection</span>
                 </div>
-                <div style="font-size: 16px; font-weight: 800; margin-top: 2px;">
-                    @if ($isCoveredToday)
-                        <span style="color: #059669;">✓ Active & Fully Covered Today</span>
-                    @elseif ($activeLoan && $activeLoan->status === 'active')
-                        <span style="color: #d97706;">⚠️ Pending Daily Payment for Today (₱{{ number_format($insurancePremiumDaily, 2) }}/day)</span>
-                    @else
-                        <span style="color: #64748b;">No Active Loan Policy Currently</span>
-                    @endif
-                </div>
+                <h1 class="policy-hero-title">COMMUNITY MICRO-INSURANCE POLICY</h1>
+                <p class="policy-hero-subtitle">
+                    Guaranteed Financial Safety Net for Active Community Members
+                </p>
             </div>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <div style="text-align: right; font-size: 12.5px; color: var(--text-secondary);">
-                <div>Daily Insurance Premium: <strong style="color: #0284c7;">₱{{ number_format($insurancePremiumDaily, 2) }} / day</strong></div>
-                <div>Lump-Sum Death Benefit: <strong style="color: #059669;">₱15,000.00</strong></div>
-            </div>
-            <a href="{{ route('client.dashboard') }}" class="btn btn-outline" style="font-size: 12.5px; font-weight: 600;">
+            <a href="{{ route('client.dashboard') }}" class="btn" style="background: rgba(255, 255, 255, 0.2); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.35); font-size: 13px; font-weight: 600; backdrop-filter: blur(4px); text-decoration: none; padding: 8px 16px; border-radius: 8px;">
                 &larr; Back to Dashboard
             </a>
         </div>

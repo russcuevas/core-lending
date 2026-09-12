@@ -245,19 +245,21 @@
             $progressPercent = min(100, round(($paidDaysCount / $totalTermDays) * 100));
             $extendedDaysCount = max(0, $totalTermDays - 60);
             $totalInsuranceForTerm = $insDaily * $totalTermDays;
-            $totalCombinedPayable = $activeLoan->total_payable + $totalInsuranceForTerm;
+            $totalCombinedPayable = (float) $activeLoan->total_payable + $totalInsuranceForTerm;
             $loanDaily =
                 (float) ($activeLoan->loan_premium_daily ??
                     ($activeLoan->daily_installment - $insDaily > 0
                         ? $activeLoan->daily_installment - $insDaily
                         : $activeLoan->daily_installment));
             $totalDaily = (float) ($activeLoan->total_daily_payable ?? $loanDaily + $insDaily);
-            $totalCombinedPaid =
-                (float) ($activeLoan->total_paid ?? $paymentHistory->where('status', 'paid')->sum('amount_paid'));
-            $totalCombinedRemaining = max(0, $totalCombinedPayable - $totalCombinedPaid);
             $paidInsuranceSum = (float) $paymentHistory->where('status', 'paid')->sum('insurance_premium_amount');
+            if ($paidInsuranceSum <= 0 && $paidDaysCount > 0) {
+                $paidInsuranceSum = $paidDaysCount * $insDaily;
+            }
             $remainingInsurance = max(0, $totalInsuranceForTerm - $paidInsuranceSum);
-            $remainingLoanPrincipalInterest = max(0, $totalCombinedRemaining - $remainingInsurance);
+            $remainingLoanPrincipalInterest = (float) $activeLoan->remaining_balance;
+            $totalCombinedRemaining = max(0, $remainingLoanPrincipalInterest + $remainingInsurance);
+            $totalCombinedPaid = ((float) $activeLoan->total_paid) + $paidInsuranceSum;
         @endphp
 
         <!-- Delinquency Alerts if any -->
@@ -463,7 +465,7 @@
                                 if ($isSchedulePaid) {
                                     $dayPaidAmount = $dayTotalPayable;
                                 } elseif ($schedule->paid_amount > 0) {
-                                    $dayPaidAmount = $schedule->paid_amount + $insDaily;
+                                    $dayPaidAmount = $schedule->paid_amount;
                                 }
                             @endphp
                             <tr @if ($isExtended) style="background: rgba(245, 158, 11, 0.04);" @endif>
@@ -488,9 +490,14 @@
                                 <td style="font-weight: 700; color: {{ $dayPaidAmount > 0 ? '#059669' : 'inherit' }};">
                                     @if ($dayPaidAmount > 0)
                                         <div>₱{{ number_format($dayPaidAmount, 2) }}</div>
-                                        <div style="font-size: 9.5px; color: var(--text-muted); font-weight: normal;">
-                                            (₱{{ number_format($dayLoanPremium, 2) }} +
-                                            ₱{{ number_format($insDaily, 2) }})</div>
+                                        @if ($isSchedulePaid)
+                                            <div style="font-size: 9.5px; color: var(--text-muted); font-weight: normal;">
+                                                (₱{{ number_format($dayLoanPremium, 2) }} +
+                                                ₱{{ number_format($insDaily, 2) }})</div>
+                                        @else
+                                            <div style="font-size: 9.5px; color: var(--text-muted); font-weight: normal;">
+                                                (₱{{ number_format($dayPaidAmount, 2) }} Loan)</div>
+                                        @endif
                                     @else
                                         -
                                     @endif

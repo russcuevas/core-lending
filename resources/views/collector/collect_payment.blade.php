@@ -25,11 +25,12 @@
             @php
                 $termDays = $loan->schedules ? ($loan->schedules->count() > 0 ? $loan->schedules->count() : ($loan->term_days ?? 60)) : 60;
                 $totalInsuranceForTerm = $insuranceDaily * $termDays;
-                $totalCombinedPayable = $loan->total_payable + $totalInsuranceForTerm;
-                $totalCombinedPaid = (float)$loan->total_paid;
-                $totalCombinedRemaining = max(0, $totalCombinedPayable - $totalCombinedPaid);
-                $remainingInsurance = max(0, $totalInsuranceForTerm - ($paidDays * $insuranceDaily));
-                $remainingLoan = max(0, $totalCombinedRemaining - $remainingInsurance);
+                $totalCombinedPayable = (float)$loan->total_payable + $totalInsuranceForTerm;
+                $paidInsurance = $paidDays * $insuranceDaily;
+                $remainingInsurance = max(0, $totalInsuranceForTerm - $paidInsurance);
+                $remainingLoan = (float)$loan->remaining_balance;
+                $totalCombinedRemaining = max(0, $remainingLoan + $remainingInsurance);
+                $totalCombinedPaid = (float)$loan->total_paid + $paidInsurance;
             @endphp
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; background: #f8fafc; padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;">

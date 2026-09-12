@@ -80,15 +80,54 @@ class Loan extends Model
         return $this->schedules()->where('status', 'paid')->count();
     }
 
+    public function getTotalInsuranceForTermAttribute()
+    {
+        $termDays = $this->schedules()->count() > 0 ? $this->schedules()->count() : ($this->term_days ?: 60);
+        $insDaily = (float)($this->insurance_premium_daily > 0 ? $this->insurance_premium_daily : 25.00);
+        return $insDaily * $termDays;
+    }
+
+    public function getTotalCombinedPayableAttribute()
+    {
+        return (float)$this->total_payable + $this->total_insurance_for_term;
+    }
+
+    public function getPaidInsuranceAttribute()
+    {
+        $insDaily = (float)($this->insurance_premium_daily > 0 ? $this->insurance_premium_daily : 25.00);
+        $paidFromPayments = (float)$this->payments()->where('status', 'paid')->sum('insurance_premium_amount');
+        if ($paidFromPayments > 0) {
+            return $paidFromPayments;
+        }
+        return (float)($this->days_paid_count * $insDaily);
+    }
+
+    public function getRemainingInsuranceAttribute()
+    {
+        return max(0, $this->total_insurance_for_term - $this->paid_insurance);
+    }
+
+    public function getTotalCombinedPaidAttribute()
+    {
+        return (float)$this->total_paid + $this->paid_insurance;
+    }
+
+    public function getTotalCombinedRemainingAttribute()
+    {
+        return max(0, (float)$this->remaining_balance + $this->remaining_insurance);
+    }
+
     /**
      * Auto-sync missed past due days, extend loan schedule by adding extra days (e.g. Day 61+),
      * and trigger notifications if 3 or more accumulative unpaid days are reached.
      */
     public function syncMissedDaysAndExtensions()
     {
-        if ($this->status !== 'active') {
+        if ($this->status !== 'active' && $this->status !== 'fully_paid') {
             return;
         }
+
+        $this->recalculateSchedulesFromPayments();
 
         $todayStr = Carbon::today()->toDateString();
 
@@ -179,5 +218,73 @@ class Loan extends Model
                 );
             }
         }
+    }
+
+    /**
+     * Accurately recalculates and distributes all remitted payments to schedules based strictly on loan_premium_amount.
+     */
+    public function recalculateSchedulesFromPayments()
+    {
+        $paidPayments = LoanPayment::where('loan_id', $this->id)
+            ->where('status', 'paid')
+            ->orderBy('payment_date', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        if ($paidPayments->isEmpty()) {
+            return;
+        }
+
+        // Reset all schedules
+        $schedules = $this->schedules()->orderBy('day_number', 'asc')->get();
+        foreach ($schedules as $schedule) {
+            $schedule->update([
+                'paid_amount' => 0.00,
+                'status' => 'unpaid',
+                'paid_at' => null,
+            ]);
+        }
+
+        $totalLoanPaid = 0.00;
+        foreach ($paidPayments as $payment) {
+            $loanPart = (float)($payment->loan_premium_amount > 0
+                ? $payment->loan_premium_amount
+                : max(0, $payment->amount_paid - ($payment->insurance_premium_amount ?? 25.00)));
+
+            $totalLoanPaid += $loanPart;
+            $remainingToDistribute = $loanPart;
+            $unpaidSchedules = $this->schedules()->where('status', '!=', 'paid')->orderBy('day_number', 'asc')->get();
+
+            foreach ($unpaidSchedules as $schedule) {
+                if ($remainingToDistribute <= 0) {
+                    break;
+                }
+
+                $needed = $schedule->expected_amount - $schedule->paid_amount;
+                if ($remainingToDistribute >= $needed) {
+                    $schedule->update([
+                        'paid_amount' => $schedule->expected_amount,
+                        'status' => 'paid',
+                        'paid_at' => $payment->remitted_at ?? $payment->created_at,
+                    ]);
+                    $remainingToDistribute -= $needed;
+                } else {
+                    $schedule->update([
+                        'paid_amount' => $schedule->paid_amount + $remainingToDistribute,
+                        'status' => 'partial',
+                        'paid_at' => $payment->remitted_at ?? $payment->created_at,
+                    ]);
+                    $remainingToDistribute = 0;
+                }
+            }
+        }
+
+        $remainingBalance = max(0, $this->total_payable - $totalLoanPaid);
+        $this->update([
+            'total_paid' => $totalLoanPaid,
+            'remaining_balance' => $remainingBalance,
+            'status' => ($remainingBalance <= 0) ? 'fully_paid' : 'active',
+        ]);
     }
 }

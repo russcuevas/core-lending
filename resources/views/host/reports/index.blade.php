@@ -124,8 +124,9 @@
                                         $pTermDays = $pL->schedules ? ($pL->schedules->count() > 0 ? $pL->schedules->count() : ($pL->term_days ?? 60)) : 60;
                                         $pInsDaily = (float)($pL->insurance_premium_daily > 0 ? $pL->insurance_premium_daily : 25.00);
                                         $pTotIns = $pInsDaily * $pTermDays;
-                                        $pTotPayable = $pL->total_payable + $pTotIns;
-                                        $pRemBal = max(0, $pTotPayable - (float)$pL->total_paid);
+                                        $pPaidDays = $pL->schedules ? $pL->schedules->where('status', 'paid')->count() : 0;
+                                        $pRemIns = max(0, $pTotIns - ($pPaidDays * $pInsDaily));
+                                        $pRemBal = max(0, (float)$pL->remaining_balance + $pRemIns);
                                     }
                                 @endphp
                                 <td style="font-weight: 700; color: #059669;">

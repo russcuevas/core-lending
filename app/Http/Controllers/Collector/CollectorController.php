@@ -268,12 +268,16 @@ class CollectorController extends Controller
             $amountPaid = (float)$payment->amount_paid;
             $totalRemitted += $amountPaid;
 
+            $loanPart = (float)($payment->loan_premium_amount > 0
+                ? $payment->loan_premium_amount
+                : max(0, $amountPaid - ($payment->insurance_premium_amount ?? 25.00)));
+
             // Apply payment to loan balance & schedules
-            $newRemainingBalance = max(0, $loan->remaining_balance - $amountPaid);
-            $newTotalPaid = $loan->total_paid + $amountPaid;
+            $newRemainingBalance = max(0, $loan->remaining_balance - $loanPart);
+            $newTotalPaid = $loan->total_paid + $loanPart;
             $isFullyPaid = ($newRemainingBalance <= 0);
 
-            $remainingToDistribute = $amountPaid;
+            $remainingToDistribute = $loanPart;
             $unpaidSchedules = $loan->schedules()->where('status', '!=', 'paid')->orderBy('day_number', 'asc')->get();
 
             foreach ($unpaidSchedules as $schedule) {

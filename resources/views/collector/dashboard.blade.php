@@ -305,13 +305,13 @@
                                     $totDaily = (float)($loan && $loan->total_daily_payable > 0 ? $loan->total_daily_payable : ($loanDaily + $insDaily));
 
                                     $totalInsuranceForTerm = $loan ? ($insDaily * $termDays) : 0;
-                                    $totalCombinedPayable = $loan ? ($loan->total_payable + $totalInsuranceForTerm) : 0;
-                                    $totalCombinedPaid = $loan ? (float)$loan->total_paid : 0;
-                                    $totalCombinedRemaining = max(0, $totalCombinedPayable - $totalCombinedPaid);
-
+                                    $totalCombinedPayable = $loan ? ((float)$loan->total_payable + $totalInsuranceForTerm) : 0;
                                     $paidDays = $loan ? $loan->days_paid_count : 0;
-                                    $remainingInsurance = max(0, $totalInsuranceForTerm - ($paidDays * $insDaily));
-                                    $remainingLoan = max(0, $totalCombinedRemaining - $remainingInsurance);
+                                    $paidInsurance = $loan ? ($paidDays * $insDaily) : 0;
+                                    $remainingInsurance = max(0, $totalInsuranceForTerm - $paidInsurance);
+                                    $remainingLoan = $loan ? (float)$loan->remaining_balance : 0;
+                                    $totalCombinedRemaining = max(0, $remainingLoan + $remainingInsurance);
+                                    $totalCombinedPaid = ($loan ? (float)$loan->total_paid : 0) + $paidInsurance;
                                 @endphp
                                 <tr>
                                     <td>
@@ -457,8 +457,9 @@
                                                     $pTermDays = $p->loan->schedules ? ($p->loan->schedules->count() > 0 ? $p->loan->schedules->count() : ($p->loan->term_days ?? 60)) : 60;
                                                     $pInsDaily = (float)($p->loan->insurance_premium_daily > 0 ? $p->loan->insurance_premium_daily : 25.00);
                                                     $pTotIns = $pInsDaily * $pTermDays;
-                                                    $pTotPayable = $p->loan->total_payable + $pTotIns;
-                                                    $pRemBal = max(0, $pTotPayable - (float)$p->loan->total_paid);
+                                                    $pPaidDays = $p->loan->schedules ? $p->loan->schedules->where('status', 'paid')->count() : 0;
+                                                    $pRemIns = max(0, $pTotIns - ($pPaidDays * $pInsDaily));
+                                                    $pRemBal = max(0, (float)$p->loan->remaining_balance + $pRemIns);
                                                 @endphp
                                                 Loan #{{ $p->loan_id }} | Bal: ₱{{ number_format($pRemBal, 2) }}
                                             @else
@@ -541,8 +542,9 @@
                                         $pTermDays = $p->loan->schedules ? ($p->loan->schedules->count() > 0 ? $p->loan->schedules->count() : ($p->loan->term_days ?? 60)) : 60;
                                         $pInsDaily = (float)($p->loan->insurance_premium_daily > 0 ? $p->loan->insurance_premium_daily : 25.00);
                                         $pTotIns = $pInsDaily * $pTermDays;
-                                        $pTotPayable = $p->loan->total_payable + $pTotIns;
-                                        $pRemBal = max(0, $pTotPayable - (float)$p->loan->total_paid);
+                                        $pPaidDays = $p->loan->schedules ? $p->loan->schedules->where('status', 'paid')->count() : 0;
+                                        $pRemIns = max(0, $pTotIns - ($pPaidDays * $pInsDaily));
+                                        $pRemBal = max(0, (float)$p->loan->remaining_balance + $pRemIns);
                                     }
                                 @endphp
                                 <tr>
