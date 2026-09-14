@@ -272,6 +272,12 @@
                     <td>60-Day term locked-in savings capital</td>
                 </tr>
                 <tr>
+                    <td><strong>Total Savings Interest Earned</strong></td>
+                    <td>Client Yield / Outflow</td>
+                    <td class="text-right" style="font-weight: bold;">₱{{ number_format($savingsInterestTotal, 2) }}</td>
+                    <td>Interest earned by clients (₱{{ number_format($savingsExpectedInterestTotal, 2) }} total expected)</td>
+                </tr>
+                <tr>
                     <td><strong>Total Cash-Out / Disbursements Released</strong></td>
                     <td>Outflow (-)</td>
                     <td class="text-right" style="font-weight: bold;">₱{{ number_format($cashOutTotal, 2) }}</td>

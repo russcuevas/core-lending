@@ -22,12 +22,36 @@
         </form>
     </div>
 
+    <style>
+        .reports-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 1200px) {
+            .reports-stats-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 640px) {
+            .reports-stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .reports-stats-grid .stat-label {
+            white-space: normal;
+            line-height: 1.25;
+            min-height: 28px;
+        }
+    </style>
+
     <!-- Summary Statistics Grid -->
-    <div class="stats-grid">
+    <div class="stats-grid reports-stats-grid">
         <div class="stat-card">
             <div class="stat-icon emerald">₱</div>
             <div class="stat-info">
-                <div class="stat-label">Total Cash In Inflow</div>
+                <div class="stat-label" title="Total Cash In Inflow">Total Cash In Inflow</div>
                 <div class="stat-value">₱{{ number_format($cashInTotal, 2) }}</div>
                 <div class="stat-subtext">{{ $startDate }} to {{ $endDate }}</div>
             </div>
@@ -36,7 +60,7 @@
         <div class="stat-card">
             <div class="stat-icon amber">₱</div>
             <div class="stat-info">
-                <div class="stat-label">Total Cash Out Released</div>
+                <div class="stat-label" title="Total Cash Out Released">Total Cash Out Released</div>
                 <div class="stat-value">₱{{ number_format($cashOutTotal, 2) }}</div>
                 <div class="stat-subtext">{{ $startDate }} to {{ $endDate }}</div>
             </div>
@@ -45,7 +69,7 @@
         <div class="stat-card">
             <div class="stat-icon indigo">₱</div>
             <div class="stat-info">
-                <div class="stat-label">Total Loan Collections</div>
+                <div class="stat-label" title="Total Loan Collections">Total Loan Collections</div>
                 <div class="stat-value">₱{{ number_format($loanCollectionsTotal, 2) }}</div>
                 <div class="stat-subtext">₱{{ number_format($loanPrincipalTotal, 2) }} Principal + ₱{{ number_format($insuranceTotal, 2) }} Ins.</div>
             </div>
@@ -54,7 +78,7 @@
         <div class="stat-card">
             <div class="stat-icon emerald" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">🛡️</div>
             <div class="stat-info">
-                <div class="stat-label">Total Insurance Premium</div>
+                <div class="stat-label" title="Total Insurance Premium">Total Insurance Premium</div>
                 <div class="stat-value" style="color: #0284c7;">₱{{ number_format($insuranceTotal, 2) }}</div>
                 <div class="stat-subtext">Reserves collected in period</div>
             </div>
@@ -63,16 +87,25 @@
         <div class="stat-card">
             <div class="stat-icon emerald">₱</div>
             <div class="stat-info">
-                <div class="stat-label">Total Savings Deposited</div>
+                <div class="stat-label" title="Total Savings Deposited">Total Savings Deposited</div>
                 <div class="stat-value">₱{{ number_format($savingsTotal, 2) }}</div>
                 <div class="stat-subtext">Locked in 60-day funds</div>
             </div>
         </div>
 
         <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 20px;">📈</div>
+            <div class="stat-info">
+                <div class="stat-label" title="Total Savings Interest">Total Savings Interest</div>
+                <div class="stat-value" style="color: #059669;">₱{{ number_format($savingsInterestTotal, 2) }}</div>
+                <div class="stat-subtext">₱{{ number_format($savingsExpectedInterestTotal, 2) }} total expected yield</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
             <div class="stat-icon rose">₱</div>
             <div class="stat-info">
-                <div class="stat-label">Total Operating Expenses</div>
+                <div class="stat-label" title="Total Operating Expenses">Total Operating Expenses</div>
                 <div class="stat-value">₱{{ number_format($expensesTotal, 2) }}</div>
                 <div class="stat-subtext">{{ $startDate }} to {{ $endDate }}</div>
             </div>

@@ -36,8 +36,16 @@ class HostReportController extends Controller
         $loanPrincipalTotal = (clone $loanPaymentsQuery)->sum('loan_premium_amount');
         $insuranceTotal = (clone $loanPaymentsQuery)->sum('insurance_premium_amount');
 
-        // Savings Deposits
-        $savingsTotal = SavingsAccount::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])->sum('deposit_amount');
+        // Savings Deposits & Interest
+        $savingsQuery = SavingsAccount::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        $savingsTotal = (clone $savingsQuery)->sum('deposit_amount');
+        $savingsExpectedInterestTotal = (clone $savingsQuery)->sum('total_expected_interest');
+        $savingsInterestAccumulated = (clone $savingsQuery)->sum('accumulated_interest_paid');
+        $dailyInterestInPeriod = WalletTransaction::where('type', 'daily_interest')
+            ->where('status', 'completed')
+            ->whereBetween('updated_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->sum('amount');
+        $savingsInterestTotal = max((float) $savingsInterestAccumulated, (float) $dailyInterestInPeriod);
 
         // Expenses
         $expensesTotal = Expense::whereBetween('date', [$startDate, $endDate])->sum('amount');
@@ -57,6 +65,8 @@ class HostReportController extends Controller
             'loanPrincipalTotal',
             'insuranceTotal',
             'savingsTotal',
+            'savingsInterestTotal',
+            'savingsExpectedInterestTotal',
             'expensesTotal',
             'payments'
         ));
@@ -85,8 +95,16 @@ class HostReportController extends Controller
         $loanPrincipalTotal = (clone $loanPaymentsQuery)->sum('loan_premium_amount');
         $insuranceTotal = (clone $loanPaymentsQuery)->sum('insurance_premium_amount');
 
-        // Savings Deposits
-        $savingsTotal = SavingsAccount::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])->sum('deposit_amount');
+        // Savings Deposits & Interest
+        $savingsQuery = SavingsAccount::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        $savingsTotal = (clone $savingsQuery)->sum('deposit_amount');
+        $savingsExpectedInterestTotal = (clone $savingsQuery)->sum('total_expected_interest');
+        $savingsInterestAccumulated = (clone $savingsQuery)->sum('accumulated_interest_paid');
+        $dailyInterestInPeriod = WalletTransaction::where('type', 'daily_interest')
+            ->where('status', 'completed')
+            ->whereBetween('updated_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->sum('amount');
+        $savingsInterestTotal = max((float) $savingsInterestAccumulated, (float) $dailyInterestInPeriod);
 
         // Expenses
         $expenses = Expense::with('user')->whereBetween('date', [$startDate, $endDate])->orderBy('date', 'asc')->get();
@@ -107,6 +125,8 @@ class HostReportController extends Controller
             'loanPrincipalTotal',
             'insuranceTotal',
             'savingsTotal',
+            'savingsInterestTotal',
+            'savingsExpectedInterestTotal',
             'expensesTotal',
             'expenses',
             'payments'
