@@ -62,7 +62,7 @@
             <div class="stat-info">
                 <div class="stat-label" title="Total Cash Out Released">Total Cash Out Released</div>
                 <div class="stat-value">₱{{ number_format($cashOutTotal, 2) }}</div>
-                <div class="stat-subtext">{{ $startDate }} to {{ $endDate }}</div>
+                <div class="stat-subtext">₱{{ number_format($loanReleasesTotal ?? $cashOutTotal, 2) }} Loans + ₱{{ number_format($walletCashOutTotal ?? 0, 2) }} Cash Out</div>
             </div>
         </div>
 

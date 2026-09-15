@@ -88,6 +88,12 @@
             <button type="button" class="btn btn-outline" style="color: #ffffff; border-color: rgba(255,255,255,0.4); font-weight: 600;" onclick="openModal('collectorCashoutModal')">
                 💰 Encash Commission
             </button>
+            <button type="button" class="btn btn-outline" style="color: #ffffff; border-color: rgba(255,255,255,0.4); font-weight: 600;" onclick="openModal('collectorChangePinModal')">
+                🔐 Change PIN
+            </button>
+            <button type="button" class="btn btn-outline" style="color: #ffffff; border-color: rgba(255,255,255,0.4); font-weight: 600;" onclick="openModal('collectorChangePasswordModal')">
+                🔑 Change Password
+            </button>
         </div>
     </div>
 
@@ -648,6 +654,88 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('collectorCashoutModal')">Cancel</button>
                     <button type="submit" class="btn btn-emerald">Submit Cashout Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal-overlay" id="collectorChangePasswordModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">🔑 Change Login Password</h3>
+                <button type="button" class="modal-close" onclick="closeModal('collectorChangePasswordModal')">&times;</button>
+            </div>
+            <form action="{{ route('collector.change_password') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px;">
+                        Update your portal login password. Password must be at least 6 characters.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Current Password *</label>
+                        <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror" placeholder="••••••••" required autocomplete="current-password">
+                        @error('current_password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">New Password *</label>
+                        <input type="password" name="new_password" class="form-control @error('new_password') is-invalid @enderror" placeholder="Minimum 6 characters" minlength="6" required autocomplete="new-password">
+                        @error('new_password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm New Password *</label>
+                        <input type="password" name="new_password_confirmation" class="form-control" placeholder="Re-type new password" minlength="6" required autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('collectorChangePasswordModal')">Cancel</button>
+                    <button type="submit" class="btn btn-emerald">Save New Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change PIN Modal -->
+    <div class="modal-overlay" id="collectorChangePinModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">🔐 Change 4-Digit Security PIN</h3>
+                <button type="button" class="modal-close" onclick="closeModal('collectorChangePinModal')">&times;</button>
+            </div>
+            <form action="{{ route('collector.change_pin') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px;">
+                        Enter your current 4-digit PIN and choose your new 4-digit PIN for verification.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Current 4-Digit PIN *</label>
+                        <input type="password" name="current_pin" class="form-control @error('current_pin') is-invalid @enderror" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required style="letter-spacing: 6px; font-size: 18px; text-align: center;">
+                        <div class="form-hint" style="font-size: 11px;">Default is 1234 if you haven't changed it yet.</div>
+                        @error('current_pin')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">New 4-Digit PIN *</label>
+                        <input type="password" name="new_pin" class="form-control @error('new_pin') is-invalid @enderror" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required style="letter-spacing: 6px; font-size: 18px; text-align: center;">
+                        <div class="form-hint" style="font-size: 11px;">Must be exactly 4 numeric digits.</div>
+                        @error('new_pin')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm New PIN *</label>
+                        <input type="password" name="new_pin_confirmation" class="form-control" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" required style="letter-spacing: 6px; font-size: 18px; text-align: center;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('collectorChangePinModal')">Cancel</button>
+                    <button type="submit" class="btn btn-emerald">Save New PIN</button>
                 </div>
             </form>
         </div>

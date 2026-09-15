@@ -9,6 +9,7 @@ use App\Models\LoanPayment;
 use App\Models\SavingsAccount;
 use App\Models\WalletTransaction;
 use App\Models\Expense;
+use App\Models\HostVaultLedger;
 use Carbon\Carbon;
 
 class HostReportController extends Controller
@@ -24,11 +25,23 @@ class HostReportController extends Controller
             ->whereBetween('updated_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->sum('amount');
 
-        // Cash Out
-        $cashOutTotal = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
+        // Cash Out (Disbursed Loans + Wallet Cash-outs + Savings Payouts)
+        $loanReleasesTotal = Loan::whereNotNull('release_date')
+            ->whereBetween('release_date', [$startDate, $endDate])
+            ->whereNotIn('status', ['rejected', 'pending_host_approval', 'approved_for_release'])
+            ->sum('principal_amount');
+
+        $walletCashOutTotal = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
             ->where('status', 'completed')
             ->whereBetween('updated_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->sum('amount');
+
+        $savingsPayoutTotal = HostVaultLedger::where('type', 'out')
+            ->where('category', 'savings_payout')
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->sum('amount');
+
+        $cashOutTotal = $loanReleasesTotal + $walletCashOutTotal + $savingsPayoutTotal;
 
         // Loan Collections
         $loanPaymentsQuery = LoanPayment::whereBetween('payment_date', [$startDate, $endDate]);
@@ -61,6 +74,9 @@ class HostReportController extends Controller
             'endDate',
             'cashInTotal',
             'cashOutTotal',
+            'loanReleasesTotal',
+            'walletCashOutTotal',
+            'savingsPayoutTotal',
             'loanCollectionsTotal',
             'loanPrincipalTotal',
             'insuranceTotal',
@@ -83,11 +99,23 @@ class HostReportController extends Controller
             ->whereBetween('updated_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->sum('amount');
 
-        // Cash Out
-        $cashOutTotal = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
+        // Cash Out (Disbursed Loans + Wallet Cash-outs + Savings Payouts)
+        $loanReleasesTotal = Loan::whereNotNull('release_date')
+            ->whereBetween('release_date', [$startDate, $endDate])
+            ->whereNotIn('status', ['rejected', 'pending_host_approval', 'approved_for_release'])
+            ->sum('principal_amount');
+
+        $walletCashOutTotal = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
             ->where('status', 'completed')
             ->whereBetween('updated_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->sum('amount');
+
+        $savingsPayoutTotal = HostVaultLedger::where('type', 'out')
+            ->where('category', 'savings_payout')
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->sum('amount');
+
+        $cashOutTotal = $loanReleasesTotal + $walletCashOutTotal + $savingsPayoutTotal;
 
         // Loan Collections
         $loanPaymentsQuery = LoanPayment::whereBetween('payment_date', [$startDate, $endDate]);
@@ -121,6 +149,9 @@ class HostReportController extends Controller
             'endDate',
             'cashInTotal',
             'cashOutTotal',
+            'loanReleasesTotal',
+            'walletCashOutTotal',
+            'savingsPayoutTotal',
             'loanCollectionsTotal',
             'loanPrincipalTotal',
             'insuranceTotal',

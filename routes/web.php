@@ -117,6 +117,8 @@ Route::middleware(['auth', 'role:collector'])->prefix('collector')->name('collec
     Route::post('/loans/{loan}/pay', [CollectorController::class, 'processPayment'])->name('payments.process');
     Route::post('/payments/remit', [CollectorController::class, 'remitCollections'])->name('payments.remit');
     Route::post('/cashout', [CollectorController::class, 'requestCashout'])->name('cashout');
+    Route::post('/change-password', [CollectorController::class, 'changePassword'])->name('change_password');
+    Route::post('/change-pin', [CollectorController::class, 'changePin'])->name('change_pin');
 });
 
 // 5. CLIENT ROUTES

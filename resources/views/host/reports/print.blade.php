@@ -281,7 +281,7 @@
                     <td><strong>Total Cash-Out / Disbursements Released</strong></td>
                     <td>Outflow (-)</td>
                     <td class="text-right" style="font-weight: bold;">₱{{ number_format($cashOutTotal, 2) }}</td>
-                    <td>Disbursed loans, client withdrawals & commissions</td>
+                    <td>Disbursed loans (₱{{ number_format($loanReleasesTotal, 2) }}), client withdrawals & commissions (₱{{ number_format($walletCashOutTotal, 2) }})</td>
                 </tr>
                 <tr>
                     <td><strong>Total Operating Expenses</strong></td>

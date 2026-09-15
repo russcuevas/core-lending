@@ -452,6 +452,7 @@ class EncoderController extends Controller
             'phone_number' => 'required|string|unique:users,phone_number',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
+            'pin_code' => 'nullable|digits:4',
             'address' => 'required|string',
             'assigned_area' => 'required|string',
             'valid_id' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
@@ -469,12 +470,14 @@ class EncoderController extends Controller
             $validIdPath = 'uploads/id_proofs/' . $filename;
         }
 
+        $pinCode = $request->filled('pin_code') ? $request->pin_code : '1234';
+
         $user = User::create([
             'name' => $request->name,
             'phone_number' => $request->phone_number,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'pin_code' => '1234',
+            'pin_code' => $pinCode,
             'role' => 'collector',
             'address' => $request->address,
             'valid_id_path' => $validIdPath,

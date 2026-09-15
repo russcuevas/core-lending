@@ -408,4 +408,55 @@ class CollectorController extends Controller
 
         return back()->with('success', 'Cashout request submitted to Releasing Officer!');
     }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:6|confirmed',
+        ], [
+            'new_password.confirmed' => 'New password confirmation does not match.',
+            'new_password.min' => 'New password must be at least 6 characters.',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->with('error', 'Incorrect current password entered.');
+        }
+
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        return back()->with('success', 'Your login password has been updated successfully!');
+    }
+
+    public function changePin(Request $request)
+    {
+        $request->validate([
+            'current_pin' => 'required|digits:4',
+            'new_pin' => 'required|digits:4|confirmed|different:current_pin',
+        ], [
+            'new_pin.digits' => 'New PIN must be exactly 4 digits.',
+            'new_pin.different' => 'New PIN must be different from your current PIN.',
+            'new_pin_confirmation.same' => 'PIN confirmation does not match the new PIN.',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $isPinValid = ($user->pin_code === $request->current_pin) || (!$user->pin_code && $request->current_pin === '1234') || Hash::check($request->current_pin, $user->password);
+
+        if (!$isPinValid) {
+            return back()->with('error', 'Incorrect current 4-digit PIN entered.');
+        }
+
+        $user->update([
+            'pin_code' => $request->new_pin,
+        ]);
+
+        return back()->with('success', 'Your 4-digit security PIN has been updated successfully!');
+    }
 }

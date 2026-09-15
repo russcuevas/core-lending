@@ -148,6 +148,7 @@
                             <th>Email</th>
                             <th>Contact No (CP)</th>
                             <th>Assigned Area</th>
+                            <th>Security PIN</th>
                             <th>Commission Balance</th>
                             <th>Status</th>
                             <th style="text-align: right;">Actions</th>
@@ -160,6 +161,15 @@
                                 <td>{{ $col->user->email }}</td>
                                 <td>{{ $col->user->phone_number }}</td>
                                 <td><span class="badge badge-outline" style="font-weight: 600;">{{ $col->assigned_area ?? 'General Area' }}</span></td>
+                                <td>
+                                    @if($col->user->pin_code)
+                                        <span style="font-family: monospace; font-weight: 700; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 4px; color: #065f46;">
+                                            {{ $col->user->pin_code }}
+                                        </span>
+                                    @else
+                                        <span style="font-family: monospace; font-weight: 700; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #0369a1;">1234 (Def.)</span>
+                                    @endif
+                                </td>
                                 <td style="font-weight: 700; color: #059669;">₱{{ number_format($col->commission_balance, 2) }}</td>
                                 <td>
                                     <span class="badge {{ $col->user->status === 'active' ? 'badge-emerald' : 'badge-amber' }}">
@@ -167,9 +177,12 @@
                                     </span>
                                 </td>
                                 <td style="text-align: right;">
-                                    <div style="display: inline-flex; gap: 6px;">
+                                    <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                                        <button type="button" class="btn btn-sm btn-outline" style="border-color: #0284c7; color: #0284c7;" onclick="openResetPinModal('{{ $col->user->id }}', '{{ $col->user->name }}', 'collectors')">
+                                            🔐 PIN
+                                        </button>
                                         <button type="button" class="btn btn-sm btn-outline" onclick="openResetPasswordModal('{{ $col->user->id }}', '{{ $col->user->name }}', 'collectors')">
-                                            Reset Password
+                                            Password
                                         </button>
                                         <form action="{{ route('host.accounts.toggle_status', $col->user->id) }}" method="POST" style="display:inline;">
                                             @csrf
@@ -325,14 +338,14 @@
                         @enderror
                     </div>
 
-                    <!-- 4-Digit PIN Code (Only visible and applicable for Admin Finance) -->
-                    <div class="form-group" id="financePinGroup" style="{{ old('role') == 'admin_releasing' ? 'display: block;' : 'display: none;' }}">
+                    <!-- 4-Digit PIN Code (Visible and applicable for Admin Finance & Collectors) -->
+                    <div class="form-group" id="financePinGroup" style="{{ in_array(old('role'), ['admin_releasing', 'collector']) ? 'display: block;' : 'display: none;' }}">
                         <label class="form-label" style="display: flex; justify-content: space-between;">
                             <span>4-Digit Security PIN Code (Optional)</span>
-                            <span style="font-size: 11px; color: #059669; font-weight: 700;">Admin Finance Only</span>
+                            <span style="font-size: 11px; color: #059669; font-weight: 700;" id="pinRoleBadge">Finance & Collector</span>
                         </label>
                         <input type="text" name="pin_code" id="staff_pin_code" class="form-control @error('pin_code') is-invalid @enderror" value="{{ old('pin_code') }}" placeholder="Default: 1234" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" style="letter-spacing: 4px; font-weight: 700; font-size: 16px;">
-                        <div class="form-hint">Optional: If left blank, defaults to 1234. Gagamitin ito ng Admin Finance upang i-verify ang collector remittances at loan releases.</div>
+                        <div class="form-hint" id="pinRoleHint">Optional: If left blank, defaults to 1234. Gagamitin para sa verification at security authorization.</div>
                         @error('pin_code')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -454,7 +467,7 @@
                 areaGroup.style.display = (role === 'collector') ? 'block' : 'none';
             }
             if (pinGroup) {
-                pinGroup.style.display = (role === 'admin_releasing') ? 'block' : 'none';
+                pinGroup.style.display = (role === 'admin_releasing' || role === 'collector') ? 'block' : 'none';
             }
         }
 

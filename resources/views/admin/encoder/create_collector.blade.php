@@ -60,12 +60,23 @@
                     @enderror
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Initial Login Password *</label>
-                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••" required>
-                    @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label class="form-label">Initial Login Password *</label>
+                        <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••" required minlength="6">
+                        @error('password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">4-Digit Security PIN *</label>
+                        <input type="text" name="pin_code" class="form-control @error('pin_code') is-invalid @enderror" placeholder="1234" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" style="letter-spacing: 4px; font-weight: 700; font-size: 16px;" value="{{ old('pin_code', '1234') }}" required>
+                        <div class="form-hint" style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Default is 1234. Gagamitin para sa verification ng collector.</div>
+                        @error('pin_code')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
 
                 <!-- Valid ID Upload with Live Preview & Remove [✕] Button -->

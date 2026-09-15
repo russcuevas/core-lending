@@ -33,9 +33,9 @@ class HostAccountController extends Controller
             'assigned_area' => 'nullable|string',
         ]);
 
-        // Only Admin Finance (admin_releasing) uses a PIN code; other staff roles do not require/have a PIN.
+        // Admin Finance (admin_releasing) and Field Collectors use a PIN code
         $pinCode = null;
-        if ($request->role === 'admin_releasing') {
+        if (in_array($request->role, ['admin_releasing', 'collector'])) {
             $pinCode = $request->filled('pin_code') ? $request->pin_code : '1234';
         }
 
@@ -81,12 +81,18 @@ class HostAccountController extends Controller
     {
         $request->validate(['pin_code' => 'required|digits:4']);
 
-        $user->update([
+        $updateData = [
             'pin_code' => $request->pin_code,
-            'password' => Hash::make($request->pin_code),
-        ]);
+        ];
 
-        $tab = $request->input('tab') ?: 'clients';
+        // Only clients use their PIN directly as login password
+        if ($user->role === 'client') {
+            $updateData['password'] = Hash::make($request->pin_code);
+        }
+
+        $user->update($updateData);
+
+        $tab = $request->input('tab') ?: ($user->role === 'collector' ? 'collectors' : ($user->role === 'client' ? 'clients' : 'staff'));
         return redirect(route('host.accounts.index') . '#' . $tab)->with('success', "PIN code for {$user->name} was reset to {$request->pin_code}!");
     }
 

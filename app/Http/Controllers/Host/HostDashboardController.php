@@ -33,10 +33,22 @@ class HostDashboardController extends Controller
             ->whereDate('updated_at', $today)
             ->sum('amount');
 
-        $todayCashOut = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
+        $todayLoanReleases = Loan::whereNotNull('release_date')
+            ->whereDate('release_date', $today)
+            ->whereNotIn('status', ['rejected', 'pending_host_approval', 'approved_for_release'])
+            ->sum('principal_amount');
+
+        $todayWalletCashOut = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
             ->where('status', 'completed')
             ->whereDate('updated_at', $today)
             ->sum('amount');
+
+        $todaySavingsPayout = HostVaultLedger::where('type', 'out')
+            ->where('category', 'savings_payout')
+            ->whereDate('created_at', $today)
+            ->sum('amount');
+
+        $todayCashOut = $todayLoanReleases + $todayWalletCashOut + $todaySavingsPayout;
 
         $todayPayments = LoanPayment::whereDate('payment_date', $today)->get();
         $todayLoanCollections = $todayPayments->sum('amount_paid');
@@ -117,10 +129,22 @@ class HostDashboardController extends Controller
                 ->whereDate('updated_at', $dayDate)
                 ->sum('amount');
 
-            $chartCashOut[] = (float) WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
+            $dayLoanReleases = Loan::whereNotNull('release_date')
+                ->whereDate('release_date', $dayDate)
+                ->whereNotIn('status', ['rejected', 'pending_host_approval', 'approved_for_release'])
+                ->sum('principal_amount');
+
+            $dayWalletCashOut = WalletTransaction::whereIn('type', ['cash_out', 'collector_cashout'])
                 ->where('status', 'completed')
                 ->whereDate('updated_at', $dayDate)
                 ->sum('amount');
+
+            $daySavingsPayout = HostVaultLedger::where('type', 'out')
+                ->where('category', 'savings_payout')
+                ->whereDate('created_at', $dayDate)
+                ->sum('amount');
+
+            $chartCashOut[] = (float) ($dayLoanReleases + $dayWalletCashOut + $daySavingsPayout);
 
             $chartCollections[] = (float) LoanPayment::whereDate('payment_date', $dayDate)->sum('amount_paid');
         }
