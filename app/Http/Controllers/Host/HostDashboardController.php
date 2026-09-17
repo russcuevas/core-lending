@@ -81,8 +81,8 @@ class HostDashboardController extends Controller
                 ->get();
 
             $totalCollected = (float) $colPayments->sum('amount_paid');
-            $processingAmount = (float) $colPayments->where('status', 'processing')->sum('amount_paid');
-            $remittedAmount = (float) $colPayments->whereIn('status', ['paid', 'remitted', 'completed'])->sum('amount_paid');
+            $processingAmount = (float) $colPayments->whereNull('remitted_at')->sum('amount_paid');
+            $remittedAmount = (float) $colPayments->whereNotNull('remitted_at')->sum('amount_paid');
 
             $status = 'no_collections';
             if ($totalCollected > 0) {

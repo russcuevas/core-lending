@@ -398,17 +398,15 @@
             </div>
 
             @php
-                $pendingProcessingPayments = $paymentHistory->where('status', 'processing');
+                $todayPaidPayments = $paymentHistory->where('payment_date', \Carbon\Carbon::today()->format('Y-m-d'));
             @endphp
-            @if ($pendingProcessingPayments->count() > 0)
+            @if ($todayPaidPayments->count() > 0)
                 <div
-                    style="background: #fefce8; border: 1px solid #fde047; border-left: 4px solid #eab308; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 18px;">⏳</span>
-                    <div style="font-size: 12.5px; color: #854d0e;">
-                        <strong>Processing Collection Payment:</strong> Your collector collected
-                        <strong>₱{{ number_format($pendingProcessingPayments->sum('amount_paid'), 2) }}</strong> today.
-                        Status will automatically update to <span class="badge badge-emerald" style="font-size: 10px;">✓
-                            Paid</span> as soon as Admin Finance receives and verifies the remittance in the office.
+                    style="background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid #22c55e; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">✓</span>
+                    <div style="font-size: 12.5px; color: #166534;">
+                        <strong>Payment Collected & Confirmed (PAID):</strong> Your daily payment of
+                        <strong>₱{{ number_format($todayPaidPayments->sum('amount_paid'), 2) }}</strong> has been recorded and credited to your loan schedule.
                     </div>
                 </div>
             @endif

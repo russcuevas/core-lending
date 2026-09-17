@@ -62,6 +62,42 @@ class HostReportController extends Controller
 
         // Expenses
         $expensesTotal = Expense::whereBetween('date', [$startDate, $endDate])->sum('amount');
+        $allTimeExpensesTotal = Expense::sum('amount');
+
+        // Total Client Wallet (all clients)
+        $totalClientWallet = (float) \App\Models\Client::sum('wallet_balance');
+
+        // Total Vault Savings (Active savings fund deposits)
+        $totalVaultSavings = (float) SavingsAccount::where('status', 'active')->sum('deposit_amount');
+        if ($totalVaultSavings <= 0) {
+            $totalVaultSavings = (float) SavingsAccount::sum('deposit_amount');
+        }
+
+        // Profit & Loss Formula Calculation:
+        // Income = Actual Money Vault + Loan Premium Balance (all client) + Insurance Premium Balance
+        $latestLedger = HostVaultLedger::latest('id')->first();
+        $actualMoneyVault = $latestLedger ? (float) $latestLedger->vault_balance_after : 1000000.00;
+
+        $loanPremiumBalanceAll = (float) Loan::where('status', 'active')->sum('remaining_balance');
+
+        $activeLoans = Loan::where('status', 'active')->get();
+        $insurancePremiumBalanceAll = (float) $activeLoans->sum(function ($l) {
+            return (float) ($l->remaining_insurance ?? 0);
+        });
+        if ($insurancePremiumBalanceAll <= 0) {
+            $insurancePremiumBalanceAll = (float) LoanPayment::where('status', 'paid')->sum('insurance_premium_amount');
+        }
+
+        $totalIncome = $actualMoneyVault + $loanPremiumBalanceAll + $insurancePremiumBalanceAll;
+
+        // Expense = Office Expense + Savings Interest (all client)
+        $allClientsSavingsInterest = (float) SavingsAccount::sum('accumulated_interest_paid');
+        if ($allClientsSavingsInterest <= 0) {
+            $allClientsSavingsInterest = (float) WalletTransaction::where('type', 'daily_interest')->where('status', 'completed')->sum('amount');
+        }
+
+        $totalExpense = $allTimeExpensesTotal + $allClientsSavingsInterest;
+        $profitAndLoss = $totalIncome - $totalExpense;
 
         // Payments Breakdown
         $payments = LoanPayment::with(['client.user', 'collector.user', 'loan.schedules'])
@@ -84,6 +120,16 @@ class HostReportController extends Controller
             'savingsInterestTotal',
             'savingsExpectedInterestTotal',
             'expensesTotal',
+            'allTimeExpensesTotal',
+            'totalClientWallet',
+            'totalVaultSavings',
+            'actualMoneyVault',
+            'loanPremiumBalanceAll',
+            'insurancePremiumBalanceAll',
+            'totalIncome',
+            'allClientsSavingsInterest',
+            'totalExpense',
+            'profitAndLoss',
             'payments'
         ));
     }
@@ -137,6 +183,40 @@ class HostReportController extends Controller
         // Expenses
         $expenses = Expense::with('user')->whereBetween('date', [$startDate, $endDate])->orderBy('date', 'asc')->get();
         $expensesTotal = $expenses->sum('amount');
+        $allTimeExpensesTotal = Expense::sum('amount');
+
+        // Total Client Wallet
+        $totalClientWallet = (float) \App\Models\Client::sum('wallet_balance');
+
+        // Total Vault Savings
+        $totalVaultSavings = (float) SavingsAccount::where('status', 'active')->sum('deposit_amount');
+        if ($totalVaultSavings <= 0) {
+            $totalVaultSavings = (float) SavingsAccount::sum('deposit_amount');
+        }
+
+        // Profit & Loss Formula Calculation:
+        $latestLedger = HostVaultLedger::latest('id')->first();
+        $actualMoneyVault = $latestLedger ? (float) $latestLedger->vault_balance_after : 1000000.00;
+
+        $loanPremiumBalanceAll = (float) Loan::where('status', 'active')->sum('remaining_balance');
+
+        $activeLoans = Loan::where('status', 'active')->get();
+        $insurancePremiumBalanceAll = (float) $activeLoans->sum(function ($l) {
+            return (float) ($l->remaining_insurance ?? 0);
+        });
+        if ($insurancePremiumBalanceAll <= 0) {
+            $insurancePremiumBalanceAll = (float) LoanPayment::where('status', 'paid')->sum('insurance_premium_amount');
+        }
+
+        $totalIncome = $actualMoneyVault + $loanPremiumBalanceAll + $insurancePremiumBalanceAll;
+
+        $allClientsSavingsInterest = (float) SavingsAccount::sum('accumulated_interest_paid');
+        if ($allClientsSavingsInterest <= 0) {
+            $allClientsSavingsInterest = (float) WalletTransaction::where('type', 'daily_interest')->where('status', 'completed')->sum('amount');
+        }
+
+        $totalExpense = $allTimeExpensesTotal + $allClientsSavingsInterest;
+        $profitAndLoss = $totalIncome - $totalExpense;
 
         // All Payments in Period
         $payments = LoanPayment::with(['client.user', 'collector.user', 'loan.schedules'])
@@ -160,6 +240,16 @@ class HostReportController extends Controller
             'savingsExpectedInterestTotal',
             'expensesTotal',
             'expenses',
+            'allTimeExpensesTotal',
+            'totalClientWallet',
+            'totalVaultSavings',
+            'actualMoneyVault',
+            'loanPremiumBalanceAll',
+            'insurancePremiumBalanceAll',
+            'totalIncome',
+            'allClientsSavingsInterest',
+            'totalExpense',
+            'profitAndLoss',
             'payments'
         ));
     }

@@ -46,9 +46,9 @@ class CollectorController extends Controller
             ->get();
 
         $todayTotalCollected = $todayCollections->sum('amount_paid');
-        $todayProcessingAmount = $todayCollections->where('status', 'processing')->sum('amount_paid');
-        $todayRemittedAmount = $todayCollections->where('status', 'paid')->sum('amount_paid');
-        $pendingRemittanceCount = $todayCollections->where('status', 'processing')->count();
+        $todayProcessingAmount = $todayCollections->whereNull('remitted_at')->sum('amount_paid');
+        $todayRemittedAmount = $todayCollections->whereNotNull('remitted_at')->sum('amount_paid');
+        $pendingRemittanceCount = LoanPayment::where('collector_id', $collector->id)->whereNull('remitted_at')->count();
 
         // Check for 3 consecutive missed payment clients to show warning
         $delinquentClients = Client::where('collector_id', $collector->id)
@@ -63,7 +63,6 @@ class CollectorController extends Controller
             ->get();
 
         $remittanceHistory = LoanPayment::where('collector_id', $collector->id)
-            ->where('status', 'paid')
             ->whereNotNull('remitted_at')
             ->with(['client.user', 'loan.schedules', 'adminVerifier'])
             ->latest('remitted_at')
@@ -191,7 +190,57 @@ class CollectorController extends Controller
         $insurancePart = min($amountPaid, $insuranceDaily);
         $loanPart = max(0, $amountPaid - $insurancePart);
 
-        // 3. Create Loan Payment in 'processing' status (Awaiting Admin Finance office remittance PIN)
+        // 3. Immediately apply payment to loan balance & schedules (Client gets PAID status immediately)
+        $newRemainingBalance = max(0, $loan->remaining_balance - $loanPart);
+        $newTotalPaid = $loan->total_paid + $loanPart;
+        $isFullyPaid = ($newRemainingBalance <= 0);
+
+        $remainingToDistribute = $loanPart;
+        $unpaidSchedules = $loan->schedules()->where('status', '!=', 'paid')->orderBy('day_number', 'asc')->get();
+
+        foreach ($unpaidSchedules as $schedule) {
+            if ($remainingToDistribute <= 0 && !$isFullyPaid) break;
+
+            $neededForThisDay = $schedule->expected_amount - $schedule->paid_amount;
+            if ($remainingToDistribute >= $neededForThisDay || $isFullyPaid) {
+                $actualApplied = min($remainingToDistribute, $neededForThisDay);
+                $schedule->update([
+                    'paid_amount' => $schedule->expected_amount,
+                    'status' => 'paid',
+                    'paid_at' => Carbon::now(),
+                ]);
+                $remainingToDistribute = max(0, $remainingToDistribute - $actualApplied);
+            } else {
+                $schedule->update([
+                    'paid_amount' => $schedule->paid_amount + $remainingToDistribute,
+                    'status' => 'partial',
+                    'paid_at' => Carbon::now(),
+                ]);
+                $remainingToDistribute = 0;
+            }
+        }
+
+        if ($isFullyPaid) {
+            $loan->schedules()->where('status', '!=', 'paid')->update([
+                'status' => 'paid',
+                'paid_at' => Carbon::now(),
+            ]);
+        }
+
+        $loan->update([
+            'remaining_balance' => $newRemainingBalance,
+            'total_paid' => $newTotalPaid,
+            'status' => $isFullyPaid ? 'fully_paid' : 'active',
+        ]);
+
+        // 4. Update client last payment date
+        $client->update([
+            'last_payment_date' => Carbon::today()->format('Y-m-d'),
+            'consecutive_missed_days' => 0,
+            'status' => $isFullyPaid ? 'completed' : 'active',
+        ]);
+
+        // 5. Create Loan Payment in 'paid' status (Tracking remitted_at for office turnover)
         $payment = LoanPayment::create([
             'loan_id' => $loan->id,
             'client_id' => $client->id,
@@ -202,23 +251,42 @@ class CollectorController extends Controller
             'proof_image_path' => $proofPath,
             'client_pin_verified' => true,
             'payment_date' => Carbon::today()->format('Y-m-d'),
-            'status' => 'processing', // Queued for office remittance
+            'status' => 'paid', // Immediately recorded as PAID
+            'remitted_at' => null, // Pending office turnover to Finance
             'payment_channel' => 'cash_collector',
             'notes' => $request->notes,
-            'client_remaining_balance_after' => $loan->remaining_balance,
+            'client_remaining_balance_after' => $newRemainingBalance,
         ]);
 
-        // Send notification to Client that collection was logged and is processing
+        // 6. Commission rule for collector if fully paid
+        if ($isFullyPaid && !$loan->collector_commission_paid) {
+            $bonusComm = (float)SystemSetting::get('collector_loan_commission_fixed', 300.00);
+            if ($bonusComm > 0) {
+                $collector->increment('commission_balance', $bonusComm);
+                $collector->increment('total_earned_commission', $bonusComm);
+            }
+            $loan->update(['collector_commission_paid' => true]);
+
+            SystemNotification::sendNotification(
+                $collector->user_id,
+                'collector',
+                "₱" . number_format($bonusComm, 2) . " Fully-Paid Loan Commission Earned!",
+                "Congratulations! Client {$clientUser->name} has fully paid their loan. ₱" . number_format($bonusComm, 2) . " commission credited to your balance.",
+                'payment_received'
+            );
+        }
+
+        // 7. Send notification to Client that payment is confirmed as PAID
         SystemNotification::sendNotification(
             $clientUser->id,
             'client',
-            "Payment Processing (₱" . number_format($amountPaid, 2) . ")",
-            "Payment collected by {$collector->user->name}. Status: Processing (Will be marked PAID once remitted at office).",
+            "Payment Confirmed & Recorded (PAID)",
+            "Your payment of ₱" . number_format($amountPaid, 2) . " was collected by {$collector->user->name} and officially recorded as PAID. Remaining Balance: ₱" . number_format($newRemainingBalance, 2),
             'payment_received',
             '/client/dashboard'
         );
 
-        return redirect()->route('collector.dashboard')->with('success', "Payment of ₱" . number_format($amountPaid, 2) . " logged with photo proof! Status: Processing (Ready for Office Remittance).");
+        return redirect()->route('collector.dashboard')->with('success', "✓ Payment of ₱" . number_format($amountPaid, 2) . " successfully collected and marked as PAID! Client balance and daily schedule updated.");
     }
 
     public function remitCollections(Request $request)
@@ -245,9 +313,9 @@ class CollectorController extends Controller
             return back()->with('error', 'Invalid Admin Finance PIN code. Remittance verification failed.');
         }
 
-        // Query processing payments
+        // Query unremitted payments
         $query = LoanPayment::where('collector_id', $collector->id)
-            ->where('status', 'processing');
+            ->whereNull('remitted_at');
 
         if ($request->filled('payment_ids')) {
             $query->whereIn('id', $request->payment_ids);
@@ -256,122 +324,48 @@ class CollectorController extends Controller
         $pendingPayments = $query->with(['loan.client.user', 'client.user'])->get();
 
         if ($pendingPayments->isEmpty()) {
-            return back()->with('error', 'No pending collections to remit.');
+            return back()->with('error', 'No pending unremitted collections found.');
         }
 
         $totalRemitted = 0.00;
 
         foreach ($pendingPayments as $payment) {
-            $loan = $payment->loan;
             $client = $payment->client;
             $clientUser = $client->user;
             $amountPaid = (float)$payment->amount_paid;
             $totalRemitted += $amountPaid;
 
-            $loanPart = (float)($payment->loan_premium_amount > 0
-                ? $payment->loan_premium_amount
-                : max(0, $amountPaid - ($payment->insurance_premium_amount ?? 25.00)));
-
-            // Apply payment to loan balance & schedules
-            $newRemainingBalance = max(0, $loan->remaining_balance - $loanPart);
-            $newTotalPaid = $loan->total_paid + $loanPart;
-            $isFullyPaid = ($newRemainingBalance <= 0);
-
-            $remainingToDistribute = $loanPart;
-            $unpaidSchedules = $loan->schedules()->where('status', '!=', 'paid')->orderBy('day_number', 'asc')->get();
-
-            foreach ($unpaidSchedules as $schedule) {
-                if ($remainingToDistribute <= 0 && !$isFullyPaid) break;
-
-                $neededForThisDay = $schedule->expected_amount - $schedule->paid_amount;
-                if ($remainingToDistribute >= $neededForThisDay || $isFullyPaid) {
-                    $actualApplied = min($remainingToDistribute, $neededForThisDay);
-                    $schedule->update([
-                        'paid_amount' => $schedule->expected_amount,
-                        'status' => 'paid',
-                        'paid_at' => Carbon::now(),
-                    ]);
-                    $remainingToDistribute = max(0, $remainingToDistribute - $actualApplied);
-                } else {
-                    $schedule->update([
-                        'paid_amount' => $schedule->paid_amount + $remainingToDistribute,
-                        'status' => 'partial',
-                        'paid_at' => Carbon::now(),
-                    ]);
-                    $remainingToDistribute = 0;
-                }
-            }
-
-            if ($isFullyPaid) {
-                $loan->schedules()->where('status', '!=', 'paid')->update([
-                    'status' => 'paid',
-                    'paid_at' => Carbon::now(),
-                ]);
-            }
-
-            $loan->update([
-                'remaining_balance' => $newRemainingBalance,
-                'total_paid' => $newTotalPaid,
-                'status' => $isFullyPaid ? 'fully_paid' : 'active',
-            ]);
-
-            // Update payment to 'paid' & stamped with Admin Finance PIN verification
+            // Mark payment as remitted to Finance
             $payment->update([
                 'status' => 'paid',
                 'remitted_at' => Carbon::now(),
                 'admin_pin_verified_by' => $adminUser->id,
                 'admin_pin_verified_at' => Carbon::now(),
-                'client_remaining_balance_after' => $newRemainingBalance,
             ]);
 
-            // Update client last payment date
-            $client->update([
-                'last_payment_date' => Carbon::today()->format('Y-m-d'),
-                'consecutive_missed_days' => 0,
-                'status' => $isFullyPaid ? 'completed' : 'active',
-            ]);
-
-            // Host Vault Inflow Ledger
+            // Single Host Vault Inflow Ledger entry upon remittance
             HostVaultLedger::logEntry(
                 'in',
                 'loan_repayment',
                 $amountPaid,
-                "Daily loan repayment verified & remitted for {$clientUser->name} (Collector: {$collector->user->name}, Verified by Finance: {$adminUser->name})",
+                "Daily loan repayment remitted for {$clientUser->name} (Collector: {$collector->user->name}, Verified by Finance: {$adminUser->name})",
                 'LoanPayment',
                 $payment->id,
                 $adminUser->id
             );
-
-            // Commission rule for collector if fully paid
-            if ($isFullyPaid && !$loan->collector_commission_paid) {
-                $bonusComm = (float)SystemSetting::get('collector_loan_commission_fixed', 300.00);
-                if ($bonusComm > 0) {
-                    $collector->increment('commission_balance', $bonusComm);
-                    $collector->increment('total_earned_commission', $bonusComm);
-                }
-                $loan->update(['collector_commission_paid' => true]);
-
-                SystemNotification::sendNotification(
-                    $collector->user_id,
-                    'collector',
-                    "₱" . number_format($bonusComm, 2) . " Fully-Paid Loan Commission Earned!",
-                    "Congratulations! Client {$clientUser->name} has fully paid their loan. ₱" . number_format($bonusComm, 2) . " commission credited to your balance.",
-                    'payment_received'
-                );
-            }
-
-            // Client notification: Paid status confirmed
-            SystemNotification::sendNotification(
-                $clientUser->id,
-                'client',
-                "Payment Confirmed & Verified (PAID)",
-                "Your daily payment of ₱" . number_format($amountPaid, 2) . " has been received at the office and officially verified as PAID. Remaining Balance: ₱" . number_format($newRemainingBalance, 2),
-                'payment_received',
-                '/client/dashboard'
-            );
         }
 
-        return back()->with('success', "✓ Successfully remitted ₱" . number_format($totalRemitted, 2) . " (" . $pendingPayments->count() . " collections) verified by Admin Finance ({$adminUser->name})! Client statuses updated to PAID.");
+        // Notify Collector
+        SystemNotification::sendNotification(
+            $collector->user_id,
+            'collector',
+            "Remittance Verified by Finance (₱" . number_format($totalRemitted, 2) . ")",
+            "Finance Officer {$adminUser->name} verified and received your cash remittance of ₱" . number_format($totalRemitted, 2) . " (" . $pendingPayments->count() . " collections).",
+            'payment_received',
+            '/collector/dashboard'
+        );
+
+        return back()->with('success', "✓ Remittance of ₱" . number_format($totalRemitted, 2) . " (" . $pendingPayments->count() . " collections) successfully verified & received by Admin Finance ({$adminUser->name})!");
     }
 
     public function requestCashout(Request $request)

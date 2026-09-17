@@ -157,13 +157,13 @@
                 <div class="remit-stat-box">
                     <div style="font-size: 11px; opacity: 0.85;">Pending Office Remit</div>
                     <div style="font-size: 18px; font-weight: 800; color: #fef08a;">₱{{ number_format($todayProcessingAmount, 2) }}</div>
-                    <div style="font-size: 10.5px; opacity: 0.8;">{{ $pendingRemittanceCount }} processing</div>
+                    <div style="font-size: 10.5px; opacity: 0.8;">{{ $pendingRemittanceCount }} pending remittance</div>
                 </div>
 
                 <div class="remit-stat-box">
-                    <div style="font-size: 11px; opacity: 0.85;">Remitted & Verified (PAID)</div>
+                    <div style="font-size: 11px; opacity: 0.85;">Remitted to Finance</div>
                     <div style="font-size: 18px; font-weight: 800; color: #a7f3d0;">₱{{ number_format($todayRemittedAmount, 2) }}</div>
-                    <div style="font-size: 10.5px; opacity: 0.8;">{{ $todayCollections->where('status', 'paid')->count() }} verified</div>
+                    <div style="font-size: 10.5px; opacity: 0.8;">{{ $todayCollections->whereNotNull('remitted_at')->count() }} remitted</div>
                 </div>
 
                 @if($pendingRemittanceCount > 0)
@@ -188,7 +188,7 @@
                 <div>
                     <h3 class="card-title">📥 Payments Collected Today ({{ $todayCollections->count() }})</h3>
                     <p style="font-size: 12px; color: var(--text-secondary); margin: 2px 0 0 0;">
-                        Payments remain in <strong>Processing</strong> status until remitted to the duty Admin Finance officer with PIN verification.
+                        Payments are recorded as <strong>PAID</strong> on client accounts upon collection. Physical cash remains queued for office remittance.
                     </p>
                 </div>
             </div>
@@ -228,13 +228,13 @@
                                         ₱{{ number_format($tc->insurance_premium_amount, 2) }}
                                     </td>
                                     <td>
-                                        @if($tc->status === 'processing')
-                                            <span class="badge" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-weight: 700; font-size: 11px; padding: 4px 8px;">
-                                                ⏳ Processing (Pending Office Remit)
+                                        @if(!$tc->remitted_at)
+                                            <span class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px; padding: 4px 8px;">
+                                                ✓ PAID (Pending Remit)
                                             </span>
                                         @else
                                             <span class="badge badge-emerald" style="font-weight: 700; font-size: 11px; padding: 4px 8px;">
-                                                ✓ Remitted & Verified (PAID)
+                                                ✓ Remitted to Finance
                                             </span>
                                             @if($tc->adminVerifier)
                                                 <div style="font-size: 11px; color: #065f46; margin-top: 3px; font-weight: 600;">
@@ -562,10 +562,14 @@
                                         <div style="font-size: 10px; color: var(--text-muted); font-weight: normal;">(Principal+Int+Ins)</div>
                                     </td>
                                     <td>
-                                        @if($p->status === 'processing')
-                                            <span class="badge badge-amber">⏳ Processing (Pending Remittance)</span>
+                                        @if(!$p->remitted_at)
+                                            <span class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 700; font-size: 11px;">
+                                                ✓ PAID (Pending Remit)
+                                            </span>
                                         @else
-                                            <span class="badge badge-emerald">✓ PAID</span>
+                                            <span class="badge badge-emerald" style="font-weight: 700; font-size: 11px;">
+                                                ✓ Remitted to Finance
+                                            </span>
                                             @if($p->adminVerifier)
                                                 <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
                                                     Verified by: {{ $p->adminVerifier->name }}
@@ -576,7 +580,7 @@
                                     <td>
                                         @if($p->proof_image_path)
                                             <a href="{{ asset($p->proof_image_path) }}" target="_blank" class="btn btn-sm btn-outline">
-                                                View Proof
+                                                 View Proof
                                             </a>
                                         @else
                                             <span style="color: var(--text-muted); font-size: 11.5px;">None</span>
@@ -609,7 +613,7 @@
                         <div style="font-size: 12px; color: #065f46; font-weight: 600;">Total Cash to Turn Over to Finance:</div>
                         <div style="font-size: 26px; font-weight: 800; color: #059669; margin: 2px 0;">₱{{ number_format($todayProcessingAmount, 2) }}</div>
                         <div style="font-size: 12px; color: #047857;">
-                            {{ $pendingRemittanceCount }} client collections will be updated from <strong>Processing</strong> to <strong>PAID</strong>.
+                            {{ $pendingRemittanceCount }} client collections will be turned over to Admin Finance and recorded into the Host Vault.
                         </div>
                     </div>
 

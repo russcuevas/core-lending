@@ -113,19 +113,8 @@ class HostApprovalController extends Controller
             'is_read' => true,
             'host_id' => Auth::id(),
             'approved_at' => Carbon::now(),
-            'host_notes' => $request->notes ?? "Physical cash received and vault ledger updated.",
+            'host_notes' => $request->notes ?? "Physical cash received and acknowledged by Host.",
         ]);
-
-        // Host Vault Inflow Ledger entry
-        HostVaultLedger::logEntry(
-            'in',
-            'cash_turnover',
-            $turnover->total_amount,
-            "Physical Cash Turnover received from Finance Officer {$turnover->admin->name} (Ref: {$turnover->turnover_reference})",
-            'CashTurnover',
-            $turnover->id,
-            Auth::id()
-        );
 
         // Notify Finance Officer
         SystemNotification::sendNotification(
@@ -137,7 +126,7 @@ class HostApprovalController extends Controller
             '/admin/releasing/dashboard'
         );
 
-        return redirect()->to(route('host.approvals.index') . '#tab-turnovers')->with('success', "✓ Cash Turnover #{$turnover->turnover_reference} (₱" . number_format($turnover->total_amount, 2) . ") approved and added to Host Vault balance!");
+        return redirect()->to(route('host.approvals.index') . '#tab-turnovers')->with('success', "✓ Cash Turnover #{$turnover->turnover_reference} (₱" . number_format($turnover->total_amount, 2) . ") acknowledged and approved!");
     }
 
     public function declineCashTurnover(Request $request, CashTurnover $turnover)

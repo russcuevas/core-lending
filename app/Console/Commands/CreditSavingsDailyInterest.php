@@ -85,15 +85,6 @@ class CreditSavingsDailyInterest extends Command
                     'user_balance_after' => $client->wallet_balance,
                 ]);
 
-                HostVaultLedger::logEntry(
-                    'out',
-                    'savings_daily_interest',
-                    $dailyInterest,
-                    "Daily Interest Payout to {$client->user->name} for Savings #{$savings->id} (Day {$nextDay}/{$lockInDays}).",
-                    'SavingsAccount',
-                    $savings->id
-                );
-
                 SystemNotification::sendNotification(
                     $client->user_id,
                     'client',
@@ -145,15 +136,6 @@ class CreditSavingsDailyInterest extends Command
             'releasing_notes' => "Savings Fund #{$savings->id} Matured: ₱" . number_format($deposit, 2) . " Capital Deposit + ₱" . number_format($remainingInterest, 2) . " (Day {$savings->lock_in_days} Final Interest) credited to wallet.",
             'user_balance_after' => $client->wallet_balance,
         ]);
-
-        HostVaultLedger::logEntry(
-            'out',
-            'savings_payout',
-            $totalPayout,
-            "Matured Savings Payout to {$client->user->name}: ₱" . number_format($deposit, 2) . " Capital + ₱" . number_format($remainingInterest, 2) . " final interest.",
-            'SavingsAccount',
-            $savings->id
-        );
 
         SystemNotification::sendNotification(
             $client->user_id,

@@ -220,14 +220,14 @@
         <!-- Document Header -->
         <div class="header">
             <h1>CORE LENDING CORPORATION</h1>
-            <h2>EXECUTIVE FINANCIAL STATEMENT & AUDIT REPORT</h2>
-            <div style="font-size: 11px; color: #333;">Comprehensive Financial Operations & Micro-Insurance Summary</div>
+            <h2>FINANCIAL REPORT & PROFIT / LOSS STATEMENT</h2>
+            <div style="font-size: 11px; color: #333;">Executive Financial Performance, Operations & Vault Summary</div>
         </div>
 
         <!-- Meta Information -->
         <div class="meta-info">
             <div>
-                <strong>Audit Period:</strong> {{ \Carbon\Carbon::parse($startDate)->format('F d, Y') }} to {{ \Carbon\Carbon::parse($endDate)->format('F d, Y') }}
+                <strong>Report Period:</strong> {{ \Carbon\Carbon::parse($startDate)->format('F d, Y') }} to {{ \Carbon\Carbon::parse($endDate)->format('F d, Y') }}
             </div>
             <div>
                 <strong>Generated On:</strong> {{ \Carbon\Carbon::now()->format('F d, Y h:i A') }} | 
@@ -235,8 +235,72 @@
             </div>
         </div>
 
-        <!-- 1. Financial Key Performance Indicators Summary -->
-        <div class="section-heading">1. Financial Inflow & Outflow Summary ({{ $startDate }} to {{ $endDate }})</div>
+        <!-- 1. Executive Profit & Loss Statement -->
+        <div class="section-heading">1. Executive Profit & Loss Statement (Income - Expense)</div>
+        <table class="plain-table">
+            <thead>
+                <tr>
+                    <th style="width: 40%;">Classification / Account Particulars</th>
+                    <th style="width: 25%;">Category</th>
+                    <th class="text-right" style="width: 35%;">Amount (₱)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Income Components -->
+                <tr style="background-color: #f8fafc; font-weight: bold;">
+                    <td colspan="3">A. TOTAL INCOME COMPONENTS</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 20px;">• Actual Money Vault Balance</td>
+                    <td>Vault Reserve (+)</td>
+                    <td class="text-right">₱{{ number_format($actualMoneyVault, 2) }}</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 20px;">• Loan Premium Balance (All Clients)</td>
+                    <td>Active Receivables (+)</td>
+                    <td class="text-right">₱{{ number_format($loanPremiumBalanceAll, 2) }}</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 20px;">• Insurance Premium Balance</td>
+                    <td>Micro-Insurance Reserve (+)</td>
+                    <td class="text-right">₱{{ number_format($insurancePremiumBalanceAll, 2) }}</td>
+                </tr>
+                <tr style="font-weight: bold; background-color: #f0fdf4;">
+                    <td colspan="2" class="text-right">SUBTOTAL INCOME:</td>
+                    <td class="text-right" style="color: #166534;">₱{{ number_format($totalIncome, 2) }}</td>
+                </tr>
+
+                <!-- Expense Components -->
+                <tr style="background-color: #f8fafc; font-weight: bold;">
+                    <td colspan="3">B. TOTAL EXPENSE COMPONENTS</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 20px;">• Office Operating Expenses</td>
+                    <td>Operations (-)</td>
+                    <td class="text-right">₱{{ number_format($allTimeExpensesTotal, 2) }}</td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 20px;">• Savings Interest Credited (All Clients)</td>
+                    <td>Client Yield Cost (-)</td>
+                    <td class="text-right">₱{{ number_format($allClientsSavingsInterest, 2) }}</td>
+                </tr>
+                <tr style="font-weight: bold; background-color: #fef2f2;">
+                    <td colspan="2" class="text-right">SUBTOTAL EXPENSE:</td>
+                    <td class="text-right" style="color: #991b1b;">₱{{ number_format($totalExpense, 2) }}</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr class="total-row" style="background-color: #f1f5f9; font-size: 13px;">
+                    <td colspan="2" class="text-right">NET PROFIT / (LOSS) [Income - Expense]:</td>
+                    <td class="text-right" style="font-weight: 900; color: {{ $profitAndLoss >= 0 ? '#15803d' : '#b91c1c' }};">
+                        {{ $profitAndLoss >= 0 ? '+' : '' }}₱{{ number_format($profitAndLoss, 2) }}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- 2. Financial Inflow & Outflow Summary -->
+        <div class="section-heading">2. Financial Inflow, Outflow & Vault Metrics ({{ $startDate }} to {{ $endDate }})</div>
         <table class="plain-table">
             <thead>
                 <tr>
@@ -266,16 +330,22 @@
                     <td>Guaranteed pool for borrower protections</td>
                 </tr>
                 <tr>
-                    <td><strong>Total Client Savings Deposited</strong></td>
-                    <td>Deposit Inflow (+)</td>
-                    <td class="text-right" style="font-weight: bold;">₱{{ number_format($savingsTotal, 2) }}</td>
-                    <td>60-Day term locked-in savings capital</td>
+                    <td><strong>Total Vault Savings</strong></td>
+                    <td>Deposit Reserve (+)</td>
+                    <td class="text-right" style="font-weight: bold;">₱{{ number_format($totalVaultSavings, 2) }}</td>
+                    <td>Locked savings capital funds</td>
+                </tr>
+                <tr>
+                    <td><strong>Total Client Wallet</strong></td>
+                    <td>Floating In Client Accounts</td>
+                    <td class="text-right" style="font-weight: bold;">₱{{ number_format($totalClientWallet, 2) }}</td>
+                    <td>Total wallet funds floating across all client accounts</td>
                 </tr>
                 <tr>
                     <td><strong>Total Savings Interest Earned</strong></td>
-                    <td>Client Yield / Outflow</td>
+                    <td>Client Yield</td>
                     <td class="text-right" style="font-weight: bold;">₱{{ number_format($savingsInterestTotal, 2) }}</td>
-                    <td>Interest earned by clients (₱{{ number_format($savingsExpectedInterestTotal, 2) }} total expected)</td>
+                    <td>Interest earned in period (₱{{ number_format($savingsExpectedInterestTotal, 2) }} total expected yield)</td>
                 </tr>
                 <tr>
                     <td><strong>Total Cash-Out / Disbursements Released</strong></td>
@@ -287,7 +357,7 @@
                     <td><strong>Total Operating Expenses</strong></td>
                     <td>Outflow (-)</td>
                     <td class="text-right" style="font-weight: bold;">₱{{ number_format($expensesTotal, 2) }}</td>
-                    <td>Office operations, supplies & utility disbursements</td>
+                    <td>Office operations, supplies & utility disbursements in period</td>
                 </tr>
             </tbody>
             <tfoot>
@@ -302,8 +372,8 @@
             </tfoot>
         </table>
 
-        <!-- 2. Detailed Daily Loan Payment Collections -->
-        <div class="section-heading">2. Loan Collections Ledger Breakdown ({{ $payments->count() }} Payments)</div>
+        <!-- 3. Detailed Daily Loan Payment Collections -->
+        <div class="section-heading">3. Loan Collections Ledger Breakdown ({{ $payments->count() }} Payments)</div>
         <table class="plain-table">
             <thead>
                 <tr>
@@ -360,9 +430,9 @@
             </tfoot>
         </table>
 
-        <!-- 3. Operational Expenses Breakdown -->
+        <!-- 4. Operational Expenses Breakdown -->
         @if($expenses->isNotEmpty())
-            <div class="section-heading">3. Operating Expenses Breakdown ({{ $expenses->count() }} Records)</div>
+            <div class="section-heading">4. Operating Expenses Breakdown ({{ $expenses->count() }} Records)</div>
             <table class="plain-table">
                 <thead>
                     <tr>

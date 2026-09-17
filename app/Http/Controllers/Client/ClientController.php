@@ -313,17 +313,6 @@ class ClientController extends Controller
             );
         }
 
-        // Host Vault Inflow Ledger
-        HostVaultLedger::logEntry(
-            'in',
-            'savings_deposit',
-            $deposit,
-            "Client {$client->user->name} deposited ₱" . number_format($deposit, 2) . " to {$lockInDays}-day {$interestRate}% savings fund.",
-            'SavingsAccount',
-            $savings->id,
-            Auth::id()
-        );
-
         return back()->with('success', "Savings Plan activated! ₱" . number_format($deposit, 2) . " locked for {$lockInDays} days ({$interestRate}% return). Daily interest of ₱" . number_format($dailyInterestAmount, 2) . " will be credited directly to your wallet.");
     }
 
@@ -399,16 +388,6 @@ class ClientController extends Controller
                 'user_balance_after' => $client->wallet_balance,
             ]);
 
-            HostVaultLedger::logEntry(
-                'out',
-                'savings_daily_interest',
-                $dailyInterest,
-                "Daily Interest Payout to {$client->user->name} for Savings #{$savings->id} (Day {$nextDay}/{$lockInDays}).",
-                'SavingsAccount',
-                $savings->id,
-                Auth::id()
-            );
-
             SystemNotification::sendNotification(
                 $user->id,
                 'client',
@@ -467,18 +446,7 @@ class ClientController extends Controller
             'user_balance_after' => $client->wallet_balance,
         ]);
 
-        // 4. Log Host Vault Outflow
-        HostVaultLedger::logEntry(
-            'out',
-            'savings_payout',
-            $totalPayout,
-            "Matured Savings Payout to {$client->user->name}: ₱" . number_format($deposit, 2) . " Capital + ₱" . number_format($remainingInterest, 2) . " final interest.",
-            'SavingsAccount',
-            $savings->id,
-            Auth::id()
-        );
-
-        // 5. System Notification
+        // 4. System Notification
         SystemNotification::sendNotification(
             $user->id,
             'client',
