@@ -69,6 +69,11 @@ class CollectorController extends Controller
             ->take(50)
             ->get();
 
+        $financeOfficers = User::whereIn('role', ['admin_releasing', 'host'])
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
+
         return view('collector.dashboard', compact(
             'collector',
             'assignedClients',
@@ -80,7 +85,8 @@ class CollectorController extends Controller
             'pendingRemittanceCount',
             'delinquentClients',
             'recentPayments',
-            'remittanceHistory'
+            'remittanceHistory',
+            'financeOfficers'
         ));
     }
 
@@ -292,6 +298,7 @@ class CollectorController extends Controller
     public function remitCollections(Request $request)
     {
         $request->validate([
+            'admin_id' => 'nullable|exists:users,id',
             'admin_pin' => 'required|digits:4',
             'payment_ids' => 'nullable|array',
             'payment_ids.*' => 'exists:loan_payments,id',
@@ -301,16 +308,31 @@ class CollectorController extends Controller
         $user = Auth::user();
         $collector = $user->collector ?? Collector::firstOrCreate(['user_id' => $user->id]);
 
-        // Find Admin Finance / Host user by PIN
-        $adminUser = \App\Models\User::whereIn('role', ['admin_releasing', 'host'])
-            ->where('status', 'active')
-            ->get()
-            ->first(function ($admin) use ($request) {
-                return ($admin->pin_code === $request->admin_pin) || Hash::check($request->admin_pin, $admin->password);
-            });
+        if ($request->filled('admin_id')) {
+            $adminUser = \App\Models\User::whereIn('role', ['admin_releasing', 'host'])
+                ->where('status', 'active')
+                ->find($request->admin_id);
 
-        if (!$adminUser) {
-            return back()->with('error', 'Invalid Admin Finance PIN code. Remittance verification failed.');
+            if (!$adminUser) {
+                return back()->with('error', 'Selected Finance Officer is not valid or active.');
+            }
+
+            $isPinValid = ($adminUser->pin_code === $request->admin_pin) || Hash::check($request->admin_pin, $adminUser->password);
+            if (!$isPinValid) {
+                return back()->with('error', "Incorrect Security PIN code for {$adminUser->name}. Remittance verification failed.");
+            }
+        } else {
+            // Fallback for direct PIN lookup
+            $adminUser = \App\Models\User::whereIn('role', ['admin_releasing', 'host'])
+                ->where('status', 'active')
+                ->get()
+                ->first(function ($admin) use ($request) {
+                    return ($admin->pin_code === $request->admin_pin) || Hash::check($request->admin_pin, $admin->password);
+                });
+
+            if (!$adminUser) {
+                return back()->with('error', 'Invalid Admin Finance PIN code. Remittance verification failed.');
+            }
         }
 
         // Query unremitted payments

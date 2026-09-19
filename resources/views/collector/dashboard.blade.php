@@ -617,12 +617,28 @@
                         </div>
                     </div>
 
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="form-label" style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">
+                            👤 Receiving Finance Officer / Host *
+                        </label>
+                        <select name="admin_id" class="form-control" required style="font-weight: 600; font-size: 14.5px; padding: 10px 12px; border-radius: var(--radius-md);">
+                            <option value="" disabled selected>-- Select Duty Finance Officer --</option>
+                            @if(isset($financeOfficers) && $financeOfficers->count() > 0)
+                                @foreach($financeOfficers as $officer)
+                                    <option value="{{ $officer->id }}">
+                                        {{ $officer->name }} ({{ $officer->role === 'host' ? 'Host Superadmin' : 'Admin Finance' }})
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+
                     <div class="form-group" style="text-align: center;">
-                        <label class="form-label" style="font-weight: 700; font-size: 13.5px; margin-bottom: 8px;">
-                            🔒 Admin Finance 4-Digit Security PIN *
+                        <label class="form-label" style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">
+                            🔒 Officer 4-Digit Security PIN *
                         </label>
                         <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-                            Ipa-input sa naka-duty na <strong>Admin Finance Officer</strong> ang kanilang Security PIN. Ang kanilang pangalan at oras ng pag-remit ay awtomatikong mai-save bilang iyong opisyal na patunay.
+                            Ipa-input sa napiling <strong>Finance Officer</strong> ang kanilang 4-Digit Security PIN upang kumpirmahin ang remittance turnover.
                         </p>
                         <input type="password" name="admin_pin" maxlength="4" inputmode="numeric" class="form-control" placeholder="••••" required style="letter-spacing: 12px; font-size: 26px; text-align: center; max-width: 220px; font-weight: 800; margin: 0 auto;">
                     </div>
