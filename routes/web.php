@@ -133,3 +133,38 @@ Route::middleware(['auth', 'role:client'])->prefix('client')->name('client.')->g
     Route::post('/savings/{savings}/mature', [ClientController::class, 'matureSavings'])->name('savings.mature');
     Route::post('/change-pin', [ClientController::class, 'changePin'])->name('change_pin');
 });
+
+// 6. SECURE CLOUD CRON TRIGGER (For cron-job.org / External Cron / Hostinger Curl)
+Route::get('/api/cron/run-daily-tasks/{secret_key}', function ($secretKey) {
+    // Secret verification to prevent unauthorized runs
+    $expectedKey = env('CRON_SECRET_KEY', 'core_lending_daily_auto_cron_2026');
+    if ($secretKey !== $expectedKey) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Unauthorized: Invalid secret key.',
+        ], 403);
+    }
+
+    try {
+        // Run loan daily deductions
+        \Illuminate\Support\Facades\Artisan::call('loan:auto-deduct-daily-payments');
+        $loanOutput = \Illuminate\Support\Facades\Artisan::output();
+
+        // Run savings daily interest
+        \Illuminate\Support\Facades\Artisan::call('savings:credit-daily-interest');
+        $savingsOutput = \Illuminate\Support\Facades\Artisan::output();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Daily tasks executed successfully.',
+            'server_time' => now()->toDateTimeString(),
+            'loan_output' => trim($loanOutput),
+            'savings_output' => trim($savingsOutput),
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+});

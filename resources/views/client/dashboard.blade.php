@@ -588,11 +588,6 @@
             <div class="host-approval-grid">
                 @foreach ($savingsAccounts as $sav)
                     @php
-                        $remainingInterest = max(
-                            0,
-                            (float) $sav->total_expected_interest - (float) $sav->accumulated_interest_paid,
-                        );
-                        $finalPayout = (float) $sav->deposit_amount + $remainingInterest;
                         $progressPercent =
                             $sav->lock_in_days > 0
                                 ? min(100, round(($sav->days_credited / $sav->lock_in_days) * 100))
@@ -653,31 +648,7 @@
                                 </span>
                             </div>
 
-                            @if ($sav->status === 'active')
-                                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
-                                    <!-- Test/Simulate 1-Day Daily Interest -->
-                                    <form action="{{ route('client.savings.simulate_day', $sav->id) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline"
-                                            style="width: 100%; font-size: 11.5px; border-color: #059669; color: #047857; display: flex; align-items: center; justify-content: center; gap: 4px;"
-                                            title="Credit 1 day of daily interest to wallet balance">
-                                            <span>⚡ Test: Credit +1 Day Interest
-                                                (+₱{{ number_format($sav->daily_interest_amount, 2) }})</span>
-                                        </button>
-                                    </form>
-
-                                    <!-- Fast-forward Maturity -->
-                                    <form action="{{ route('client.savings.mature', $sav->id) }}" method="POST"
-                                        onsubmit="return confirm('⚡ DEMO / FAST-FORWARD: Settle Maturity now?\n\nCapital Deposit: ₱{{ number_format($sav->deposit_amount, 2) }}\nRemaining Uncredited Interest: ₱{{ number_format($remainingInterest, 2) }}\nTOTAL MATURITY PAYOUT: ₱{{ number_format($finalPayout, 2) }}\n\nThis will credit ₱{{ number_format($finalPayout, 2) }} directly to your Available Wallet Balance!')">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-emerald"
-                                            style="width: 100%; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(5,150,105,0.25);">
-                                            <span>⚡ Settle Maturity (Capital ₱{{ number_format($sav->deposit_amount, 2) }}
-                                                + ₱{{ number_format($remainingInterest, 2) }} Interest)</span>
-                                        </button>
-                                    </form>
-                                </div>
-                            @else
+                            @if ($sav->status === 'matured')
                                 <div
                                     style="margin-top: 10px; background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.25); border-radius: 6px; padding: 8px 10px; font-size: 11.5px; color: #047857; font-weight: 600; text-align: center;">
                                     ✓ Matured & Full Capital (+₱{{ number_format($sav->deposit_amount, 2) }}) and Total
